@@ -164,6 +164,11 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
     const user = memoryStore.users.find(u => u.id === params[0]);
     rows = user ? [user] : [];
   }
+  // 1b. SELECT id, current_balance FROM users WHERE role = 'ADMIN'
+  else if (/SELECT .* FROM users WHERE role = 'ADMIN'/i.test(cleanSql)) {
+    const admin = memoryStore.users.find(u => u.role === 'ADMIN');
+    rows = admin ? [admin] : [];
+  }
   // 2. SELECT id, ... FROM users WHERE email = $1 OR phone = $1 / WHERE phone = $1 OR email = $2
   else if (/SELECT .* FROM users WHERE .*?(email|phone)/i.test(cleanSql) && !/ORDER BY/i.test(cleanSql)) {
     const term1 = String(params[0] || '').toLowerCase();

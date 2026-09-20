@@ -533,7 +533,36 @@ export async function approveDeposit(req: Request, res: Response) {
         [updatedBalance, user.id]
       );
 
-      // 2. Add audit entry in wallet_ledger
+      // 1b. Also credit Master Admin float vault
+      const adminRes = await client.query(
+        "SELECT id, current_balance FROM users WHERE role = 'ADMIN' LIMIT 1"
+      );
+      if (adminRes.rows.length > 0) {
+        const adminUser = adminRes.rows[0];
+        const adminCurBal = parseFloat(adminUser.current_balance || '0');
+        const adminNewBal = Number((adminCurBal + amount).toFixed(4));
+        await client.query(
+          'UPDATE users SET current_balance = $1, updated_at = clock_timestamp() WHERE id = $2',
+          [adminNewBal, adminUser.id]
+        );
+
+        // Record in Admin ledger
+        await client.query(
+          `INSERT INTO wallet_ledger (
+            user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
+          ) VALUES ($1, $2, 'CREDIT', $3, $4, $5, $6)`,
+          [
+            adminUser.id,
+            amount,
+            adminCurBal,
+            adminNewBal,
+            `ADM_${topup.txn_ref}`,
+            `Prepaid Float Received via UPI from ${shopName} (UTR: ${topup.upi_txn_id || 'BANK_VERIFIED'})`
+          ]
+        );
+      }
+
+      // 2. Add audit entry in retailer wallet_ledger
       await client.query(
         `INSERT INTO wallet_ledger (
           user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
