@@ -47,12 +47,12 @@ export const TriHubPayLogo: React.FC<TriHubPayLogoProps> = ({
       </div>
 
       {/* Typography: Royal Blue & Emerald Green */}
-      <div>
-        <div className={`font-black tracking-tight leading-none flex items-center gap-1.5 ${titleSizes}`}>
-          <span className="text-blue-500 font-extrabold tracking-wider">TRIHUB</span>
-          <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent font-bold">PAY</span>
+      <div className="flex flex-col">
+        <div className={`font-black tracking-tight leading-none flex items-center ${titleSizes}`}>
+          <span className="text-blue-600 font-extrabold tracking-tight">TriHub</span>
+          <span className="bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent font-black">Pay</span>
           {showSubtitle && subtitleText !== 'Pay' && (
-            <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent font-bold">
+            <span className="ml-1 bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent font-bold">
               {subtitleText}
             </span>
           )}

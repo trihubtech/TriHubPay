@@ -125,9 +125,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
         </div>
 
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-white flex items-center justify-center gap-2">
-            <span className="text-blue-600 dark:text-blue-500 font-extrabold tracking-wider">TRIHUB</span>
-            <span className="bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-400 dark:to-teal-300 bg-clip-text text-transparent">PAY</span>
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-white flex items-center justify-center">
+            <span className="text-blue-600 dark:text-blue-500 font-extrabold tracking-tight">TriHub</span>
+            <span className="bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-400 dark:to-teal-300 bg-clip-text text-transparent font-black">Pay</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-sm mx-auto mt-1">
             {isAdminPortal 
