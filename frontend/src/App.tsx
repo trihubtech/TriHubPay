@@ -29,6 +29,7 @@ import { AuthPage } from './components/auth/AuthPage';
 import { TriHubLogo } from './components/common/TriHubLogo';
 import { ThemeToggle } from './components/common/ThemeToggle';
 import { AppInstallPrompt } from './components/common/AppInstallPrompt';
+import { SignOutConfirmModal } from './components/common/SignOutConfirmModal';
 
 import { 
   ShieldCheck, 
@@ -55,6 +56,7 @@ export function App() {
   const [welcomeBanner, setWelcomeBanner] = useState<string>('');
   const [retailerTab, setRetailerTab] = useState<'RECHARGE' | 'PASSBOOK' | 'COMMISSIONS'>('RECHARGE');
   const [isShopInfoOpen, setIsShopInfoOpen] = useState<boolean>(false);
+  const [isSignOutConfirmOpen, setIsSignOutConfirmOpen] = useState<boolean>(false);
 
   // Admin states
   const [adminKPIs, setAdminKPIs] = useState<DashboardKPIs | null>(null);
@@ -226,7 +228,7 @@ export function App() {
             <ThemeToggle />
 
             <button
-              onClick={handleLogout}
+              onClick={() => setIsSignOutConfirmOpen(true)}
               title="Sign Out"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 hover:text-rose-600 dark:text-slate-300 dark:hover:text-rose-400 border border-slate-300 dark:border-slate-700 text-xs font-semibold transition-colors"
             >
@@ -444,7 +446,7 @@ export function App() {
             isOpen={isShopInfoOpen}
             onClose={() => setIsShopInfoOpen(false)}
             user={currentUser}
-            onLogout={handleLogout}
+            onLogout={() => setIsSignOutConfirmOpen(true)}
           />
         </main>
       )}
@@ -590,6 +592,15 @@ export function App() {
           />
         </main>
       )}
+
+      {/* Global Sign Out Confirmation Modal */}
+      <SignOutConfirmModal
+        isOpen={isSignOutConfirmOpen}
+        onClose={() => setIsSignOutConfirmOpen(false)}
+        onConfirm={handleLogout}
+        userName={currentUser?.organization_name}
+        userRole={currentUser?.role === 'ADMIN' ? 'Platform Master Admin' : 'Retailer Partner'}
+      />
     </div>
   );
 }
