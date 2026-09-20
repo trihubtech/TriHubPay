@@ -96,6 +96,7 @@ export async function query<T extends QueryResultRow = any>(
     await checkConnection();
     if (isPostgresAvailable) {
       console.log('✅ [DATABASE ENGINE] Connected to live PostgreSQL server.');
+      pool.query(`ALTER TABLE wallet_topups ADD COLUMN IF NOT EXISTS admin_remarks TEXT;`).catch(() => {});
     } else {
       console.log('ℹ️ [DATABASE ENGINE] PostgreSQL is offline on port 5432. Active: High-Fidelity In-Memory Store with TriHub Technologies seed data.');
     }
@@ -403,6 +404,21 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
             current_wallet_balance: u?.current_balance || '0.0000'
           };
         });
+    } else if (/WHERE user_id = \$1/i.test(cleanSql)) {
+      const uid = params[0];
+      rows = memoryStore.wallet_topups
+        .filter(t => t.user_id === uid)
+        .map(t => ({
+          id: t.id,
+          txn_ref: t.txn_ref,
+          amount: t.amount,
+          utr_number: t.upi_txn_id,
+          status: t.status,
+          admin_remarks: t.admin_remarks || (t.status === 'COMPLETED' ? 'Deposit Approved & Credited to Wallet' : t.status === 'REJECTED' ? 'Bank transfer not received' : null),
+          created_at: t.created_at,
+          completed_at: t.completed_at
+        }))
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     } else if (/WHERE id = \$1/i.test(cleanSql)) {
       const topup = memoryStore.wallet_topups.find(t => t.id === params[0]);
       rows = topup ? [topup] : [];
@@ -438,13 +454,16 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
       const topup = memoryStore.wallet_topups.find(t => t.id === id || t.txn_ref === id);
       if (topup) {
         topup.status = 'COMPLETED';
+        topup.admin_remarks = 'Deposit Approved & Credited to Wallet';
         topup.completed_at = new Date().toISOString();
       }
     } else if (/status = 'REJECTED'/i.test(cleanSql)) {
+      const reason = params[0];
       const id = params[params.length - 1];
       const topup = memoryStore.wallet_topups.find(t => t.id === id || t.txn_ref === id);
       if (topup) {
         topup.status = 'REJECTED';
+        topup.admin_remarks = reason || 'Bank transfer not received';
         topup.completed_at = new Date().toISOString();
       }
     }

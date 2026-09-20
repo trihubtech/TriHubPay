@@ -581,6 +581,7 @@ export async function approveDeposit(req: Request, res: Response) {
       await client.query(
         `UPDATE wallet_topups SET 
           status = 'COMPLETED',
+          admin_remarks = 'Deposit Approved & Credited to Wallet',
           completed_at = clock_timestamp()
          WHERE id = $1`,
         [id]
@@ -607,13 +608,15 @@ export async function rejectDeposit(req: Request, res: Response) {
   try {
     const { id } = req.params;
     const { reason } = req.body;
+    const adminRemarks = reason && String(reason).trim() ? String(reason).trim() : 'Bank transfer not received. Please verify with your bank.';
 
     await query(
       `UPDATE wallet_topups SET 
         status = 'REJECTED',
+        admin_remarks = $1,
         completed_at = clock_timestamp()
-       WHERE id = $1`,
-      [id]
+       WHERE id = $2`,
+      [adminRemarks, id]
     );
 
     return res.json({

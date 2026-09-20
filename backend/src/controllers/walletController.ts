@@ -244,3 +244,34 @@ export async function getLedgerHistory(req: Request, res: Response) {
     return res.status(500).json({ success: false, message: error.message });
   }
 }
+
+/**
+ * Fetch all UPI deposit requests and approvals for the logged-in retailer
+ */
+export async function getMyDeposits(req: Request, res: Response) {
+  try {
+    const userId = req.user!.id;
+    const result = await query(
+      `SELECT 
+        id, 
+        txn_ref, 
+        amount, 
+        upi_txn_id as utr_number, 
+        status, 
+        admin_remarks, 
+        created_at, 
+        completed_at
+       FROM wallet_topups
+       WHERE user_id = $1
+       ORDER BY created_at DESC`,
+      [userId]
+    );
+
+    return res.json({
+      success: true,
+      data: result.rows
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}

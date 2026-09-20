@@ -34,6 +34,7 @@ router.get('/wallet/balance', authenticate, walletController.getBalance);
 router.post('/wallet/topup/upi', authenticate, walletController.generateUpiTopup);
 router.post('/wallet/topup/submit', authenticate, walletController.submitUpiDeposit);
 router.post('/wallet/topup/confirm', authenticate, walletController.confirmUpiTopup);
+router.get('/wallet/deposits', authenticate, walletController.getMyDeposits);
 router.get('/wallet/ledger', authenticate, walletController.getLedgerHistory);
 
 // -------------------------------------------------------------

@@ -8,7 +8,8 @@ import {
   DashboardKPIs,
   CommissionMatrixItem,
   ShopCustomCommission,
-  ElectricityBillDetails
+  ElectricityBillDetails,
+  DepositRequest
 } from '../types';
 
 const API_BASE = '/api';
@@ -219,6 +220,10 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ txn_ref, utr_number })
     });
+  },
+
+  async getMyDeposits() {
+    return request<{ success: boolean; data: DepositRequest[] }>('/wallet/deposits');
   },
 
   async confirmUpiTopup(txn_ref: string, upi_txn_id?: string) {

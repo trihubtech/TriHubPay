@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { X, QrCode, ArrowRight, CheckCircle2, ShieldCheck, Copy, ExternalLink, Clock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, QrCode, ArrowRight, CheckCircle2, ShieldCheck, Copy, ExternalLink, Clock, History, AlertCircle, XCircle, RefreshCw, Loader2 } from 'lucide-react';
 import { api } from '../../services/api';
+import { DepositRequest } from '../../types';
 
 interface UpiTopupModalProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface UpiTopupModalProps {
 const PRESET_AMOUNTS = [500, 1000, 2000, 5000, 10000];
 
 export const UpiTopupModal: React.FC<UpiTopupModalProps> = ({ isOpen, onClose }) => {
+  const [activeTab, setActiveTab] = useState<'TOPUP' | 'HISTORY'>('TOPUP');
   const [amount, setAmount] = useState<number>(1000);
   const [loading, setLoading] = useState<boolean>(false);
   const [qrData, setQrData] = useState<{
@@ -26,6 +28,30 @@ export const UpiTopupModal: React.FC<UpiTopupModalProps> = ({ isOpen, onClose })
   const [submitted, setSubmitted] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
+
+  // Deposit history state
+  const [deposits, setDeposits] = useState<DepositRequest[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
+
+  const loadDepositHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const res = await api.getMyDeposits();
+      if (res.success) {
+        setDeposits(res.data);
+      }
+    } catch (err: any) {
+      console.error('Failed to load deposit history', err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen && activeTab === 'HISTORY') {
+      loadDepositHistory();
+    }
+  }, [isOpen, activeTab]);
 
   if (!isOpen) return null;
 
@@ -87,60 +113,217 @@ export const UpiTopupModal: React.FC<UpiTopupModalProps> = ({ isOpen, onClose })
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850">
           <div className="flex items-center gap-2">
             <QrCode className="w-5 h-5 text-brand-500" />
-            <h3 className="font-bold text-lg text-slate-900 dark:text-white">Prepaid Wallet UPI Deposit</h3>
+            <h3 className="font-bold text-lg text-slate-900 dark:text-white">Prepaid Wallet Top-up</h3>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-5">
-          {errorMsg && (
-            <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs rounded-xl">
-              {errorMsg}
-            </div>
-          )}
+        {/* Tab Selector */}
+        <div className="flex border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 px-6 pt-2">
+          <button
+            onClick={() => setActiveTab('TOPUP')}
+            className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-colors flex items-center gap-1.5 ${
+              activeTab === 'TOPUP'
+                ? 'border-brand-500 text-brand-600 dark:text-brand-400'
+                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+            }`}
+          >
+            <QrCode className="w-3.5 h-3.5" />
+            <span>Add Money (UPI QR)</span>
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('HISTORY');
+              loadDepositHistory();
+            }}
+            className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-colors flex items-center gap-1.5 ${
+              activeTab === 'HISTORY'
+                ? 'border-brand-500 text-brand-600 dark:text-brand-400'
+                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+            }`}
+          >
+            <History className="w-3.5 h-3.5" />
+            <span>Deposit History & Status</span>
+          </button>
+        </div>
 
-          {submitted ? (
-            /* Submission Success & Verification Pending View */
-            <div className="text-center space-y-4 py-2">
-              <div className="w-14 h-14 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-500 border border-amber-200 dark:border-amber-800/60 flex items-center justify-center mx-auto">
-                <Clock className="w-7 h-7 animate-pulse" />
-              </div>
-
-              <div>
-                <h4 className="text-lg font-bold text-slate-900 dark:text-white">
-                  Payment Submitted for Verification!
-                </h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Your deposit of <span className="font-bold font-mono text-slate-900 dark:text-white">₹{qrData?.amount}</span> with UTR <span className="font-bold font-mono text-brand-600 dark:text-brand-400">{utrNumber}</span> has been sent to TriHub Admin.
-                </p>
-              </div>
-
-              <div className="p-3.5 bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-xl text-left text-xs space-y-1 text-slate-600 dark:text-slate-400">
-                <div className="flex items-center gap-1.5 font-semibold text-slate-800 dark:text-slate-200">
-                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                  <span>Verification Policy</span>
-                </div>
-                <p className="text-[11px] text-slate-500 leading-relaxed">
-                  Admin verifies bank credit against your UTR. Your wallet balance will update automatically once verified (usually within 5-10 minutes).
-                </p>
-              </div>
-
+        {/* Tab 2: Deposit History & Rejection Reasons */}
+        {activeTab === 'HISTORY' ? (
+          <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                Your Past Deposit Submissions
+              </span>
               <button
-                onClick={onClose}
-                className="w-full bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 py-3 rounded-xl font-bold text-sm transition-colors shadow-sm"
+                onClick={loadDepositHistory}
+                disabled={loadingHistory}
+                className="flex items-center gap-1 text-[11px] font-semibold text-brand-600 dark:text-brand-400 hover:underline"
               >
-                Close & Return to Dashboard
+                <RefreshCw className={`w-3 h-3 ${loadingHistory ? 'animate-spin' : ''}`} />
+                <span>Refresh</span>
               </button>
             </div>
-          ) : !qrData ? (
+
+            {loadingHistory ? (
+              <div className="p-8 text-center text-slate-400 text-xs flex items-center justify-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Loading deposit history...</span>
+              </div>
+            ) : deposits.length === 0 ? (
+              <div className="p-8 text-center space-y-2">
+                <History className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto" />
+                <p className="text-xs font-bold text-slate-600 dark:text-slate-400">No deposit requests yet</p>
+                <p className="text-[11px] text-slate-400">Your submitted UPI deposits and admin approvals will appear here.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {deposits.map((dep) => {
+                  const isApproved = dep.status === 'COMPLETED';
+                  const isRejected = dep.status === 'REJECTED';
+                  const isPending = dep.status === 'PENDING' || dep.status === 'PENDING_APPROVAL';
+
+                  return (
+                    <div
+                      key={dep.id}
+                      className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-850/60 border border-slate-200 dark:border-slate-800 space-y-2 transition-all"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="text-base font-black font-mono text-slate-900 dark:text-white">
+                            ₹{Number(dep.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </div>
+                          <div className="text-[11px] text-slate-500 font-mono mt-0.5">
+                            UTR: <span className="font-bold text-slate-700 dark:text-slate-300">{dep.utr_number || 'N/A'}</span>
+                          </div>
+                        </div>
+
+                        {/* Status Badge */}
+                        <div>
+                          {isApproved && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                              <CheckCircle2 className="w-3 h-3" />
+                              <span>Approved</span>
+                            </span>
+                          )}
+                          {isPending && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                              <Clock className="w-3 h-3 animate-pulse" />
+                              <span>Pending Verification</span>
+                            </span>
+                          )}
+                          {isRejected && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                              <XCircle className="w-3 h-3" />
+                              <span>Rejected</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Rejection Reason Box */}
+                      {isRejected && (
+                        <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 text-xs text-rose-700 dark:text-rose-300 flex items-start gap-2">
+                          <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                          <div>
+                            <span className="font-bold text-[11px] text-rose-800 dark:text-rose-200 block">
+                              Rejection Reason:
+                            </span>
+                            <span className="text-[11px] leading-tight block mt-0.5">
+                              {dep.admin_remarks || 'Bank transfer not received. Please verify with your bank.'}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Approval Note */}
+                      {isApproved && (
+                        <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          <span>{dep.admin_remarks || 'Verified and credited to your wallet'}</span>
+                        </div>
+                      )}
+
+                      {/* Pending Notice */}
+                      {isPending && (
+                        <div className="text-[11px] text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          <span>Awaiting admin to confirm credit in bank account</span>
+                        </div>
+                      )}
+
+                      <div className="text-[10px] text-slate-400 pt-1 border-t border-slate-200/50 dark:border-slate-800/50 flex justify-between">
+                        <span>Submitted: {new Date(dep.created_at).toLocaleString('en-IN')}</span>
+                        {dep.completed_at && <span>Processed: {new Date(dep.completed_at).toLocaleTimeString('en-IN')}</span>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ) : (
+          /* Tab 1: Topup Flow */
+          <div className="p-6 space-y-5">
+            {errorMsg && (
+              <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs rounded-xl">
+                {errorMsg}
+              </div>
+            )}
+
+            {submitted ? (
+              /* Submission Success & Verification Pending View */
+              <div className="text-center space-y-4 py-2">
+                <div className="w-14 h-14 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-500 border border-amber-200 dark:border-amber-800/60 flex items-center justify-center mx-auto">
+                  <Clock className="w-7 h-7 animate-pulse" />
+                </div>
+
+                <div>
+                  <h4 className="text-lg font-bold text-slate-900 dark:text-white">
+                    Payment Submitted for Verification!
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Your deposit of <span className="font-bold font-mono text-slate-900 dark:text-white">₹{qrData?.amount}</span> with UTR <span className="font-bold font-mono text-brand-600 dark:text-brand-400">{utrNumber}</span> has been sent to TriHub Admin.
+                  </p>
+                </div>
+
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-xl text-left text-xs space-y-1 text-slate-600 dark:text-slate-400">
+                  <div className="flex items-center gap-1.5 font-semibold text-slate-800 dark:text-slate-200">
+                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                    <span>Verification Policy</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Admin verifies bank credit against your UTR. Your wallet balance will update automatically once verified. You can track this in the Deposit History tab.
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-2 pt-2">
+                  <button
+                    onClick={() => {
+                      setSubmitted(false);
+                      setActiveTab('HISTORY');
+                      loadDepositHistory();
+                    }}
+                    className="w-full bg-brand-600 hover:bg-brand-500 text-white py-3 rounded-xl font-bold text-sm transition-colors shadow-md flex items-center justify-center gap-2"
+                  >
+                    <History className="w-4 h-4" />
+                    <span>View Deposit Approval Status</span>
+                  </button>
+                  <button
+                    onClick={onClose}
+                    className="w-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-2.5 rounded-xl font-bold text-xs transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            ) : !qrData ? (
             /* Amount Input Step */
             <div className="space-y-4">
               <div>
@@ -277,6 +460,7 @@ export const UpiTopupModal: React.FC<UpiTopupModalProps> = ({ isOpen, onClose })
             </div>
           )}
         </div>
+      )}
       </div>
     </div>
   );

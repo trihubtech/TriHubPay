@@ -88,6 +88,17 @@ export interface LedgerEntry {
   created_at: string;
 }
 
+export interface DepositRequest {
+  id: string;
+  txn_ref: string;
+  amount: number | string;
+  utr_number?: string;
+  status: 'PENDING' | 'PENDING_APPROVAL' | 'COMPLETED' | 'REJECTED';
+  admin_remarks?: string;
+  created_at: string;
+  completed_at?: string;
+}
+
 export interface DashboardKPIs {
   network_volume: number;
   net_admin_profit: number;
