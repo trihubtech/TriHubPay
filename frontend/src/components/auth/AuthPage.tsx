@@ -583,8 +583,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
                 <div>
                   <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                     <span>Reset Password</span>
-                    <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                      Free Email OTP
+                    <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                      Email Verification
                     </span>
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -654,10 +654,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
                   <div className="p-3 bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-800/40 rounded-xl text-xs text-blue-800 dark:text-blue-300 space-y-1 leading-relaxed">
                     <p className="font-semibold flex items-center gap-1.5 text-blue-700 dark:text-blue-200">
                       <Sparkles className="w-3.5 h-3.5 text-blue-500" />
-                      <span>Zero Cost Self-Service Reset</span>
+                      <span>Security Verification</span>
                     </p>
                     <p className="text-[11px] text-blue-600/90 dark:text-blue-300/80">
-                      A free 6-digit OTP code will be sent to your account's registered email address. Code is valid for 10 minutes.
+                      A 6-digit verification code will be sent to your account's registered email address. Code is valid for 10 minutes.
                     </p>
                   </div>
 
@@ -669,7 +669,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
                     {forgotLoading ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Sending Free Verification Code...</span>
+                        <span>Sending Verification Code...</span>
                       </>
                     ) : (
                       <>
