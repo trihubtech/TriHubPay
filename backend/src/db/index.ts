@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { Pool, PoolClient, QueryResult, QueryResultRow } from 'pg';
 import { config } from '../config';
 
@@ -18,6 +20,9 @@ export const pool = new Pool({
 // Flag tracking if real Postgres is active or if we are using the resilient in-memory fallback
 let isPostgresAvailable = false;
 let hasCheckedDb = false;
+
+const DATA_DIR = path.resolve(__dirname, '../../data');
+const DATA_FILE = path.join(DATA_DIR, 'trihubpay_store.json');
 
 // -------------------------------------------------------------
 // HIGH-FIDELITY IN-MEMORY STORE (Resilient Fallback Engine)
@@ -69,6 +74,42 @@ const memoryStore = {
     master_wallet_metrics: { cached_balance: 184500.00, low_balance_threshold: 25000.00 }
   } as Record<string, any>
 };
+
+function loadPersistentStore() {
+  try {
+    if (fs.existsSync(DATA_FILE)) {
+      const content = fs.readFileSync(DATA_FILE, 'utf-8');
+      const parsed = JSON.parse(content);
+      if (parsed.users && Array.isArray(parsed.users)) {
+        const otherUsers = parsed.users.filter((u: any) => u.role !== 'ADMIN');
+        memoryStore.users = [memoryStore.users[0], ...otherUsers];
+      }
+      if (parsed.wallet_ledger) memoryStore.wallet_ledger = parsed.wallet_ledger;
+      if (parsed.transactions) memoryStore.transactions = parsed.transactions;
+      if (parsed.wallet_topups) memoryStore.wallet_topups = parsed.wallet_topups;
+      if (parsed.user_commissions) memoryStore.user_commissions = parsed.user_commissions;
+      if (parsed.commission_matrix) memoryStore.commission_matrix = parsed.commission_matrix;
+      if (parsed.password_reset_otps) memoryStore.password_reset_otps = parsed.password_reset_otps;
+      console.log(`📦 [PERSISTENCE ENGINE] Successfully loaded ${memoryStore.users.length} user accounts and records from local disk backup (${DATA_FILE}).`);
+    }
+  } catch (err: any) {
+    console.warn('[PERSISTENCE ENGINE] Notice reading local store:', err.message);
+  }
+}
+
+// Automatically load local disk snapshot upon startup
+loadPersistentStore();
+
+function savePersistentStore() {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(DATA_FILE, JSON.stringify(memoryStore, null, 2), 'utf-8');
+  } catch (err: any) {
+    console.warn('[PERSISTENCE ENGINE] Notice saving local store:', err.message);
+  }
+}
 
 /**
  * Check connectivity to PostgreSQL
@@ -221,6 +262,7 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
       created_at: new Date().toISOString()
     };
     memoryStore.users.push(newUser);
+    savePersistentStore();
     rows = [{
       id: newUser.id,
       organization_name: newUser.organization_name,
@@ -237,13 +279,17 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
     const user = memoryStore.users.find(u => u.id === params[1]);
     if (user) {
       user.current_balance = Number(params[0]).toFixed(4);
+      savePersistentStore();
     }
     rows = [];
   }
   // 5. UPDATE users SET is_active = $1 WHERE id = $2
   else if (/UPDATE users SET is_active = \$1.* WHERE id = \$2/i.test(cleanSql)) {
     const user = memoryStore.users.find(u => u.id === params[1]);
-    if (user) user.is_active = Boolean(params[0]);
+    if (user) {
+      user.is_active = Boolean(params[0]);
+      savePersistentStore();
+    }
     rows = [];
   }
   // 5b. UPDATE users SET password_hash = $1 WHERE id = $2 (or email/phone)
@@ -252,6 +298,7 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
     const user = memoryStore.users.find(u => u.id === userTarget || u.email.toLowerCase() === String(userTarget).toLowerCase() || u.phone === String(userTarget));
     if (user) {
       user.password_hash = params[0];
+      savePersistentStore();
     }
     rows = [];
   }
@@ -277,6 +324,7 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
       op.master_api_rate = parseFloat(params[0]);
       op.retailer_pass_down_rate = parseFloat(params[1]);
       op.admin_net_margin = Number((op.master_api_rate - op.retailer_pass_down_rate).toFixed(2));
+      savePersistentStore();
     }
     rows = [];
   }
@@ -312,11 +360,13 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
     } else {
       memoryStore.user_commissions.push({ id: Date.now(), user_id: uId, operator_code: opCode, custom_pass_down_rate: parseFloat(rate) });
     }
+    savePersistentStore();
     rows = [];
   }
   // 12. DELETE FROM user_commissions
   else if (/DELETE FROM user_commissions WHERE user_id = \$1 AND operator_code = \$2/i.test(cleanSql)) {
     memoryStore.user_commissions = memoryStore.user_commissions.filter(uc => !(uc.user_id === params[0] && uc.operator_code === params[1]));
+    savePersistentStore();
     rows = [];
   }
   // 13. INSERT INTO wallet_ledger
@@ -332,6 +382,7 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
       description: params[6],
       created_at: new Date().toISOString()
     });
+    savePersistentStore();
     rows = [];
   }
   // 14. SELECT ... FROM wallet_ledger WHERE user_id = $1
@@ -358,6 +409,7 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
       created_at: new Date().toISOString()
     };
     memoryStore.transactions.unshift(newTx);
+    savePersistentStore();
     rows = [{ id: newTx.id }];
   }
   // 16. UPDATE transactions
@@ -370,6 +422,7 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
         tx.upstream_api_used = params[1];
         tx.upstream_operator_ref = params[2];
       }
+      savePersistentStore();
     }
     rows = [];
   }
@@ -399,6 +452,7 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
   else if (/INSERT INTO system_settings/i.test(cleanSql)) {
     const val = typeof params[0] === 'string' ? JSON.parse(params[0]) : params[0];
     memoryStore.system_settings['failover_mode'] = val;
+    savePersistentStore();
     rows = [];
   }
   // 21. INSERT INTO wallet_topups
@@ -412,6 +466,7 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
       upi_txn_id: '',
       created_at: new Date().toISOString()
     });
+    savePersistentStore();
     rows = [];
   }
   // 22. SELECT ... FROM wallet_topups
@@ -471,6 +526,7 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
       if (topup) {
         topup.status = 'PENDING_APPROVAL';
         topup.upi_txn_id = utr;
+        savePersistentStore();
       }
     } else if (/status = 'COMPLETED'/i.test(cleanSql)) {
       const id = params[params.length - 1];
@@ -479,6 +535,7 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
         topup.status = 'COMPLETED';
         topup.admin_remarks = 'Deposit Approved & Credited to Wallet';
         topup.completed_at = new Date().toISOString();
+        savePersistentStore();
       }
     } else if (/status = 'REJECTED'/i.test(cleanSql)) {
       const reason = params[0];
@@ -488,6 +545,7 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
         topup.status = 'REJECTED';
         topup.admin_remarks = reason || 'Bank transfer not received';
         topup.completed_at = new Date().toISOString();
+        savePersistentStore();
       }
     }
     rows = [];
@@ -503,6 +561,7 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
       created_at: new Date().toISOString()
     };
     memoryStore.password_reset_otps.push(newOtp);
+    savePersistentStore();
     rows = [{ id: newOtp.id }];
   }
   // 25. SELECT ... FROM password_reset_otps
@@ -526,6 +585,7 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
     const otp = memoryStore.password_reset_otps.find(o => o.id === targetId || o.user_id === targetId);
     if (otp) {
       otp.used = true;
+      savePersistentStore();
     }
     rows = [];
   }

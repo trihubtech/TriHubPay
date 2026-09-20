@@ -29,3 +29,8 @@ Thumbs.db
 # Scratch & temporary test files
 scratch/
 coverage/
+
+# Local persistent data stores (never overwrite on git pull)
+backend/data/*.json
+!backend/data/.gitkeep
+
