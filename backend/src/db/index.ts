@@ -26,86 +26,16 @@ let hasCheckedDb = false;
 const memoryStore = {
   users: [
     {
-      id: '00000000-0000-0000-0000-000000000000',
-      organization_name: 'TriHub Technologies Admin',
-      owner_name: 'TriHub Admin',
-      phone: '9999999999',
-      email: 'admin@trihub.app',
-      password_hash: '$2b$10$wE47P8rD/iZ31O54dK8z0eCj/k52mC5QfLh1TfK7.3Vl0dF.Z2wQ6',
-      role: 'ADMIN',
-      current_balance: '500000.0000',
-      locked_balance: '0.0000',
-      api_key: '00000000-0000-0000-0000-000000000000',
-      is_active: true,
-      created_at: new Date().toISOString()
-    },
-    {
       id: '00000000-0000-0000-0000-000000000001',
-      organization_name: 'TriHubPay (Platform Master)',
-      owner_name: 'TriHubPay Admin',
-      phone: '9876543210',
-      email: 'admin@trihubpay.in',
-      password_hash: '$2b$10$wE47P8rD/iZ31O54dK8z0eCj/k52mC5QfLh1TfK7.3Vl0dF.Z2wQ6',
+      organization_name: 'TriHub Technologies (Platform Master)',
+      owner_name: 'TriHub Admin',
+      phone: '6374569225',
+      email: 'admin.pay@trihubtechnologies.com',
+      password_hash: '$2a$10$MthsMeKUb8EnV5w0ak8fmuwoYLXxRignwkNzh4Imb3FqfgJ0NyBx6',
       role: 'ADMIN',
-      current_balance: '500000.0000',
+      current_balance: '1000000.0000',
       locked_balance: '0.0000',
-      api_key: '11111111-1111-1111-1111-111111111111',
-      is_active: true,
-      created_at: new Date().toISOString()
-    },
-    {
-      id: '00000000-0000-0000-0000-000000000002',
-      organization_name: 'TriHubPay Metro Distribution',
-      owner_name: 'Karthik Distributor',
-      phone: '9876543211',
-      email: 'distributor@trihubpay.in',
-      password_hash: '$2b$10$wE47P8rD/iZ31O54dK8z0eCj/k52mC5QfLh1TfK7.3Vl0dF.Z2wQ6',
-      role: 'DISTRIBUTOR',
-      current_balance: '100000.0000',
-      locked_balance: '0.0000',
-      api_key: '22222222-2222-2222-2222-222222222222',
-      is_active: true,
-      created_at: new Date().toISOString()
-    },
-    {
-      id: '00000000-0000-0000-0000-000000000003',
-      organization_name: 'Sri Balaji Telecom',
-      owner_name: 'Ramesh Kumar',
-      phone: '9876543220',
-      email: 'balaji.telecom@gmail.com',
-      password_hash: '$2b$10$wE47P8rD/iZ31O54dK8z0eCj/k52mC5QfLh1TfK7.3Vl0dF.Z2wQ6',
-      role: 'RETAILER',
-      current_balance: '15420.5000',
-      locked_balance: '0.0000',
-      api_key: '33333333-3333-3333-3333-333333333333',
-      is_active: true,
-      created_at: new Date().toISOString()
-    },
-    {
-      id: '00000000-0000-0000-0000-000000000004',
-      organization_name: 'Murugan Mobile Care',
-      owner_name: 'Suresh Murugan',
-      phone: '9876543221',
-      email: 'murugan.mobiles@gmail.com',
-      password_hash: '$2b$10$wE47P8rD/iZ31O54dK8z0eCj/k52mC5QfLh1TfK7.3Vl0dF.Z2wQ6',
-      role: 'RETAILER',
-      current_balance: '8500.0000',
-      locked_balance: '0.0000',
-      api_key: '44444444-4444-4444-4444-444444444444',
-      is_active: true,
-      created_at: new Date().toISOString()
-    },
-    {
-      id: '00000000-0000-0000-0000-000000000005',
-      organization_name: 'Star Communication',
-      owner_name: 'Vijay Anand',
-      phone: '9876543222',
-      email: 'star.comm@gmail.com',
-      password_hash: '$2b$10$wE47P8rD/iZ31O54dK8z0eCj/k52mC5QfLh1TfK7.3Vl0dF.Z2wQ6',
-      role: 'RETAILER',
-      current_balance: '22800.7500',
-      locked_balance: '0.0000',
-      api_key: '55555555-5555-5555-5555-555555555555',
+      api_key: 'trihub-master-api-key-2026',
       is_active: true,
       created_at: new Date().toISOString()
     }
@@ -126,23 +56,8 @@ const memoryStore = {
     { id: 12, operator_code: 'WBSEDCL', operator_name: 'West Bengal State Electricity (WBSEDCL)', service_type: 'ELECTRICITY', master_api_rate: 1.50, retailer_pass_down_rate: 0.50, admin_net_margin: 1.00, is_active: true }
   ],
 
-  user_commissions: [
-    { id: 1, user_id: '00000000-0000-0000-0000-000000000003', operator_code: 'JIO', custom_pass_down_rate: 3.50 }
-  ],
-
-  wallet_ledger: [
-    {
-      id: 'led-1',
-      user_id: '00000000-0000-0000-0000-000000000003',
-      amount: '15420.5000',
-      transaction_type: 'CREDIT',
-      balance_before: '0.0000',
-      balance_after: '15420.5000',
-      reference_id: 'INIT_LOAD_001',
-      description: 'Opening float prepaid wallet deposit via UPI',
-      created_at: new Date(Date.now() - 3600000).toISOString()
-    }
-  ],
+  user_commissions: [] as any[],
+  wallet_ledger: [] as any[],
 
   transactions: [] as any[],
   wallet_topups: [] as any[],

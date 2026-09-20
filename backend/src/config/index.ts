@@ -36,8 +36,8 @@ export const config = {
 
   // Dynamic UPI QR Settings
   upi: {
-    vpa: process.env.PLATFORM_UPI_VPA || 'trihubpay@paytm',
-    merchantName: process.env.PLATFORM_UPI_NAME || 'TriHubPay'
+    vpa: process.env.PLATFORM_UPI_VPA || '6374569225@upi',
+    merchantName: process.env.PLATFORM_UPI_NAME || 'TriHub Technologies'
   },
 
   // Anti-Duplication Sliding Window
