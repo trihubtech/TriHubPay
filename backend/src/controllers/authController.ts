@@ -140,7 +140,7 @@ export async function getMe(req: Request, res: Response) {
   try {
     const userRes = await query(
       'SELECT id, organization_name, owner_name, phone, email, role, current_balance, locked_balance, api_key, is_active FROM users WHERE id = $1',
-      [req.user!.id]
+      [(req as any).user!.id]
     );
 
     if (userRes.rows.length === 0) {
@@ -160,3 +160,157 @@ export async function getMe(req: Request, res: Response) {
     return res.status(500).json({ success: false, message: error.message });
   }
 }
+
+// -------------------------------------------------------------
+// FREE EMAIL OTP PASSWORD RECOVERY (Option 3: ₹0.00 Cost)
+// -------------------------------------------------------------
+
+function maskEmail(email: string): string {
+  const parts = email.split('@');
+  if (parts.length !== 2) return email;
+  const name = parts[0];
+  const domain = parts[1];
+  if (name.length <= 2) {
+    return `${name[0]}*@${domain}`;
+  }
+  return `${name[0]}${'*'.repeat(Math.min(name.length - 2, 5))}${name[name.length - 1]}@${domain}`;
+}
+
+const sendOtpSchema = z.object({
+  identifier: z.string().min(3, 'Registered mobile number or email is required')
+});
+
+const resetPasswordSchema = z.object({
+  identifier: z.string().min(3, 'Registered mobile number or email is required'),
+  otp: z.string().length(6, 'Verification code must be 6 digits'),
+  new_password: z.string().min(6, 'New password must be at least 6 characters')
+});
+
+/**
+ * Step 1: Send 6-digit OTP to user's registered email address (₹0.00 Free Email OTP)
+ */
+export async function sendPasswordResetOtp(req: Request, res: Response) {
+  try {
+    const parsed = sendOtpSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ success: false, message: 'Please provide a valid registered phone number or email.' });
+    }
+
+    const { identifier } = parsed.data;
+    const cleanId = identifier.trim().toLowerCase();
+
+    const userRes = await query(
+      'SELECT id, organization_name, owner_name, phone, email, is_active FROM users WHERE email = $1 OR phone = $1 LIMIT 1',
+      [cleanId]
+    );
+
+    if (userRes.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No account found with this phone number or email. Please verify your details or contact TriHubPay Support (6374569225).'
+      });
+    }
+
+    const user = userRes.rows[0];
+
+    if (!user.is_active) {
+      return res.status(403).json({
+        success: false,
+        message: 'Account is deactivated. Please contact TriHubPay Administrator (+91 63745 69225).'
+      });
+    }
+
+    // Generate random 6-digit numeric OTP
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
+
+    // Save OTP to database
+    await query(
+      'INSERT INTO password_reset_otps (user_id, otp_code, expires_at) VALUES ($1, $2, $3)',
+      [user.id, otpCode, expiresAt]
+    );
+
+    // Dispatch Free Email OTP via emailService
+    const { sendPasswordResetOtpEmail } = await import('../services/emailService');
+    await sendPasswordResetOtpEmail(user.email, user.owner_name || user.organization_name, otpCode);
+
+    const masked = maskEmail(user.email);
+
+    return res.json({
+      success: true,
+      message: `A 6-digit verification code has been sent to ${masked}. Code valid for 10 minutes.`,
+      masked_email: masked,
+      phone: user.phone
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+/**
+ * Step 2: Verify OTP and update retailer password
+ */
+export async function verifyOtpAndResetPassword(req: Request, res: Response) {
+  try {
+    const parsed = resetPasswordSchema.safeParse(req.body);
+    if (!parsed.success) {
+      const firstErr = Object.values(parsed.error.flatten().fieldErrors)[0]?.[0];
+      return res.status(400).json({ success: false, message: firstErr || 'Invalid reset payload.' });
+    }
+
+    const { identifier, otp, new_password } = parsed.data;
+    const cleanId = identifier.trim().toLowerCase();
+
+    // 1. Locate user
+    const userRes = await query(
+      'SELECT id, organization_name, owner_name, email FROM users WHERE email = $1 OR phone = $1 LIMIT 1',
+      [cleanId]
+    );
+
+    if (userRes.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Account not found.' });
+    }
+
+    const user = userRes.rows[0];
+
+    // 2. Validate OTP
+    const otpRes = await query(
+      'SELECT id, expires_at, used FROM password_reset_otps WHERE user_id = $1 AND otp_code = $2 AND used = false ORDER BY created_at DESC LIMIT 1',
+      [user.id, otp.trim()]
+    );
+
+    if (otpRes.rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired verification code. Please check the 6 digits or request a new code.'
+      });
+    }
+
+    const activeOtp = otpRes.rows[0];
+    if (new Date(activeOtp.expires_at).getTime() < Date.now()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Verification code has expired. Please request a new code.'
+      });
+    }
+
+    // 3. Hash new password
+    const newHash = await bcrypt.hash(new_password, 10);
+
+    // 4. Update password
+    await query('UPDATE users SET password_hash = $1 WHERE id = $2', [newHash, user.id]);
+
+    // 5. Invalidate OTP
+    await query('UPDATE password_reset_otps SET used = true WHERE id = $1', [activeOtp.id]);
+
+    console.log(`✅ [PASSWORD RESET] Password successfully reset for user ${user.id} (${user.email})`);
+
+    return res.json({
+      success: true,
+      message: 'Password reset successfully! You can now log in with your new password.'
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+

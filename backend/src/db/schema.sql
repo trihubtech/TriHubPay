@@ -123,3 +123,16 @@ CREATE TABLE IF NOT EXISTS wallet_topups (
 
 CREATE INDEX IF NOT EXISTS idx_topup_user ON wallet_topups(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_topup_ref ON wallet_topups(txn_ref);
+
+-- 8. FREE EMAIL OTP PASSWORD RECOVERY TABLE
+CREATE TABLE IF NOT EXISTS password_reset_otps (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    otp_code VARCHAR(10) NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    used BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp()
+);
+
+CREATE INDEX IF NOT EXISTS idx_pwd_reset_lookup ON password_reset_otps(user_id, otp_code, used);
+

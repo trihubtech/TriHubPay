@@ -61,6 +61,7 @@ const memoryStore = {
 
   transactions: [] as any[],
   wallet_topups: [] as any[],
+  password_reset_otps: [] as any[],
 
   system_settings: {
     failover_mode: { mode: 'AUTO', timeout_ms: 8000 },
@@ -97,6 +98,17 @@ export async function query<T extends QueryResultRow = any>(
     if (isPostgresAvailable) {
       console.log('✅ [DATABASE ENGINE] Connected to live PostgreSQL server.');
       pool.query(`ALTER TABLE wallet_topups ADD COLUMN IF NOT EXISTS admin_remarks TEXT;`).catch(() => {});
+      pool.query(`
+        CREATE TABLE IF NOT EXISTS password_reset_otps (
+          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          otp_code VARCHAR(10) NOT NULL,
+          expires_at TIMESTAMPTZ NOT NULL,
+          used BOOLEAN NOT NULL DEFAULT false,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp()
+        );
+        CREATE INDEX IF NOT EXISTS idx_pwd_reset_lookup ON password_reset_otps(user_id, otp_code, used);
+      `).catch(() => {});
     } else {
       console.log('ℹ️ [DATABASE ENGINE] PostgreSQL is offline on port 5432. Active: High-Fidelity In-Memory Store with TriHub Technologies seed data.');
     }
@@ -232,6 +244,15 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
   else if (/UPDATE users SET is_active = \$1.* WHERE id = \$2/i.test(cleanSql)) {
     const user = memoryStore.users.find(u => u.id === params[1]);
     if (user) user.is_active = Boolean(params[0]);
+    rows = [];
+  }
+  // 5b. UPDATE users SET password_hash = $1 WHERE id = $2 (or email/phone)
+  else if (/UPDATE users SET password_hash = \$1/i.test(cleanSql)) {
+    const userTarget = params[1];
+    const user = memoryStore.users.find(u => u.id === userTarget || u.email.toLowerCase() === String(userTarget).toLowerCase() || u.phone === String(userTarget));
+    if (user) {
+      user.password_hash = params[0];
+    }
     rows = [];
   }
   // 6. SELECT ... FROM commission_matrix WHERE operator_code = $1
@@ -468,6 +489,43 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
         topup.admin_remarks = reason || 'Bank transfer not received';
         topup.completed_at = new Date().toISOString();
       }
+    }
+    rows = [];
+  }
+  // 24. INSERT INTO password_reset_otps
+  else if (/INSERT INTO password_reset_otps/i.test(cleanSql)) {
+    const newOtp = {
+      id: `otp-${Date.now()}`,
+      user_id: params[0],
+      otp_code: String(params[1]),
+      expires_at: params[2] instanceof Date ? params[2].toISOString() : String(params[2]),
+      used: false,
+      created_at: new Date().toISOString()
+    };
+    memoryStore.password_reset_otps.push(newOtp);
+    rows = [{ id: newOtp.id }];
+  }
+  // 25. SELECT ... FROM password_reset_otps
+  else if (/SELECT .* FROM password_reset_otps/i.test(cleanSql)) {
+    const userId = params[0];
+    const otpCode = String(params[1]);
+    const now = new Date();
+    
+    rows = memoryStore.password_reset_otps.filter(o => {
+      const userMatches = o.user_id === userId;
+      if (!userMatches) return false;
+      if (params.length >= 2 && params[1]) {
+        return o.otp_code === otpCode && o.used === false && new Date(o.expires_at) > now;
+      }
+      return true;
+    }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
+  // 26. UPDATE password_reset_otps
+  else if (/UPDATE password_reset_otps SET used = true/i.test(cleanSql)) {
+    const targetId = params[0];
+    const otp = memoryStore.password_reset_otps.find(o => o.id === targetId || o.user_id === targetId);
+    if (otp) {
+      otp.used = true;
     }
     rows = [];
   }

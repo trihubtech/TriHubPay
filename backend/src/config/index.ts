@@ -41,5 +41,15 @@ export const config = {
   },
 
   // Anti-Duplication Sliding Window
-  dedupWindowMs: 30000 // 30 seconds
+  dedupWindowMs: 30000, // 30 seconds
+
+  // Free Email OTP (SMTP: Gmail App Password or Brevo Free Tier)
+  smtp: {
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.SMTP_PORT || '587', 10),
+    secure: process.env.SMTP_SECURE === 'true',
+    user: process.env.SMTP_USER || 'trihubtechnologies@gmail.com',
+    pass: process.env.SMTP_PASS || '',
+    from: process.env.SMTP_FROM || '"TriHubPay Support" <trihubtechnologies@gmail.com>'
+  }
 };

@@ -141,6 +141,20 @@ export const api = {
     return request<{ success: boolean; data: User }>('/auth/me');
   },
 
+  async sendForgotPasswordOtp(identifier: string) {
+    return request<{ success: boolean; message: string; masked_email: string; phone?: string }>('/auth/forgot-password/send-otp', {
+      method: 'POST',
+      body: JSON.stringify({ identifier })
+    });
+  },
+
+  async resetPasswordWithOtp(data: { identifier: string; otp: string; new_password: string }) {
+    return request<{ success: boolean; message: string }>('/auth/forgot-password/reset', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+
   // Directory
   async getOperators(serviceType?: string) {
     const q = serviceType ? `?service_type=${serviceType}` : '';
