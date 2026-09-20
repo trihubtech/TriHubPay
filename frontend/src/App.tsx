@@ -217,8 +217,8 @@ export function App() {
               <div className="font-bold text-slate-900 dark:text-white text-xs leading-tight">
                 {currentUser.organization_name}
               </div>
-              <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono font-semibold">
-                {isRetailer ? `Balance: ₹${Number(currentUser.current_balance).toFixed(2)}` : 'Master Platform Admin'}
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                {isRetailer ? (currentUser.owner_name || 'Retailer Partner') : 'Master Platform Admin'}
               </div>
             </div>
 
