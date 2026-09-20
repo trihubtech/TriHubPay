@@ -324,23 +324,26 @@ export const api = {
     return request<{ success: boolean; data: Transaction[] }>('/admin/transactions');
   },
 
-  async getPendingDeposits() {
+  async getPendingDeposits(status?: string) {
+    const q = status ? `?status=${status}` : '';
     return request<{
       success: boolean;
       data: Array<{
         id: string;
         user_id: string;
         txn_ref: string;
-        amount: string;
+        amount: string | number;
         utr_number: string;
         status: string;
+        admin_remarks?: string;
         created_at: string;
+        completed_at?: string;
         organization_name: string;
         owner_name: string;
         phone: string;
-        current_wallet_balance: string;
+        current_wallet_balance: string | number;
       }>;
-    }>('/admin/deposits/pending');
+    }>(`/admin/deposits/pending${q}`);
   },
 
   async approveDeposit(id: string) {

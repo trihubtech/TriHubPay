@@ -461,18 +461,29 @@ export async function resetUserPassword(req: Request, res: Response) {
 }
 
 /**
- * List all pending UPI cash deposits awaiting Admin verification
+ * List all UPI cash deposits with optional status filter (PENDING_APPROVAL, COMPLETED, REJECTED, ALL)
  */
 export async function getPendingDeposits(req: Request, res: Response) {
   try {
-    const result = await query(`
-      SELECT wt.id, wt.user_id, wt.txn_ref, wt.amount, wt.upi_txn_id as utr_number, wt.status, wt.created_at,
+    const status = String(req.query.status || 'ALL').toUpperCase();
+    let querySql = `
+      SELECT wt.id, wt.user_id, wt.txn_ref, wt.amount, wt.upi_txn_id as utr_number, wt.status, wt.admin_remarks, wt.created_at, wt.completed_at,
              u.organization_name, u.owner_name, u.phone, u.current_balance as current_wallet_balance
       FROM wallet_topups wt
       JOIN users u ON wt.user_id = u.id
-      WHERE wt.status = 'PENDING_APPROVAL'
-      ORDER BY wt.created_at DESC;
-    `);
+    `;
+    const params: any[] = [];
+
+    if (status === 'PENDING') {
+      querySql += " WHERE wt.status IN ('PENDING', 'PENDING_APPROVAL')";
+    } else if (status !== 'ALL') {
+      querySql += ' WHERE wt.status = $1';
+      params.push(status);
+    }
+
+    querySql += ' ORDER BY wt.created_at DESC;';
+
+    const result = await query(querySql, params);
 
     return res.json({
       success: true,

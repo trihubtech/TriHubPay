@@ -395,21 +395,7 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
   }
   // 22. SELECT ... FROM wallet_topups
   else if (/SELECT .* FROM wallet_topups/i.test(cleanSql)) {
-    if (/status = 'PENDING_APPROVAL'/i.test(cleanSql)) {
-      rows = memoryStore.wallet_topups
-        .filter(t => t.status === 'PENDING_APPROVAL')
-        .map(t => {
-          const u = memoryStore.users.find(usr => usr.id === t.user_id);
-          return {
-            ...t,
-            utr_number: t.upi_txn_id,
-            organization_name: u?.organization_name || 'Retailer Shop',
-            owner_name: u?.owner_name || 'Shop Owner',
-            phone: u?.phone || '',
-            current_wallet_balance: u?.current_balance || '0.0000'
-          };
-        });
-    } else if (/WHERE user_id = \$1/i.test(cleanSql)) {
+    if (/WHERE user_id = \$1/i.test(cleanSql)) {
       const uid = params[0];
       rows = memoryStore.wallet_topups
         .filter(t => t.user_id === uid)
@@ -431,7 +417,17 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
       const topup = memoryStore.wallet_topups.find(t => t.txn_ref === params[0]);
       rows = topup ? [topup] : [];
     } else {
-      rows = memoryStore.wallet_topups.map(t => {
+      let filtered = memoryStore.wallet_topups;
+      if (/WHERE wt\.status = \$1/i.test(cleanSql) || /WHERE status = \$1/i.test(cleanSql)) {
+        const st = params[0];
+        filtered = filtered.filter(t => t.status === st);
+      } else if (/WHERE wt\.status IN/i.test(cleanSql)) {
+        filtered = filtered.filter(t => t.status === 'PENDING' || t.status === 'PENDING_APPROVAL');
+      } else if (/status = 'PENDING_APPROVAL'/i.test(cleanSql)) {
+        filtered = filtered.filter(t => t.status === 'PENDING_APPROVAL');
+      }
+
+      rows = filtered.map(t => {
         const u = memoryStore.users.find(usr => usr.id === t.user_id);
         return {
           ...t,
@@ -439,9 +435,10 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
           organization_name: u?.organization_name || 'Retailer Shop',
           owner_name: u?.owner_name || 'Shop Owner',
           phone: u?.phone || '',
-          current_wallet_balance: u?.current_balance || '0.0000'
+          current_wallet_balance: u?.current_balance || '0.0000',
+          admin_remarks: t.admin_remarks || (t.status === 'COMPLETED' ? 'Deposit Approved & Credited to Wallet' : t.status === 'REJECTED' ? 'Bank transfer not received' : null)
         };
-      });
+      }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }
   }
   // 23. UPDATE wallet_topups
