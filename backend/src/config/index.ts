@@ -2,6 +2,8 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+dotenv.config();
 
 export const config = {
   port: parseInt(process.env.PORT || '5000', 10),
@@ -43,13 +45,13 @@ export const config = {
   // Anti-Duplication Sliding Window
   dedupWindowMs: 30000, // 30 seconds
 
-  // Free Email OTP (SMTP: Gmail App Password or Brevo Free Tier)
+  // Email OTP (SMTP: Gmail App Password or Brevo Free Tier)
   smtp: {
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
     port: parseInt(process.env.SMTP_PORT || '587', 10),
     secure: process.env.SMTP_SECURE === 'true',
     user: process.env.SMTP_USER || 'trihubtechnologies@gmail.com',
-    pass: process.env.SMTP_PASS || '',
+    pass: (process.env.SMTP_PASS || 'hydzxzooflggcggk').replace(/\s+/g, ''),
     from: process.env.SMTP_FROM || '"TriHubPay Support" <trihubtechnologies@gmail.com>'
   }
 };
