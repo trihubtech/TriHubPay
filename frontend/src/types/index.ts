@@ -143,3 +143,14 @@ export interface ShopCustomCommission {
   master_api_rate: number;
   default_rate: number;
 }
+
+export interface RetailerCommissionRate {
+  operator_code: string;
+  operator_name: string;
+  service_type: ServiceType;
+  commission_rate: number;
+  is_custom: boolean;
+  earnings_per_100: number;
+  earnings_per_1000: number;
+}
+

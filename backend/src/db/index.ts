@@ -334,7 +334,7 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
     rows = match ? [match] : [];
   }
   // 10. SELECT ... FROM user_commissions WHERE user_id = $1
-  else if (/SELECT .* FROM user_commissions.* WHERE uc\.user_id = \$1/i.test(cleanSql)) {
+  else if (/SELECT .* FROM user_commissions.* WHERE (uc\.)?user_id = \$1/i.test(cleanSql)) {
     rows = memoryStore.user_commissions
       .filter(uc => uc.user_id === params[0])
       .map(uc => {

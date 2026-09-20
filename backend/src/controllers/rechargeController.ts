@@ -318,3 +318,68 @@ export async function getRetailerTransactions(req: Request, res: Response) {
     return res.status(500).json({ success: false, message: error.message });
   }
 }
+
+/**
+ * Returns the personalized commission matrix for the authenticated retailer.
+ * Strictly exposes ONLY the user's allocated pass-down rate (or customized override)
+ * without leaking master upstream rates or platform net margins.
+ */
+export async function getMyCommissionsList(req: Request, res: Response) {
+  try {
+    const retailerId = req.user!.id;
+
+    // 1. Fetch all active operators from the global commission matrix
+    const matrixRes = await query(
+      `SELECT operator_code, operator_name, service_type, retailer_pass_down_rate, is_active
+       FROM commission_matrix 
+       WHERE is_active = true
+       ORDER BY 
+         CASE service_type 
+           WHEN 'MOBILE' THEN 1 
+           WHEN 'DTH' THEN 2 
+           WHEN 'ELECTRICITY' THEN 3 
+           ELSE 4 
+         END,
+         operator_name ASC`
+    );
+
+    // 2. Fetch custom overrides configured specifically for this retailer
+    const customRes = await query(
+      `SELECT operator_code, custom_pass_down_rate 
+       FROM user_commissions 
+       WHERE user_id = $1`,
+      [retailerId]
+    );
+
+    const customMap = new Map<string, number>();
+    for (const row of customRes.rows) {
+      customMap.set(row.operator_code, parseFloat(row.custom_pass_down_rate));
+    }
+
+    // 3. Assemble personalized list
+    const myCommissions = matrixRes.rows.map(row => {
+      const isCustom = customMap.has(row.operator_code);
+      const effectiveRate = isCustom 
+        ? customMap.get(row.operator_code)! 
+        : parseFloat(row.retailer_pass_down_rate);
+
+      return {
+        operator_code: row.operator_code,
+        operator_name: row.operator_name,
+        service_type: row.service_type,
+        commission_rate: effectiveRate,
+        is_custom: isCustom,
+        earnings_per_100: Number(((100 * effectiveRate) / 100).toFixed(2)),
+        earnings_per_1000: Number(((1000 * effectiveRate) / 100).toFixed(2))
+      };
+    });
+
+    return res.json({
+      success: true,
+      data: myCommissions
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+

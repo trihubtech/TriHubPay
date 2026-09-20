@@ -9,7 +9,8 @@ import {
   CommissionMatrixItem,
   ShopCustomCommission,
   ElectricityBillDetails,
-  DepositRequest
+  DepositRequest,
+  RetailerCommissionRate
 } from '../types';
 
 const API_BASE = '/api';
@@ -179,6 +180,10 @@ export const api = {
 
   async getCommissionPreview(operatorCode: string, faceValue: number) {
     return request<{ success: boolean; data: CommissionPreview }>(`/recharge/preview?operator_code=${operatorCode}&face_value=${faceValue}`);
+  },
+
+  async getMyCommissions() {
+    return request<{ success: boolean; data: RetailerCommissionRate[] }>('/recharge/my-commissions');
   },
 
   async executeRecharge(payload: {

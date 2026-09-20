@@ -11,6 +11,7 @@ import { ThermalReceiptModal } from './components/retailer/ThermalReceiptModal';
 import { PwaInstallBanner } from './components/retailer/PwaInstallBanner';
 import { RetailerBottomNav } from './components/retailer/RetailerBottomNav';
 import { ShopInfoModal } from './components/retailer/ShopInfoModal';
+import { MyCommissionsTable } from './components/retailer/MyCommissionsTable';
 
 // Admin components
 import { DashboardKPIs as DashboardKPIsComponent } from './components/admin/DashboardKPIs';
@@ -35,7 +36,8 @@ import {
   LogOut,
   Sparkles,
   Layers,
-  Store
+  Store,
+  Percent
 } from 'lucide-react';
 
 export function App() {
@@ -50,7 +52,7 @@ export function App() {
   const [isReceiptOpen, setIsReceiptOpen] = useState<boolean>(false);
   const [isRefreshingRetailer, setIsRefreshingRetailer] = useState<boolean>(false);
   const [welcomeBanner, setWelcomeBanner] = useState<string>('');
-  const [mobileActiveTab, setMobileActiveTab] = useState<'RECHARGE' | 'PASSBOOK'>('RECHARGE');
+  const [retailerTab, setRetailerTab] = useState<'RECHARGE' | 'PASSBOOK' | 'COMMISSIONS'>('RECHARGE');
   const [isShopInfoOpen, setIsShopInfoOpen] = useState<boolean>(false);
 
   // Admin states
@@ -285,24 +287,90 @@ export function App() {
               </div>
             )}
 
-            {/* Desktop View: Stacked Layout */}
+            {/* Retailer View Switcher Tabs (Desktop) */}
+            <div className="hidden sm:flex items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRetailerTab('RECHARGE')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                    retailerTab === 'RECHARGE'
+                      ? 'bg-brand-600 text-white shadow-md shadow-brand-600/20'
+                      : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  Recharge & Bill Pay
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRetailerTab('PASSBOOK')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                    retailerTab === 'PASSBOOK'
+                      ? 'bg-brand-600 text-white shadow-md shadow-brand-600/20'
+                      : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  Passbook & Ledger
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRetailerTab('COMMISSIONS')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                    retailerTab === 'COMMISSIONS'
+                      ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                      : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Percent className="w-3.5 h-3.5 text-emerald-400" />
+                  My Commission Rates
+                </button>
+              </div>
+
+              <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                {retailerTab === 'RECHARGE' && 'Instant 0.8s Lapu / BBPS Dispatch'}
+                {retailerTab === 'PASSBOOK' && `${retailerTransactions.length} Total Transactions`}
+                {retailerTab === 'COMMISSIONS' && 'Your Allocated Commission Margins'}
+              </div>
+            </div>
+
+            {/* Desktop View: Active Tab Layout */}
             <div className="hidden sm:block space-y-6">
-              <RechargeTabs
-                onSuccess={handleRechargeSuccess}
-                walletBalance={currentUser.current_balance}
-              />
-              <LedgerTable
-                transactions={retailerTransactions}
-                onViewReceipt={(tx) => {
-                  setReceiptTx(tx);
-                  setIsReceiptOpen(true);
-                }}
-              />
+              {retailerTab === 'RECHARGE' && (
+                <>
+                  <RechargeTabs
+                    onSuccess={handleRechargeSuccess}
+                    walletBalance={currentUser.current_balance}
+                  />
+                  <LedgerTable
+                    transactions={retailerTransactions.slice(0, 8)}
+                    onViewReceipt={(tx) => {
+                      setReceiptTx(tx);
+                      setIsReceiptOpen(true);
+                    }}
+                  />
+                </>
+              )}
+
+              {retailerTab === 'PASSBOOK' && (
+                <LedgerTable
+                  transactions={retailerTransactions}
+                  onViewReceipt={(tx) => {
+                    setReceiptTx(tx);
+                    setIsReceiptOpen(true);
+                  }}
+                />
+              )}
+
+              {retailerTab === 'COMMISSIONS' && (
+                <MyCommissionsTable />
+              )}
             </div>
 
             {/* Mobile View: Dynamic Bottom-Nav Switched View */}
             <div className="sm:hidden space-y-4">
-              {mobileActiveTab === 'RECHARGE' ? (
+              {retailerTab === 'RECHARGE' && (
                 <>
                   <RechargeTabs
                     onSuccess={handleRechargeSuccess}
@@ -314,7 +382,7 @@ export function App() {
                         Recent: {retailerTransactions[0].operator_code} ₹{retailerTransactions[0].face_value} ({retailerTransactions[0].status})
                       </span>
                       <button
-                        onClick={() => setMobileActiveTab('PASSBOOK')}
+                        onClick={() => setRetailerTab('PASSBOOK')}
                         className="text-brand-600 dark:text-brand-400 font-bold hover:underline shrink-0"
                       >
                         Passbook →
@@ -322,7 +390,9 @@ export function App() {
                     </div>
                   )}
                 </>
-              ) : (
+              )}
+
+              {retailerTab === 'PASSBOOK' && (
                 <LedgerTable
                   transactions={retailerTransactions}
                   onViewReceipt={(tx) => {
@@ -330,6 +400,10 @@ export function App() {
                     setIsReceiptOpen(true);
                   }}
                 />
+              )}
+
+              {retailerTab === 'COMMISSIONS' && (
+                <MyCommissionsTable />
               )}
             </div>
           </div>
@@ -351,8 +425,8 @@ export function App() {
 
           {/* Mobile PWA Bottom Navigation Bar */}
           <RetailerBottomNav
-            currentTab={mobileActiveTab}
-            onSelectTab={setMobileActiveTab}
+            currentTab={retailerTab}
+            onSelectTab={setRetailerTab}
             onOpenTopup={() => setIsTopupOpen(true)}
             onOpenShopInfo={() => setIsShopInfoOpen(true)}
           />
