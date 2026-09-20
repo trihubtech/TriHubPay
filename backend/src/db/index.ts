@@ -249,10 +249,16 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
     const user = memoryStore.users.find(u => u.id === params[0]);
     rows = user ? [user] : [];
   }
-  // 2. SELECT id, ... FROM users WHERE email = $1 OR phone = $1
-  else if (/SELECT .* FROM users WHERE email = \$1 OR phone = \$1/i.test(cleanSql)) {
-    const term = String(params[0]).toLowerCase();
-    const user = memoryStore.users.find(u => u.email.toLowerCase() === term || u.phone === term);
+  // 2. SELECT id, ... FROM users WHERE email = $1 OR phone = $1 / WHERE phone = $1 OR email = $2
+  else if (/SELECT .* FROM users WHERE .*?(email|phone)/i.test(cleanSql) && !/ORDER BY/i.test(cleanSql)) {
+    const term1 = String(params[0] || '').toLowerCase();
+    const term2 = String(params[1] || params[0] || '').toLowerCase();
+    const user = memoryStore.users.find(u => 
+      u.email.toLowerCase() === term1 || 
+      u.phone === term1 ||
+      u.email.toLowerCase() === term2 || 
+      u.phone === term2
+    );
     rows = user ? [user] : [];
   }
   // 3. SELECT ... FROM users ORDER BY
