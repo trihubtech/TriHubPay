@@ -383,3 +383,108 @@ export async function getMyCommissionsList(req: Request, res: Response) {
   }
 }
 
+/**
+ * Actionable Retailer Insights & Commission Earnings
+ * Computes live profits, volumes, and margins by date range
+ */
+export async function getMyInsights(req: Request, res: Response) {
+  try {
+    const retailerId = req.user!.id;
+    const period = String(req.query.period || 'today').toLowerCase();
+
+    // Fetch retailer transactions
+    const txRes = await query(
+      `SELECT service_type, operator_code, face_value, retailer_commission, status, created_at
+       FROM transactions
+       WHERE retailer_id = $1`,
+      [retailerId]
+    );
+
+    const now = new Date();
+    let startDate: Date;
+    let endDate: Date = now;
+
+    if (period === 'yesterday') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
+      endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
+    } else if (period === 'this_week') {
+      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (period === 'this_month') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    } else if (period === 'all') {
+      startDate = new Date(0);
+    } else {
+      // 'today' is default
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    }
+
+    const filtered = txRes.rows.filter(tx => {
+      const txTime = new Date(tx.created_at).getTime();
+      return txTime >= startDate.getTime() && txTime <= endDate.getTime();
+    });
+
+    let totalCommission = 0;
+    let totalVolume = 0;
+    let successCount = 0;
+    let failedCount = 0;
+    let pendingCount = 0;
+
+    const opMap: Record<string, { earnings: number; volume: number }> = {};
+    const serviceEarnings: Record<string, number> = { MOBILE: 0, DTH: 0, ELECTRICITY: 0 };
+
+    for (const tx of filtered) {
+      if (tx.status === 'SUCCESS') {
+        const comm = parseFloat(tx.retailer_commission || 0);
+        const val = parseFloat(tx.face_value || 0);
+        totalCommission += comm;
+        totalVolume += val;
+        successCount++;
+
+        const op = tx.operator_code || 'OTHER';
+        if (!opMap[op]) opMap[op] = { earnings: 0, volume: 0 };
+        opMap[op].earnings += comm;
+        opMap[op].volume += val;
+
+        const sType = tx.service_type || 'MOBILE';
+        serviceEarnings[sType] = (serviceEarnings[sType] || 0) + comm;
+      } else if (tx.status === 'FAILED') {
+        failedCount++;
+      } else {
+        pendingCount++;
+      }
+    }
+
+    // Top operator
+    let topOp: { operator_code: string; earnings: number; volume: number } | null = null;
+    for (const [code, stats] of Object.entries(opMap)) {
+      if (!topOp || stats.earnings > topOp.earnings) {
+        topOp = { operator_code: code, earnings: Number(stats.earnings.toFixed(2)), volume: Number(stats.volume.toFixed(2)) };
+      }
+    }
+
+    const totalTxs = filtered.length;
+    const successRate = totalTxs > 0 ? Number(((successCount / totalTxs) * 100).toFixed(1)) : 100;
+    const avgCommissionRate = totalVolume > 0 ? Number(((totalCommission / totalVolume) * 100).toFixed(2)) : 0;
+
+    return res.json({
+      success: true,
+      data: {
+        period,
+        total_commission: Number(totalCommission.toFixed(2)),
+        total_sales_volume: Number(totalVolume.toFixed(2)),
+        total_transactions: totalTxs,
+        successful_transactions: successCount,
+        failed_transactions: failedCount,
+        pending_transactions: pendingCount,
+        success_rate: successRate,
+        average_commission_rate: avgCommissionRate,
+        top_operator: topOp,
+        earnings_by_service: serviceEarnings
+      }
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+

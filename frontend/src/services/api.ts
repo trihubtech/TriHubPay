@@ -10,7 +10,9 @@ import {
   ShopCustomCommission,
   ElectricityBillDetails,
   DepositRequest,
-  RetailerCommissionRate
+  RetailerCommissionRate,
+  RetailerInsights,
+  InsightsPeriod
 } from '../types';
 
 const API_BASE = '/api';
@@ -184,6 +186,10 @@ export const api = {
 
   async getMyCommissions() {
     return request<{ success: boolean; data: RetailerCommissionRate[] }>('/recharge/my-commissions');
+  },
+
+  async getMyInsights(period: InsightsPeriod = 'today') {
+    return request<{ success: boolean; data: RetailerInsights }>(`/recharge/my-insights?period=${period}`);
   },
 
   async executeRecharge(payload: {

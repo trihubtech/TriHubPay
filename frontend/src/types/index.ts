@@ -154,3 +154,27 @@ export interface RetailerCommissionRate {
   earnings_per_1000: number;
 }
 
+export type InsightsPeriod = 'today' | 'yesterday' | 'this_week' | 'this_month' | 'all';
+
+export interface RetailerInsights {
+  period: InsightsPeriod;
+  total_commission: number;
+  total_sales_volume: number;
+  total_transactions: number;
+  successful_transactions: number;
+  failed_transactions: number;
+  pending_transactions: number;
+  success_rate: number;
+  average_commission_rate: number;
+  top_operator: {
+    operator_code: string;
+    earnings: number;
+    volume: number;
+  } | null;
+  earnings_by_service: {
+    MOBILE: number;
+    DTH: number;
+    ELECTRICITY: number;
+  };
+}
+

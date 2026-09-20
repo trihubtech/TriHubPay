@@ -51,6 +51,7 @@ router.post(
 );
 router.get('/recharge/preview', authenticate, rechargeController.getCommissionPreview);
 router.get('/recharge/my-commissions', authenticate, rechargeController.getMyCommissionsList);
+router.get('/recharge/my-insights', authenticate, rechargeController.getMyInsights);
 router.get('/recharge/transactions', authenticate, rechargeController.getRetailerTransactions);
 
 // -------------------------------------------------------------

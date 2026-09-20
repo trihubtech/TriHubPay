@@ -12,6 +12,7 @@ import { PwaInstallBanner } from './components/retailer/PwaInstallBanner';
 import { RetailerBottomNav } from './components/retailer/RetailerBottomNav';
 import { ShopInfoModal } from './components/retailer/ShopInfoModal';
 import { MyCommissionsTable } from './components/retailer/MyCommissionsTable';
+import { RetailerInsightsCard } from './components/retailer/RetailerInsightsCard';
 
 // Admin components
 import { DashboardKPIs as DashboardKPIsComponent } from './components/admin/DashboardKPIs';
@@ -266,6 +267,13 @@ export function App() {
           />
 
           <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+            {/* Actionable Business Insights & Earnings by Date Range */}
+            <RetailerInsightsCard
+              transactions={retailerTransactions}
+              onNavigateToCommissions={() => setRetailerTab('COMMISSIONS')}
+              onNavigateToPassbook={() => setRetailerTab('PASSBOOK')}
+            />
+
             {/* Zero balance deposit reminder */}
             {currentUser.current_balance === 0 && (
               <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-brand-500/30 shadow-sm dark:shadow-none flex flex-col sm:flex-row items-center justify-between gap-4">
