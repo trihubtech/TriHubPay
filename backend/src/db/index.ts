@@ -26,6 +26,20 @@ let hasCheckedDb = false;
 const memoryStore = {
   users: [
     {
+      id: '00000000-0000-0000-0000-000000000000',
+      organization_name: 'TriHub Technologies Admin',
+      owner_name: 'TriHub Admin',
+      phone: '9999999999',
+      email: 'admin@trihub.app',
+      password_hash: '$2b$10$wE47P8rD/iZ31O54dK8z0eCj/k52mC5QfLh1TfK7.3Vl0dF.Z2wQ6',
+      role: 'ADMIN',
+      current_balance: '500000.0000',
+      locked_balance: '0.0000',
+      api_key: '00000000-0000-0000-0000-000000000000',
+      is_active: true,
+      created_at: new Date().toISOString()
+    },
+    {
       id: '00000000-0000-0000-0000-000000000001',
       organization_name: 'TriHubPay (Platform Master)',
       owner_name: 'TriHubPay Admin',
