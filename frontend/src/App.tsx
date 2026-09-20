@@ -278,13 +278,7 @@ export function App() {
             isRefreshing={isRefreshingRetailer}
           />
 
-          <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-            {/* Actionable Business Insights & Earnings by Date Range */}
-            <RetailerInsightsCard
-              transactions={retailerTransactions}
-              onNavigateToCommissions={() => setRetailerTab('COMMISSIONS')}
-              onNavigateToPassbook={() => setRetailerTab('PASSBOOK')}
-            />
+          <div className="max-w-4xl mx-auto px-4 pt-4 pb-6 space-y-4">
 
             {/* Zero balance deposit reminder */}
             {currentUser.current_balance === 0 && (
@@ -292,22 +286,22 @@ export function App() {
                 <div>
                   <div className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-brand-500 animate-ping"></span>
-                    <span>Ready to recharge and earn commissions?</span>
+                    <span>Add cash to start recharging and earning</span>
                   </div>
                   <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Your prepaid float balance is ₹0.00. Load float instantly via UPI QR (0% gateway fee).
+                    Your balance is ₹0.00. Add cash via UPI (no extra charges).
                   </div>
                 </div>
                 <button
                   onClick={() => setIsTopupOpen(true)}
                   className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold shrink-0 shadow-md shadow-brand-600/20"
                 >
-                  Load Float via UPI QR
+                  Add Cash via UPI
                 </button>
               </div>
             )}
 
-            {/* Retailer View Switcher Tabs (Desktop) */}
+            {/* ── DESKTOP: Tab switcher ── */}
             <div className="hidden sm:flex items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2">
                 <button
@@ -320,7 +314,7 @@ export function App() {
                   }`}
                 >
                   <Zap className="w-3.5 h-3.5" />
-                  Recharge & Bill Pay
+                  Recharge &amp; Bill Pay
                 </button>
                 <button
                   type="button"
@@ -332,7 +326,7 @@ export function App() {
                   }`}
                 >
                   <Layers className="w-3.5 h-3.5" />
-                  Passbook & Ledger
+                  Passbook &amp; Ledger
                 </button>
                 <button
                   type="button"
@@ -355,7 +349,7 @@ export function App() {
               </div>
             </div>
 
-            {/* Desktop View: Active Tab Layout */}
+            {/* ── DESKTOP: Tab content ── */}
             <div className="hidden sm:block space-y-6">
               {retailerTab === 'RECHARGE' && (
                 <>
@@ -372,7 +366,6 @@ export function App() {
                   />
                 </>
               )}
-
               {retailerTab === 'PASSBOOK' && (
                 <LedgerTable
                   transactions={retailerTransactions}
@@ -382,33 +375,42 @@ export function App() {
                   }}
                 />
               )}
-
               {retailerTab === 'COMMISSIONS' && (
                 <MyCommissionsTable />
               )}
             </div>
 
-            {/* Mobile View: Dynamic Bottom-Nav Switched View */}
+            {/* ── MOBILE: Tab content switched by bottom nav ── */}
             <div className="sm:hidden space-y-4">
               {retailerTab === 'RECHARGE' && (
                 <>
+                  {/* ── Recharge panel first ── */}
                   <RechargeTabs
                     onSuccess={handleRechargeSuccess}
                     walletBalance={currentUser.current_balance}
                   />
+
+                  {/* Recent transaction quick-link */}
                   {retailerTransactions.length > 0 && (
                     <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between text-xs shadow-sm">
                       <span className="text-slate-600 dark:text-slate-400 truncate max-w-[200px]">
-                        Recent: {retailerTransactions[0].operator_code} ₹{retailerTransactions[0].face_value} ({retailerTransactions[0].status})
+                        Last: {retailerTransactions[0].operator_code} ₹{retailerTransactions[0].face_value} ({retailerTransactions[0].status})
                       </span>
                       <button
                         onClick={() => setRetailerTab('PASSBOOK')}
                         className="text-brand-600 dark:text-brand-400 font-bold hover:underline shrink-0"
                       >
-                        Passbook →
+                        View All →
                       </button>
                     </div>
                   )}
+
+                  {/* ── Dashboard & Insights accordion below recharge ── */}
+                  <RetailerInsightsCard
+                    transactions={retailerTransactions}
+                    onNavigateToCommissions={() => setRetailerTab('COMMISSIONS')}
+                    onNavigateToPassbook={() => setRetailerTab('PASSBOOK')}
+                  />
                 </>
               )}
 
@@ -426,6 +428,16 @@ export function App() {
                 <MyCommissionsTable />
               )}
             </div>
+
+            {/* ── DESKTOP: Insights accordion below content ── */}
+            <div className="hidden sm:block">
+              <RetailerInsightsCard
+                transactions={retailerTransactions}
+                onNavigateToCommissions={() => setRetailerTab('COMMISSIONS')}
+                onNavigateToPassbook={() => setRetailerTab('PASSBOOK')}
+              />
+            </div>
+
           </div>
 
           {/* Instant UPI Float Deposit Modal */}
