@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <!-- TriHub Technologies Brand Gradient: Royal Blue to Emerald Green -->
+    <linearGradient id="trihubGrad" x1="0%" y1="20%" x2="100%" y2="80%">
+      <stop offset="0%" stop-color="#1d4ed8"/>
+      <stop offset="50%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+    
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e3a8a"/>
+      <stop offset="100%" stop-color="#064e3b"/>
+    </linearGradient>
+
+    <filter id="subtleGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#10b981" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Dark Rounded Container for App Icon -->
+  <rect width="512" height="512" rx="128" fill="#090d16"/>
+  <rect width="512" height="512" rx="128" fill="url(#glowGrad)" opacity="0.25"/>
+  <rect width="510" height="510" x="1" y="1" rx="127" fill="none" stroke="url(#trihubGrad)" stroke-width="3" opacity="0.4"/>
+
+  <!-- TriHub Global Network Sphere -->
+  <g transform="translate(256, 256) scale(1.15) translate(-256, -256)" filter="url(#subtleGlow)">
+    <!-- Outer Sphere Ring -->
+    <circle cx="256" cy="256" r="140" fill="none" stroke="url(#trihubGrad)" stroke-width="12"/>
+
+    <!-- Latitude / Longitude Elliptical Grid Lines -->
+    <!-- Vertical Longitude Arc 1 -->
+    <ellipse cx="256" cy="256" rx="60" ry="140" fill="none" stroke="url(#trihubGrad)" stroke-width="9" stroke-linecap="round"/>
+    
+    <!-- Vertical Longitude Arc 2 (Tilted) -->
+    <path d="M 200,125 C 275,180 275,330 200,385" fill="none" stroke="url(#trihubGrad)" stroke-width="9" stroke-linecap="round"/>
+    <path d="M 312,125 C 237,180 237,330 312,385" fill="none" stroke="url(#trihubGrad)" stroke-width="9" stroke-linecap="round"/>
+
+    <!-- Horizontal Latitude Arc Upper -->
+    <path d="M 130,205 C 190,235 322,235 382,205" fill="none" stroke="url(#trihubGrad)" stroke-width="9" stroke-linecap="round"/>
+
+    <!-- Horizontal Latitude Arc Lower -->
+    <path d="M 130,307 C 190,277 322,277 382,307" fill="none" stroke="url(#trihubGrad)" stroke-width="9" stroke-linecap="round"/>
+
+    <!-- Central Recharge Lightning Accent Node -->
+    <path d="M 262,175 L 235,255 L 265,255 L 245,335 L 285,245 L 255,245 Z" fill="#ffffff" filter="drop-shadow(0 0 6px #10b981)"/>
+
+    <!-- Network Interconnect Connection Nodes (Dots) -->
+    <circle cx="160" cy="216" r="13" fill="#1d4ed8"/>
+    <circle cx="160" cy="216" r="6" fill="#ffffff"/>
+
+    <circle cx="352" cy="216" r="13" fill="#10b981"/>
+    <circle cx="352" cy="216" r="6" fill="#ffffff"/>
+
+    <circle cx="150" cy="300" r="13" fill="#2563eb"/>
+    <circle cx="150" cy="300" r="6" fill="#ffffff"/>
+
+    <circle cx="362" cy="300" r="13" fill="#22c55e"/>
+    <circle cx="362" cy="300" r="6" fill="#ffffff"/>
+
+    <circle cx="218" cy="256" r="11" fill="#3b82f6"/>
+    <circle cx="294" cy="256" r="11" fill="#10b981"/>
+
+    <circle cx="256" cy="116" r="11" fill="#1d4ed8"/>
+    <circle cx="256" cy="396" r="11" fill="#10b981"/>
+  </g>
+</svg>

@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: trihub_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: trihub_admin
+      POSTGRES_PASSWORD: trihub_secure_pass_2026
+      POSTGRES_DB: trihub_recharge
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/src/db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - ./backend/src/db/seeds.sql:/docker-entrypoint-initdb.d/02_seeds.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U recharge_admin -d recharge_platform"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
