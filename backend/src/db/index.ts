@@ -64,7 +64,7 @@ const memoryStore = {
 
   system_settings: {
     failover_mode: { mode: 'AUTO', timeout_ms: 8000 },
-    platform_upi: { vpa: 'trihubpay@paytm', merchant_name: 'TriHubPay' },
+    platform_upi: { vpa: '8270873279@upi', merchant_name: 'TriHub Technologies' },
     master_wallet_metrics: { cached_balance: 184500.00, low_balance_threshold: 25000.00 }
   } as Record<string, any>
 };
