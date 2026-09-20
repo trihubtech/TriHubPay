@@ -166,6 +166,11 @@ export function App() {
     if (currentUser?.role === 'ADMIN') loadAdminData();
   };
 
+  const handleUserUpdated = (updatedUser: User) => {
+    setCurrentUser(updatedUser);
+    localStorage.setItem('trihub_user', JSON.stringify(updatedUser));
+  };
+
   // 1. Initial Loading Screen
   if (isInitializing) {
     return (
@@ -216,14 +221,19 @@ export function App() {
 
           {/* User Profile Badge, Theme Toggle & Logout */}
           <div className="flex items-center gap-2.5">
-            <div className="text-right">
-              <div className="font-bold text-slate-900 dark:text-white text-xs leading-tight">
+            <button
+              type="button"
+              onClick={() => setIsShopInfoOpen(true)}
+              className="text-right px-2 py-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer group flex flex-col items-end"
+              title="Click to view and edit profile"
+            >
+              <div className="font-bold text-slate-900 dark:text-white text-xs leading-tight group-hover:text-brand-600 dark:group-hover:text-brand-400">
                 {currentUser.organization_name}
               </div>
               <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
                 {isRetailer ? (currentUser.owner_name || 'Retailer Partner') : 'Master Platform Admin'}
               </div>
-            </div>
+            </button>
 
             <ThemeToggle />
 
@@ -440,14 +450,6 @@ export function App() {
             onOpenTopup={() => setIsTopupOpen(true)}
             onOpenShopInfo={() => setIsShopInfoOpen(true)}
           />
-
-          {/* Mobile Shop Info & Profile Drawer Modal */}
-          <ShopInfoModal
-            isOpen={isShopInfoOpen}
-            onClose={() => setIsShopInfoOpen(false)}
-            user={currentUser}
-            onLogout={() => setIsSignOutConfirmOpen(true)}
-          />
         </main>
       )}
 
@@ -591,6 +593,17 @@ export function App() {
             onSuccess={loadAdminData}
           />
         </main>
+      )}
+
+      {/* Global Account Profile & Edit Modal */}
+      {currentUser && (
+        <ShopInfoModal
+          isOpen={isShopInfoOpen}
+          onClose={() => setIsShopInfoOpen(false)}
+          user={currentUser}
+          onLogout={() => setIsSignOutConfirmOpen(true)}
+          onUserUpdated={handleUserUpdated}
+        />
       )}
 
       {/* Global Sign Out Confirmation Modal */}

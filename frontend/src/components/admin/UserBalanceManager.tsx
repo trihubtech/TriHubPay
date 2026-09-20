@@ -18,7 +18,12 @@ import {
   Lock,
   Phone,
   Mail,
-  X
+  X,
+  Edit3,
+  Building2,
+  User as UserIcon,
+  Save,
+  CheckCircle2
 } from 'lucide-react';
 
 interface UserBalanceManagerProps {
@@ -56,6 +61,77 @@ export const UserBalanceManager: React.FC<UserBalanceManagerProps> = ({
   const [ledgerModalUser, setLedgerModalUser] = useState<User | null>(null);
   const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([]);
   const [loadingLedger, setLoadingLedger] = useState<boolean>(false);
+
+  // Edit Profile Modal state
+  const [profileModalUser, setProfileModalUser] = useState<User | null>(null);
+  const [editOrgName, setEditOrgName] = useState<string>('');
+  const [editOwnerName, setEditOwnerName] = useState<string>('');
+  const [editPhone, setEditPhone] = useState<string>('');
+  const [editEmail, setEditEmail] = useState<string>('');
+  const [editProfileError, setEditProfileError] = useState<string>('');
+  const [editProfileSuccess, setEditProfileSuccess] = useState<string>('');
+  const [isSavingProfile, setIsSavingProfile] = useState<boolean>(false);
+
+  const handleOpenEditProfile = (u: User) => {
+    setProfileModalUser(u);
+    setEditOrgName(u.organization_name || '');
+    setEditOwnerName(u.owner_name || '');
+    setEditPhone(u.phone || '');
+    setEditEmail(u.email || '');
+    setEditProfileError('');
+    setEditProfileSuccess('');
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profileModalUser) return;
+
+    const cleanPhone = editPhone.trim();
+    const cleanEmail = editEmail.trim().toLowerCase();
+    const cleanOrg = editOrgName.trim();
+    const cleanOwner = editOwnerName.trim();
+
+    if (!cleanOrg || !cleanOwner) {
+      setEditProfileError('Organization and owner names cannot be empty.');
+      return;
+    }
+
+    if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+      setEditProfileError('Please enter a valid 10-digit Indian mobile number (e.g. 9876543210).');
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setEditProfileError('Please enter a valid email address.');
+      return;
+    }
+
+    setIsSavingProfile(true);
+    setEditProfileError('');
+    setEditProfileSuccess('');
+    try {
+      const res = await api.adminUpdateUserProfile(profileModalUser.id, {
+        organization_name: cleanOrg,
+        owner_name: cleanOwner,
+        phone: cleanPhone,
+        email: cleanEmail
+      });
+
+      if (res.success) {
+        setEditProfileSuccess('User profile updated successfully!');
+        setTimeout(() => {
+          setProfileModalUser(null);
+          onRefresh();
+        }, 1200);
+      } else {
+        setEditProfileError(res.message || 'Failed to update user profile.');
+      }
+    } catch (err: any) {
+      setEditProfileError(err.message || 'Failed to update profile. Mobile number or email is already used by another profile.');
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
 
   const filteredUsers = users.filter((u) =>
     u.organization_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -299,6 +375,15 @@ export const UserBalanceManager: React.FC<UserBalanceManagerProps> = ({
                       className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 border border-amber-500/20"
                     >
                       <KeyRound className="w-3.5 h-3.5" />
+                    </button>
+
+                    {/* Edit User Profile & Unique Mobile/Email */}
+                    <button
+                      onClick={() => handleOpenEditProfile(u)}
+                      title="Edit Shop Profile & Contact"
+                      className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20 border border-indigo-500/20"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </td>
@@ -546,6 +631,141 @@ export const UserBalanceManager: React.FC<UserBalanceManagerProps> = ({
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Profile Modal */}
+      {profileModalUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in-95">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                  <Edit3 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-900 dark:text-white text-sm">
+                    Edit Retailer Profile
+                  </h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Update organization, owner name, and unique contact details
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setProfileModalUser(null)}
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveProfile} className="p-5 space-y-4">
+              {editProfileError && (
+                <div className="p-3 rounded-xl text-xs bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{editProfileError}</span>
+                </div>
+              )}
+
+              {editProfileSuccess && (
+                <div className="p-3 rounded-xl text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>{editProfileSuccess}</span>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                  Organization / Shop Name
+                </label>
+                <div className="relative">
+                  <Building2 className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    required
+                    value={editOrgName}
+                    onChange={(e) => setEditOrgName(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                  Full Name / Owner Name
+                </label>
+                <div className="relative">
+                  <UserIcon className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    required
+                    value={editOwnerName}
+                    onChange={(e) => setEditOwnerName(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                  Unique Mobile Number (10 Digits)
+                </label>
+                <div className="relative">
+                  <Phone className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="tel"
+                    required
+                    maxLength={10}
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">No two accounts can share the same mobile number.</p>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                  Unique Email Address
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="email"
+                    required
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">No two accounts can share the same email address.</p>
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setProfileModalUser(null)}
+                  disabled={isSavingProfile}
+                  className="w-1/2 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingProfile}
+                  className="w-1/2 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/20"
+                >
+                  {isSavingProfile ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  <span>Save Profile</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -15,6 +15,8 @@ import {
   RefreshCw,
   Coins
 } from 'lucide-react';
+import { OperatorIcon } from '../common/OperatorIcon';
+import { formatOperatorName } from '../../utils/formatters';
 
 export const MyCommissionsTable: React.FC = () => {
   const [rates, setRates] = useState<RetailerCommissionRate[]>([]);
@@ -267,12 +269,10 @@ export const MyCommissionsTable: React.FC = () => {
                       {/* Operator Name with Badge */}
                       <td className="py-3.5 px-4 font-semibold text-slate-900 dark:text-white">
                         <div className="flex items-center gap-2.5">
-                          <span className={`w-8 h-8 rounded-xl font-bold text-[10px] flex items-center justify-center shrink-0 shadow-sm ${getOperatorColor(item.operator_code)}`}>
-                            {item.operator_code.slice(0, 3)}
-                          </span>
+                          <OperatorIcon operatorCode={item.operator_code} size="sm" />
                           <div>
                             <div className="font-bold flex items-center gap-1.5">
-                              <span>{item.operator_name}</span>
+                              <span>{formatOperatorName(item.operator_code, item.operator_name)}</span>
                               {item.is_custom && (
                                 <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center gap-0.5">
                                   <Sparkles className="w-2.5 h-2.5" />

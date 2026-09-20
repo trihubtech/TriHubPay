@@ -21,6 +21,7 @@ import { BrowsePlansModal } from './BrowsePlansModal';
 import { PlanDetailsModal } from './PlanDetailsModal';
 import { OperatorIcon } from '../common/OperatorIcon';
 import { OperatorSelectModal } from './OperatorSelectModal';
+import { formatOperatorName } from '../../utils/formatters';
 
 interface RechargeTabsProps {
   onSuccess: (txData: any, newBalance: number) => void;
@@ -309,7 +310,7 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({ onSuccess, walletBal
                   <OperatorIcon operatorCode={selectedOperator} size="md" />
                   <div className="truncate text-left">
                     <div className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
-                      {currentOp?.operator_name || selectedOperator}
+                      {formatOperatorName(selectedOperator, currentOp?.operator_name)}
                     </div>
                     <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-2 mt-0.5">
                       <span className="font-mono">{selectedOperator}</span>
@@ -353,7 +354,7 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({ onSuccess, walletBal
                     }`}
                   >
                     <OperatorIcon operatorCode={op.operator_code} size="xs" />
-                    <span className="truncate max-w-[120px]">{op.operator_name.split(' ')[0]}</span>
+                    <span className="truncate max-w-[120px]">{formatOperatorName(op.operator_code, op.operator_name)}</span>
                   </button>
                 );
               })}
@@ -497,7 +498,7 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({ onSuccess, walletBal
             <div>
               <div className="flex items-center justify-between mb-2">
                 <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                  Popular Plans for {currentOp?.operator_name || selectedOperator}
+                  Popular Plans for {formatOperatorName(selectedOperator, currentOp?.operator_name)}
                 </div>
                 <button
                   type="button"
@@ -603,7 +604,7 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({ onSuccess, walletBal
       <BrowsePlansModal
         isOpen={isBrowsePlansOpen}
         onClose={() => setIsBrowsePlansOpen(false)}
-        operatorName={currentOp?.operator_name || selectedOperator}
+        operatorName={formatOperatorName(selectedOperator, currentOp?.operator_name)}
         operatorCode={selectedOperator}
         plans={plans}
         onSelectPlan={(amt) => setFaceValue(String(amt))}
@@ -615,7 +616,7 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({ onSuccess, walletBal
         isOpen={Boolean(selectedPlanForDetails)}
         onClose={() => setSelectedPlanForDetails(null)}
         plan={selectedPlanForDetails}
-        operatorName={currentOp?.operator_name || selectedOperator}
+        operatorName={formatOperatorName(selectedOperator, currentOp?.operator_name)}
         operatorCode={selectedOperator}
         isDth={activeTab === 'DTH'}
         onProceed={(amt) => {

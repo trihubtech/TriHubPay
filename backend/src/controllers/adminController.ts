@@ -220,6 +220,76 @@ export async function getUserLedger(req: Request, res: Response) {
 }
 
 /**
+ * Admin: Update any retailer's profile with uniqueness check
+ */
+export async function updateUserProfile(req: Request, res: Response) {
+  try {
+    const { user_id } = req.params;
+    const { organization_name, owner_name, phone, email } = req.body;
+
+    if (!user_id || !organization_name || !owner_name || !phone || !email) {
+      return res.status(400).json({ success: false, message: 'user_id, organization_name, owner_name, phone, and email are required' });
+    }
+
+    const cleanPhone = String(phone).trim();
+    const cleanEmail = String(email).trim().toLowerCase();
+    const cleanOrg = String(organization_name).trim();
+    const cleanOwner = String(owner_name).trim();
+
+    if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+      return res.status(400).json({ success: false, message: 'Please enter a valid 10-digit Indian mobile number' });
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      return res.status(400).json({ success: false, message: 'Please enter a valid email address' });
+    }
+
+    // 1. Uniqueness check: Phone
+    const phoneCheck = await query(
+      'SELECT id FROM users WHERE phone = $1 AND id != $2 LIMIT 1',
+      [cleanPhone, user_id]
+    );
+    if (phoneCheck.rows.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: 'This mobile number is already registered to another account. Every profile must have a unique mobile number.'
+      });
+    }
+
+    // 2. Uniqueness check: Email
+    const emailCheck = await query(
+      'SELECT id FROM users WHERE LOWER(email) = LOWER($1) AND id != $2 LIMIT 1',
+      [cleanEmail, user_id]
+    );
+    if (emailCheck.rows.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: 'This email address is already registered to another account. Every profile must have a unique email.'
+      });
+    }
+
+    // 3. Update User
+    await query(
+      'UPDATE users SET organization_name = $1, owner_name = $2, phone = $3, email = $4 WHERE id = $5',
+      [cleanOrg, cleanOwner, cleanPhone, cleanEmail, user_id]
+    );
+
+    const updatedUserRes = await query(
+      'SELECT id, organization_name, owner_name, phone, email, role, current_balance, is_active FROM users WHERE id = $1',
+      [user_id]
+    );
+
+    return res.json({
+      success: true,
+      message: 'User profile updated successfully',
+      data: updatedUserRes.rows[0]
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+/**
  * Get global commission matrix
  */
 export async function getCommissionMatrix(req: Request, res: Response) {

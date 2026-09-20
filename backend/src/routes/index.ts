@@ -21,6 +21,7 @@ router.post('/auth/register', authController.registerRetailer);
 router.post('/auth/forgot-password/send-otp', authController.sendPasswordResetOtp);
 router.post('/auth/forgot-password/reset', authController.verifyOtpAndResetPassword);
 router.get('/auth/me', authenticate, authController.getMe);
+router.put('/auth/profile', authenticate, authController.updateProfile);
 
 // -------------------------------------------------------------
 // 2. OPERATORS & PLANS DIRECTORY
@@ -62,6 +63,7 @@ router.get('/admin/users', authenticate, requireRole(['ADMIN']), adminController
 router.post('/admin/users/balance', authenticate, requireRole(['ADMIN']), adminController.adjustUserBalance);
 router.post('/admin/users/status', authenticate, requireRole(['ADMIN']), adminController.toggleUserStatus);
 router.post('/admin/users/reset-password', authenticate, requireRole(['ADMIN']), adminController.resetUserPassword);
+router.put('/admin/users/:user_id/profile', authenticate, requireRole(['ADMIN']), adminController.updateUserProfile);
 router.get('/admin/users/:user_id/ledger', authenticate, requireRole(['ADMIN']), adminController.getUserLedger);
 
 // Global & Per-Shop Commission Matrix Management

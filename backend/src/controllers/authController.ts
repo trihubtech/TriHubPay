@@ -314,3 +314,76 @@ export async function verifyOtpAndResetPassword(req: Request, res: Response) {
   }
 }
 
+/**
+ * Update authenticated user's own profile (Organization, Owner, Mobile, Email)
+ * Enforces strict uniqueness across all profiles
+ */
+export async function updateProfile(req: Request, res: Response) {
+  try {
+    const userId = req.user!.id;
+    const { organization_name, owner_name, phone, email } = req.body;
+
+    if (!organization_name || !owner_name || !phone || !email) {
+      return res.status(400).json({ success: false, message: 'Organization name, owner name, mobile number, and email are required' });
+    }
+
+    const cleanPhone = String(phone).trim();
+    const cleanEmail = String(email).trim().toLowerCase();
+    const cleanOrg = String(organization_name).trim();
+    const cleanOwner = String(owner_name).trim();
+
+    if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+      return res.status(400).json({ success: false, message: 'Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9' });
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      return res.status(400).json({ success: false, message: 'Please enter a valid email address' });
+    }
+
+    // 1. Strict Uniqueness Check: Mobile number must be unique across all accounts
+    const phoneCheck = await query(
+      'SELECT id FROM users WHERE phone = $1 AND id != $2 LIMIT 1',
+      [cleanPhone, userId]
+    );
+    if (phoneCheck.rows.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: 'This mobile number is already registered to another account. Every profile must have a unique mobile number.'
+      });
+    }
+
+    // 2. Strict Uniqueness Check: Email must be unique across all accounts
+    const emailCheck = await query(
+      'SELECT id FROM users WHERE LOWER(email) = LOWER($1) AND id != $2 LIMIT 1',
+      [cleanEmail, userId]
+    );
+    if (emailCheck.rows.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: 'This email address is already registered to another account. Every profile must have a unique email.'
+      });
+    }
+
+    // 3. Update User Record
+    await query(
+      'UPDATE users SET organization_name = $1, owner_name = $2, phone = $3, email = $4 WHERE id = $5',
+      [cleanOrg, cleanOwner, cleanPhone, cleanEmail, userId]
+    );
+
+    // 4. Fetch and return updated profile
+    const updatedRes = await query(
+      'SELECT id, organization_name, owner_name, phone, email, role, current_balance, is_active FROM users WHERE id = $1',
+      [userId]
+    );
+
+    return res.json({
+      success: true,
+      message: 'Profile updated successfully!',
+      data: updatedRes.rows[0]
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+

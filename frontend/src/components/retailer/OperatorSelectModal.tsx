@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Operator } from '../../types';
 import { OperatorIcon } from '../common/OperatorIcon';
+import { formatOperatorName } from '../../utils/formatters';
 import { X, Search, Check, Zap, Sparkles, ChevronRight } from 'lucide-react';
 
 interface OperatorSelectModalProps {
@@ -112,7 +113,7 @@ export const OperatorSelectModal: React.FC<OperatorSelectModalProps> = ({
                     <OperatorIcon operatorCode={op.operator_code} size="lg" />
                     <div className="truncate">
                       <div className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
-                        {op.operator_name}
+                        {formatOperatorName(op.operator_code, op.operator_name)}
                       </div>
                       <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5 flex items-center gap-2">
                         <span>{op.operator_code}</span>

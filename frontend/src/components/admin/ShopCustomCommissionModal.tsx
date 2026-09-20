@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, ShopCustomCommission, CommissionMatrixItem } from '../../types';
 import { api } from '../../services/api';
+import { formatOperatorName } from '../../utils/formatters';
 import { X, Settings2, Plus, Trash2, CheckCircle2, ShieldCheck, Loader2, AlertCircle } from 'lucide-react';
 
 interface ShopCustomCommissionModalProps {
@@ -169,7 +170,7 @@ export const ShopCustomCommissionModal: React.FC<ShopCustomCommissionModalProps>
                 >
                   {matrixItems.map((m) => (
                     <option key={m.operator_code} value={m.operator_code}>
-                      {m.operator_code} - {m.operator_name}
+                      {m.operator_code} - {formatOperatorName(m.operator_code, m.operator_name)}
                     </option>
                   ))}
                 </select>
@@ -267,7 +268,7 @@ export const ShopCustomCommissionModal: React.FC<ShopCustomCommissionModalProps>
                       <div>
                         <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                           <span>{cr.operator_code}</span>
-                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">({cr.operator_name})</span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">({formatOperatorName(cr.operator_code, cr.operator_name)})</span>
                           {isCurrentlySelected && (
                             <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold">
                               ACTIVE

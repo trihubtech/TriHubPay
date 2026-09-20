@@ -25,7 +25,7 @@ export const OperatorIcon: React.FC<OperatorIconProps> = ({
   if (code === 'JIO' || code.includes('JIO')) {
     return (
       <div 
-        className={`relative ${dimensions} rounded-2xl bg-[#0a2885] flex items-center justify-center shadow-md shadow-blue-900/30 shrink-0 overflow-hidden ${className}`}
+        className={`relative ${dimensions} rounded-full bg-[#0a2885] flex items-center justify-center shadow-md shadow-blue-900/30 shrink-0 overflow-hidden ${className}`}
         title="Reliance Jio Infocomm"
       >
         <div className="absolute inset-0 bg-gradient-to-tr from-[#001466] to-[#1242d6] opacity-90" />
@@ -52,7 +52,7 @@ export const OperatorIcon: React.FC<OperatorIconProps> = ({
   if (code === 'AIRTEL' || (code.includes('AIRTEL') && !code.includes('DTH'))) {
     return (
       <div 
-        className={`relative ${dimensions} rounded-2xl bg-[#e40000] flex items-center justify-center shadow-md shadow-red-600/30 shrink-0 overflow-hidden ${className}`}
+        className={`relative ${dimensions} rounded-full bg-[#e40000] flex items-center justify-center shadow-md shadow-red-600/30 shrink-0 overflow-hidden ${className}`}
         title="Bharti Airtel"
       >
         <div className="absolute inset-0 bg-gradient-to-tr from-[#c40000] to-[#ff2b2b]" />
@@ -75,7 +75,7 @@ export const OperatorIcon: React.FC<OperatorIconProps> = ({
   if (code === 'VI' || code.includes('IDEA') || code.includes('VODAFONE')) {
     return (
       <div 
-        className={`relative ${dimensions} rounded-2xl bg-[#ee1d23] flex items-center justify-center shadow-md shadow-rose-900/30 shrink-0 overflow-hidden ${className}`}
+        className={`relative ${dimensions} rounded-full bg-[#ee1d23] flex items-center justify-center shadow-md shadow-rose-900/30 shrink-0 overflow-hidden ${className}`}
         title="Vodafone Idea (Vi)"
       >
         <div className="absolute inset-0 bg-gradient-to-tr from-[#b80b10] to-[#ff3b40]" />
@@ -114,7 +114,7 @@ export const OperatorIcon: React.FC<OperatorIconProps> = ({
   if (code === 'BSNL') {
     return (
       <div 
-        className={`relative ${dimensions} rounded-2xl bg-[#004b93] flex items-center justify-center shadow-md shadow-blue-900/30 shrink-0 overflow-hidden ${className}`}
+        className={`relative ${dimensions} rounded-full bg-[#004b93] flex items-center justify-center shadow-md shadow-blue-900/30 shrink-0 overflow-hidden ${className}`}
         title="Bharat Sanchar Nigam Limited (BSNL)"
       >
         <div className="absolute inset-0 bg-gradient-to-tr from-[#003366] to-[#0066cc]" />
@@ -144,7 +144,7 @@ export const OperatorIcon: React.FC<OperatorIconProps> = ({
   if (code === 'SUNDIRECT' || code.includes('SUN')) {
     return (
       <div 
-        className={`relative ${dimensions} rounded-2xl bg-[#f26522] flex items-center justify-center shadow-md shadow-orange-600/30 shrink-0 overflow-hidden ${className}`}
+        className={`relative ${dimensions} rounded-full bg-[#f26522] flex items-center justify-center shadow-md shadow-orange-600/30 shrink-0 overflow-hidden ${className}`}
         title="Sun Direct TV"
       >
         <div className="absolute inset-0 bg-gradient-to-tr from-[#d94806] via-[#f76707] to-[#ffa94d]" />
@@ -182,7 +182,7 @@ export const OperatorIcon: React.FC<OperatorIconProps> = ({
   if (code === 'TATAPLAY' || code.includes('TATA')) {
     return (
       <div 
-        className={`relative ${dimensions} rounded-2xl bg-[#a0006d] flex items-center justify-center shadow-md shadow-pink-900/30 shrink-0 overflow-hidden ${className}`}
+        className={`relative ${dimensions} rounded-full bg-[#a0006d] flex items-center justify-center shadow-md shadow-pink-900/30 shrink-0 overflow-hidden ${className}`}
         title="Tata Play DTH"
       >
         <div className="absolute inset-0 bg-gradient-to-tr from-[#650085] via-[#a0006d] to-[#e6007e]" />
@@ -223,7 +223,7 @@ export const OperatorIcon: React.FC<OperatorIconProps> = ({
   if (code === 'AIRTEL_DTH' || (code.includes('AIRTEL') && code.includes('DTH'))) {
     return (
       <div 
-        className={`relative ${dimensions} rounded-2xl bg-[#d32f2f] flex items-center justify-center shadow-md shadow-red-700/30 shrink-0 overflow-hidden ${className}`}
+        className={`relative ${dimensions} rounded-full bg-[#d32f2f] flex items-center justify-center shadow-md shadow-red-700/30 shrink-0 overflow-hidden ${className}`}
         title="Airtel Digital TV"
       >
         <div className="absolute inset-0 bg-gradient-to-tr from-[#9a0007] to-[#e53935]" />
@@ -254,7 +254,7 @@ export const OperatorIcon: React.FC<OperatorIconProps> = ({
   if (code === 'DISHTV' || code.includes('DISH')) {
     return (
       <div 
-        className={`relative ${dimensions} rounded-2xl bg-[#ed1c24] flex items-center justify-center shadow-md shadow-red-600/30 shrink-0 overflow-hidden ${className}`}
+        className={`relative ${dimensions} rounded-full bg-[#ed1c24] flex items-center justify-center shadow-md shadow-red-600/30 shrink-0 overflow-hidden ${className}`}
         title="Dish TV India"
       >
         <div className="absolute inset-0 bg-gradient-to-tr from-[#b70f15] to-[#ff3b40]" />
@@ -293,7 +293,7 @@ export const OperatorIcon: React.FC<OperatorIconProps> = ({
   if (code === 'VIDEOCON' || code.includes('D2H')) {
     return (
       <div 
-        className={`relative ${dimensions} rounded-2xl bg-[#00873d] flex items-center justify-center shadow-md shadow-green-700/30 shrink-0 overflow-hidden ${className}`}
+        className={`relative ${dimensions} rounded-full bg-[#00873d] flex items-center justify-center shadow-md shadow-green-700/30 shrink-0 overflow-hidden ${className}`}
         title="Videocon d2h"
       >
         <div className="absolute inset-0 bg-gradient-to-tr from-[#005c29] to-[#00a84c]" />
@@ -320,7 +320,7 @@ export const OperatorIcon: React.FC<OperatorIconProps> = ({
   if (code === 'TNEB' || code.includes('TNEB') || code.includes('TAMIL NADU')) {
     return (
       <div 
-        className={`relative ${dimensions} rounded-2xl bg-[#0b6e3f] flex items-center justify-center shadow-md shadow-emerald-800/30 shrink-0 overflow-hidden ${className}`}
+        className={`relative ${dimensions} rounded-full bg-[#0b6e3f] flex items-center justify-center shadow-md shadow-emerald-800/30 shrink-0 overflow-hidden ${className}`}
         title="Tamil Nadu Electricity Board (TNEB / TANGEDCO)"
       >
         <div className="absolute inset-0 bg-gradient-to-tr from-[#064728] via-[#0b6e3f] to-[#109b59]" />
@@ -349,7 +349,7 @@ export const OperatorIcon: React.FC<OperatorIconProps> = ({
   if (code === 'BESCOM' || code.includes('BESCOM')) {
     return (
       <div 
-        className={`relative ${dimensions} rounded-2xl bg-[#0284c7] flex items-center justify-center shadow-md shadow-sky-800/30 shrink-0 overflow-hidden ${className}`}
+        className={`relative ${dimensions} rounded-full bg-[#0284c7] flex items-center justify-center shadow-md shadow-sky-800/30 shrink-0 overflow-hidden ${className}`}
         title="Bangalore Electricity Supply (BESCOM)"
       >
         <div className="absolute inset-0 bg-gradient-to-tr from-[#0369a1] to-[#38bdf8]" />
@@ -377,7 +377,7 @@ export const OperatorIcon: React.FC<OperatorIconProps> = ({
   if (code === 'MSEB' || code.includes('MSEB') || code.includes('MSEDCL')) {
     return (
       <div 
-        className={`relative ${dimensions} rounded-2xl bg-[#ea580c] flex items-center justify-center shadow-md shadow-orange-800/30 shrink-0 overflow-hidden ${className}`}
+        className={`relative ${dimensions} rounded-full bg-[#ea580c] flex items-center justify-center shadow-md shadow-orange-800/30 shrink-0 overflow-hidden ${className}`}
         title="Maharashtra State Electricity (MSEDCL)"
       >
         <div className="absolute inset-0 bg-gradient-to-tr from-[#c2410c] to-[#f97316]" />
@@ -405,7 +405,7 @@ export const OperatorIcon: React.FC<OperatorIconProps> = ({
   if (code === 'WBSEDCL' || code.includes('WBSEDCL')) {
     return (
       <div 
-        className={`relative ${dimensions} rounded-2xl bg-[#0d9488] flex items-center justify-center shadow-md shadow-teal-800/30 shrink-0 overflow-hidden ${className}`}
+        className={`relative ${dimensions} rounded-full bg-[#0d9488] flex items-center justify-center shadow-md shadow-teal-800/30 shrink-0 overflow-hidden ${className}`}
         title="West Bengal State Electricity (WBSEDCL)"
       >
         <div className="absolute inset-0 bg-gradient-to-tr from-[#115e59] to-[#14b8a6]" />
@@ -432,7 +432,7 @@ export const OperatorIcon: React.FC<OperatorIconProps> = ({
   // Fallback: Generic High-Tech Utility Badge
   return (
     <div 
-      className={`relative ${dimensions} rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white font-black font-mono shadow-md shrink-0 ${className}`}
+      className={`relative ${dimensions} rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white font-black font-mono shadow-md shrink-0 ${className}`}
     >
       <span>{code.slice(0, 3) || 'OP'}</span>
     </div>

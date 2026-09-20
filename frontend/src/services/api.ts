@@ -144,6 +144,18 @@ export const api = {
     return request<{ success: boolean; data: User }>('/auth/me');
   },
 
+  async updateProfile(payload: {
+    organization_name: string;
+    owner_name: string;
+    phone: string;
+    email: string;
+  }) {
+    return request<{ success: boolean; message: string; data: User }>('/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    });
+  },
+
   async sendForgotPasswordOtp(identifier: string) {
     return request<{ success: boolean; message: string; masked_email: string; phone?: string }>('/auth/forgot-password/send-otp', {
       method: 'POST',
@@ -298,6 +310,18 @@ export const api = {
 
   async getUserLedger(userId: string) {
     return request<{ success: boolean; data: LedgerEntry[] }>(`/admin/users/${userId}/ledger`);
+  },
+
+  async adminUpdateUserProfile(userId: string, payload: {
+    organization_name: string;
+    owner_name: string;
+    phone: string;
+    email: string;
+  }) {
+    return request<{ success: boolean; message: string; data: User }>(`/admin/users/${userId}/profile`, {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    });
   },
 
   async getCommissionMatrix() {

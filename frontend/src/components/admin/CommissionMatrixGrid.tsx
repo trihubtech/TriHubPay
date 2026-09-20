@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { CommissionMatrixItem } from '../../types';
 import { api } from '../../services/api';
+import { OperatorIcon } from '../common/OperatorIcon';
+import { formatOperatorName } from '../../utils/formatters';
 import { Sliders, Save, CheckCircle, AlertCircle, Percent } from 'lucide-react';
 
 interface CommissionMatrixGridProps {
@@ -97,8 +99,15 @@ export const CommissionMatrixGrid: React.FC<CommissionMatrixGridProps> = ({ item
               return (
                 <tr key={it.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-850/50 transition-colors">
                   <td className="py-3.5 px-4">
-                    <div className="font-bold text-slate-900 dark:text-white font-mono text-sm">{it.operator_code}</div>
-                    <div className="text-[11px] text-slate-500 dark:text-slate-400">{it.operator_name}</div>
+                    <div className="flex items-center gap-3">
+                      <OperatorIcon operatorCode={it.operator_code} size="sm" />
+                      <div>
+                        <div className="font-bold text-slate-900 dark:text-white text-xs">
+                          {formatOperatorName(it.operator_code, it.operator_name)}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-mono">{it.operator_code}</div>
+                      </div>
+                    </div>
                   </td>
 
                   <td className="py-3.5 px-4">

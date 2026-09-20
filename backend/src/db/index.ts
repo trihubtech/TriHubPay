@@ -47,18 +47,18 @@ const memoryStore = {
   ],
 
   commission_matrix: [
-    { id: 1, operator_code: 'JIO', operator_name: 'Reliance Jio Infocomm', service_type: 'MOBILE', master_api_rate: 5.80, retailer_pass_down_rate: 3.00, admin_net_margin: 2.80, is_active: true },
-    { id: 2, operator_code: 'AIRTEL', operator_name: 'Bharti Airtel', service_type: 'MOBILE', master_api_rate: 5.50, retailer_pass_down_rate: 2.80, admin_net_margin: 2.70, is_active: true },
-    { id: 3, operator_code: 'VI', operator_name: 'Vodafone Idea', service_type: 'MOBILE', master_api_rate: 6.00, retailer_pass_down_rate: 3.50, admin_net_margin: 2.50, is_active: true },
-    { id: 4, operator_code: 'BSNL', operator_name: 'BSNL GSM / Topup', service_type: 'MOBILE', master_api_rate: 6.20, retailer_pass_down_rate: 4.00, admin_net_margin: 2.20, is_active: true },
-    { id: 5, operator_code: 'TATAPLAY', operator_name: 'Tata Play DTH', service_type: 'DTH', master_api_rate: 5.60, retailer_pass_down_rate: 3.20, admin_net_margin: 2.40, is_active: true },
-    { id: 6, operator_code: 'AIRTEL_DTH', operator_name: 'Airtel Digital TV', service_type: 'DTH', master_api_rate: 5.50, retailer_pass_down_rate: 3.00, admin_net_margin: 2.50, is_active: true },
-    { id: 7, operator_code: 'DISHTV', operator_name: 'Dish TV India', service_type: 'DTH', master_api_rate: 6.00, retailer_pass_down_rate: 3.60, admin_net_margin: 2.40, is_active: true },
-    { id: 8, operator_code: 'SUNDIRECT', operator_name: 'Sun Direct TV', service_type: 'DTH', master_api_rate: 5.80, retailer_pass_down_rate: 3.50, admin_net_margin: 2.30, is_active: true },
-    { id: 9, operator_code: 'TNEB', operator_name: 'Tamil Nadu Electricity (TANGEDCO)', service_type: 'ELECTRICITY', master_api_rate: 1.50, retailer_pass_down_rate: 0.50, admin_net_margin: 1.00, is_active: true },
-    { id: 10, operator_code: 'BESCOM', operator_name: 'Bangalore Electricity Supply (BESCOM)', service_type: 'ELECTRICITY', master_api_rate: 1.50, retailer_pass_down_rate: 0.50, admin_net_margin: 1.00, is_active: true },
-    { id: 11, operator_code: 'MSEB', operator_name: 'Maharashtra State Electricity (MSEDCL)', service_type: 'ELECTRICITY', master_api_rate: 1.50, retailer_pass_down_rate: 0.50, admin_net_margin: 1.00, is_active: true },
-    { id: 12, operator_code: 'WBSEDCL', operator_name: 'West Bengal State Electricity (WBSEDCL)', service_type: 'ELECTRICITY', master_api_rate: 1.50, retailer_pass_down_rate: 0.50, admin_net_margin: 1.00, is_active: true }
+    { id: 1, operator_code: 'JIO', operator_name: 'Jio', service_type: 'MOBILE', master_api_rate: 5.80, retailer_pass_down_rate: 3.00, admin_net_margin: 2.80, is_active: true },
+    { id: 2, operator_code: 'AIRTEL', operator_name: 'Airtel', service_type: 'MOBILE', master_api_rate: 5.50, retailer_pass_down_rate: 2.80, admin_net_margin: 2.70, is_active: true },
+    { id: 3, operator_code: 'VI', operator_name: 'Vi', service_type: 'MOBILE', master_api_rate: 6.00, retailer_pass_down_rate: 3.50, admin_net_margin: 2.50, is_active: true },
+    { id: 4, operator_code: 'BSNL', operator_name: 'BSNL', service_type: 'MOBILE', master_api_rate: 6.20, retailer_pass_down_rate: 4.00, admin_net_margin: 2.20, is_active: true },
+    { id: 5, operator_code: 'TATAPLAY', operator_name: 'Tata Play', service_type: 'DTH', master_api_rate: 5.60, retailer_pass_down_rate: 3.20, admin_net_margin: 2.40, is_active: true },
+    { id: 6, operator_code: 'AIRTEL_DTH', operator_name: 'Airtel DTH', service_type: 'DTH', master_api_rate: 5.50, retailer_pass_down_rate: 3.00, admin_net_margin: 2.50, is_active: true },
+    { id: 7, operator_code: 'DISHTV', operator_name: 'Dish TV', service_type: 'DTH', master_api_rate: 6.00, retailer_pass_down_rate: 3.60, admin_net_margin: 2.40, is_active: true },
+    { id: 8, operator_code: 'SUNDIRECT', operator_name: 'Sun Direct', service_type: 'DTH', master_api_rate: 5.80, retailer_pass_down_rate: 3.50, admin_net_margin: 2.30, is_active: true },
+    { id: 9, operator_code: 'TNEB', operator_name: 'TNEB Electricity', service_type: 'ELECTRICITY', master_api_rate: 1.50, retailer_pass_down_rate: 0.50, admin_net_margin: 1.00, is_active: true },
+    { id: 10, operator_code: 'BESCOM', operator_name: 'BESCOM Electricity', service_type: 'ELECTRICITY', master_api_rate: 1.50, retailer_pass_down_rate: 0.50, admin_net_margin: 1.00, is_active: true },
+    { id: 11, operator_code: 'MSEB', operator_name: 'MSEB Electricity', service_type: 'ELECTRICITY', master_api_rate: 1.50, retailer_pass_down_rate: 0.50, admin_net_margin: 1.00, is_active: true },
+    { id: 12, operator_code: 'WBSEDCL', operator_name: 'WBSEDCL Electricity', service_type: 'ELECTRICITY', master_api_rate: 1.50, retailer_pass_down_rate: 0.50, admin_net_margin: 1.00, is_active: true }
   ],
 
   user_commissions: [] as any[],
@@ -90,6 +90,28 @@ function loadPersistentStore() {
       if (parsed.user_commissions) memoryStore.user_commissions = parsed.user_commissions;
       if (parsed.commission_matrix) memoryStore.commission_matrix = parsed.commission_matrix;
       if (parsed.password_reset_otps) memoryStore.password_reset_otps = parsed.password_reset_otps;
+
+      // Always normalize operator names to clean consumer names (like GPay/PhonePe)
+      const cleanNameMap: Record<string, string> = {
+        'JIO': 'Jio',
+        'AIRTEL': 'Airtel',
+        'VI': 'Vi',
+        'BSNL': 'BSNL',
+        'TATAPLAY': 'Tata Play',
+        'AIRTEL_DTH': 'Airtel DTH',
+        'DISHTV': 'Dish TV',
+        'SUNDIRECT': 'Sun Direct',
+        'TNEB': 'TNEB Electricity',
+        'BESCOM': 'BESCOM Electricity',
+        'MSEB': 'MSEB Electricity',
+        'WBSEDCL': 'WBSEDCL Electricity'
+      };
+      for (const op of memoryStore.commission_matrix) {
+        if (cleanNameMap[op.operator_code]) {
+          op.operator_name = cleanNameMap[op.operator_code];
+        }
+      }
+
       console.log(`📦 [PERSISTENCE ENGINE] Successfully loaded ${memoryStore.users.length} user accounts and records from local disk backup (${DATA_FILE}).`);
     }
   } catch (err: any) {
@@ -223,15 +245,24 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
     const admin = memoryStore.users.find(u => u.role === 'ADMIN');
     rows = admin ? [admin] : [];
   }
+  // 2a. SELECT id FROM users WHERE (phone = $1 OR email = $1) AND id != $2 (Uniqueness Check)
+  else if (/SELECT .* FROM users WHERE .*?(email|phone).*?id (!=|<>)/i.test(cleanSql)) {
+    const val = String(params[0] || '').toLowerCase().trim();
+    const excludeId = String(params[1] || '');
+    const conflict = memoryStore.users.find(u => 
+      u.id !== excludeId && (u.phone.trim() === val || u.email.toLowerCase().trim() === val)
+    );
+    rows = conflict ? [{ id: conflict.id }] : [];
+  }
   // 2. SELECT id, ... FROM users WHERE email = $1 OR phone = $1 / WHERE phone = $1 OR email = $2
   else if (/SELECT .* FROM users WHERE .*?(email|phone)/i.test(cleanSql) && !/ORDER BY/i.test(cleanSql)) {
-    const term1 = String(params[0] || '').toLowerCase();
-    const term2 = String(params[1] || params[0] || '').toLowerCase();
+    const term1 = String(params[0] || '').toLowerCase().trim();
+    const term2 = String(params[1] || params[0] || '').toLowerCase().trim();
     const user = memoryStore.users.find(u => 
-      u.email.toLowerCase() === term1 || 
-      u.phone === term1 ||
-      u.email.toLowerCase() === term2 || 
-      u.phone === term2
+      u.email.toLowerCase().trim() === term1 || 
+      u.phone.trim() === term1 ||
+      u.email.toLowerCase().trim() === term2 || 
+      u.phone.trim() === term2
     );
     rows = user ? [user] : [];
   }
@@ -298,6 +329,19 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
     const user = memoryStore.users.find(u => u.id === userTarget || u.email.toLowerCase() === String(userTarget).toLowerCase() || u.phone === String(userTarget));
     if (user) {
       user.password_hash = params[0];
+      savePersistentStore();
+    }
+    rows = [];
+  }
+  // 5c. UPDATE users SET organization_name = $1, owner_name = $2, phone = $3, email = $4 WHERE id = $5
+  else if (/UPDATE users SET organization_name =/i.test(cleanSql)) {
+    const [orgName, ownerName, phone, email, id] = params;
+    const user = memoryStore.users.find(u => u.id === id);
+    if (user) {
+      user.organization_name = orgName;
+      user.owner_name = ownerName;
+      user.phone = phone;
+      user.email = email;
       savePersistentStore();
     }
     rows = [];
