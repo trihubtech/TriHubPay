@@ -21,7 +21,7 @@ export const ShopCustomCommissionModal: React.FC<ShopCustomCommissionModalProps>
   const [customRates, setCustomRates] = useState<ShopCustomCommission[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [selectedOp, setSelectedOp] = useState<string>('JIO');
-  const [inputRate, setInputRate] = useState<string>('3.50');
+  const [inputRate, setInputRate] = useState<string>('3.00');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [feedback, setFeedback] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string>('');
@@ -33,6 +33,22 @@ export const ShopCustomCommissionModal: React.FC<ShopCustomCommissionModalProps>
       setErrorMsg('');
     }
   }, [isOpen, shop]);
+
+  // Synchronize inputRate whenever selectedOp, customRates, or matrixItems changes
+  useEffect(() => {
+    if (!isOpen) return;
+    const existing = customRates.find(cr => cr.operator_code === selectedOp);
+    if (existing) {
+      setInputRate(existing.custom_pass_down_rate.toString());
+    } else {
+      const opMeta = matrixItems.find(m => m.operator_code === selectedOp);
+      if (opMeta) {
+        setInputRate(opMeta.retailer_pass_down_rate.toString());
+      } else {
+        setInputRate('3.00');
+      }
+    }
+  }, [selectedOp, customRates, matrixItems, isOpen]);
 
   const loadCustomRates = async () => {
     if (!shop) return;
@@ -52,6 +68,7 @@ export const ShopCustomCommissionModal: React.FC<ShopCustomCommissionModalProps>
   if (!isOpen || !shop) return null;
 
   const currentOpMeta = matrixItems.find(m => m.operator_code === selectedOp);
+  const existingOverride = customRates.find(cr => cr.operator_code === selectedOp);
 
   const handleSaveCustomRate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,7 +91,7 @@ export const ShopCustomCommissionModal: React.FC<ShopCustomCommissionModalProps>
     try {
       const res = await api.setShopCustomCommission(shop.id, selectedOp, rate);
       if (res.success) {
-        setFeedback(`Custom rate for ${selectedOp} saved!`);
+        setFeedback(`Custom rate for ${selectedOp} saved at ${rate}%!`);
         await loadCustomRates();
         onSaved();
       }
@@ -129,8 +146,17 @@ export const ShopCustomCommissionModal: React.FC<ShopCustomCommissionModalProps>
 
           {/* Form to add/update custom commission */}
           <form onSubmit={handleSaveCustomRate} className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
-            <div className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-              Assign or Modify Operator Rate
+            <div className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center justify-between">
+              <span>Assign or Modify Operator Rate</span>
+              {existingOverride ? (
+                <span className="text-[10px] normal-case px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-semibold">
+                  Saved Rate: {existingOverride.custom_pass_down_rate}%
+                </span>
+              ) : currentOpMeta ? (
+                <span className="text-[10px] normal-case px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium">
+                  Default Rate: {currentOpMeta.retailer_pass_down_rate}%
+                </span>
+              ) : null}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -139,7 +165,7 @@ export const ShopCustomCommissionModal: React.FC<ShopCustomCommissionModalProps>
                 <select
                   value={selectedOp}
                   onChange={(e) => setSelectedOp(e.target.value)}
-                  className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-brand-500"
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 font-medium"
                 >
                   {matrixItems.map((m) => (
                     <option key={m.operator_code} value={m.operator_code}>
@@ -181,8 +207,16 @@ export const ShopCustomCommissionModal: React.FC<ShopCustomCommissionModalProps>
               disabled={isSubmitting}
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2 rounded-lg font-bold text-xs shadow-md shadow-blue-600/20 transition-colors flex items-center justify-center gap-1.5"
             >
-              {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-              <span>Save Custom Rate for this Shop</span>
+              {isSubmitting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Plus className="w-3.5 h-3.5" />
+              )}
+              <span>
+                {existingOverride
+                  ? `Update ${selectedOp} Custom Rate (${inputRate || '0'}%)`
+                  : `Save Custom Rate for ${selectedOp} (${inputRate || '0'}%)`}
+              </span>
             </button>
           </form>
 
@@ -214,35 +248,62 @@ export const ShopCustomCommissionModal: React.FC<ShopCustomCommissionModalProps>
               </div>
             ) : (
               <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                {customRates.map((cr) => (
-                  <div
-                    key={cr.id}
-                    className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs"
-                  >
-                    <div>
-                      <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                        <span>{cr.operator_code}</span>
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">({cr.operator_name})</span>
+                {customRates.map((cr) => {
+                  const diff = cr.custom_pass_down_rate - cr.default_rate;
+                  const isCurrentlySelected = selectedOp === cr.operator_code;
+                  return (
+                    <div
+                      key={cr.id}
+                      onClick={() => {
+                        setSelectedOp(cr.operator_code);
+                        setInputRate(cr.custom_pass_down_rate.toString());
+                      }}
+                      className={`flex items-center justify-between p-2.5 rounded-xl border text-xs cursor-pointer transition-all ${
+                        isCurrentlySelected
+                          ? 'bg-blue-50/80 dark:bg-blue-500/10 border-blue-400 dark:border-blue-500 ring-1 ring-blue-400/20'
+                          : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                      }`}
+                    >
+                      <div>
+                        <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                          <span>{cr.operator_code}</span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">({cr.operator_name})</span>
+                          {isCurrentlySelected && (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold">
+                              ACTIVE
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                          Default: {cr.default_rate}% ➔ <span className="text-blue-600 dark:text-brand-400 font-bold">Custom: {cr.custom_pass_down_rate}%</span>
+                        </div>
                       </div>
-                      <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                        Default: {cr.default_rate}% ➔ <span className="text-blue-600 dark:text-brand-400 font-bold">Custom: {cr.custom_pass_down_rate}%</span>
-                      </div>
-                    </div>
 
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs">
-                        +{(cr.custom_pass_down_rate - cr.default_rate).toFixed(2)}% Bonus
-                      </span>
-                      <button
-                        onClick={() => handleDeleteOverride(cr.operator_code)}
-                        title="Revert to default matrix"
-                        className="p-1 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                        {diff > 0 ? (
+                          <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs">
+                            +{diff.toFixed(2)}% Bonus
+                          </span>
+                        ) : diff < 0 ? (
+                          <span className="font-mono font-bold text-amber-600 dark:text-amber-400 text-xs">
+                            {diff.toFixed(2)}% Custom
+                          </span>
+                        ) : (
+                          <span className="font-mono font-semibold text-slate-500 text-xs">
+                            0.00% Standard
+                          </span>
+                        )}
+                        <button
+                          onClick={() => handleDeleteOverride(cr.operator_code)}
+                          title="Revert to default matrix"
+                          className="p-1 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
