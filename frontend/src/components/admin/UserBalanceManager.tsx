@@ -137,7 +137,7 @@ export const UserBalanceManager: React.FC<UserBalanceManagerProps> = ({
 
   const copyCredsToClipboard = () => {
     if (!credentialsModalUser) return;
-    const text = `🎉 TriHubPay Partner Credentials\n\nStore: ${credentialsModalUser.organization_name}\nOwner: ${credentialsModalUser.owner_name}\nLogin Phone: ${credentialsModalUser.phone}\nPassword: ${newPassword}\nPortal: https://pay.trihubpay.in\n\nTriHubPay`;
+    const text = `🎉 TriHubPay Partner Credentials\n\nStore: ${credentialsModalUser.organization_name}\nOwner: ${credentialsModalUser.owner_name}\nLogin Phone: ${credentialsModalUser.phone}\nPassword: ${newPassword}\nPortal: https://pay.trihubtechnologies.com\n\nTriHub Technologies`;
     navigator.clipboard.writeText(text);
     setCopiedCreds(true);
     setTimeout(() => setCopiedCreds(false), 2000);

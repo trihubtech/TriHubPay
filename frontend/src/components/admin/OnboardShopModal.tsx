@@ -96,7 +96,7 @@ export const OnboardShopModal: React.FC<OnboardShopModalProps> = ({
       return;
     }
 
-    const finalEmail = email.trim() || `${cleanPhone}@trihubpay.in`;
+    const finalEmail = email.trim() || `${cleanPhone}@trihubtechnologies.com`;
     const floatAmount = parseFloat(initialFloat) || 0;
 
     setLoading(true);
@@ -147,7 +147,7 @@ export const OnboardShopModal: React.FC<OnboardShopModalProps> = ({
 
   const copyCredentialsText = () => {
     if (!createdShop) return;
-    const text = `🎉 Welcome to TriHubPay!\n\nStore: ${createdShop.organization_name}\nOwner: ${createdShop.owner_name}\nLogin Mobile: ${createdShop.phone}\nPassword: ${createdShop.password}\nOpening Float: ₹${createdShop.initial_balance.toFixed(2)}\n\nLogin portal: https://pay.trihubpay.in\nPowered by TriHubPay`;
+    const text = `🎉 Welcome to TriHubPay!\n\nStore: ${createdShop.organization_name}\nOwner: ${createdShop.owner_name}\nLogin Mobile: ${createdShop.phone}\nPassword: ${createdShop.password}\nOpening Float: ₹${createdShop.initial_balance.toFixed(2)}\n\nLogin portal: https://pay.trihubtechnologies.com\nPowered by TriHub Technologies`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
@@ -308,7 +308,7 @@ export const OnboardShopModal: React.FC<OnboardShopModalProps> = ({
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Optional (defaults to phone@trihubpay.in)"
+                  placeholder="Optional (defaults to phone@trihubtechnologies.com)"
                   className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-950 focus:outline-none focus:border-brand-500 transition-colors"
                 />
               </div>

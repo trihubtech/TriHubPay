@@ -14,8 +14,11 @@ import {
 const API_BASE = '/api';
 
 export const TRIHUB_SUPPORT = {
-  phone: '+91 98765 43210',
-  email: 'support@trihubpay.in',
+  phone: '+91 63745 69225',
+  email: 'trihubtechnologies@gmail.com',
+  company: 'TriHub Technologies',
+  brand: 'TriHubPay',
+  domain: 'pay.trihubtechnologies.com',
   hours: '24/7 Priority Support'
 };
 

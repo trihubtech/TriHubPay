@@ -95,9 +95,9 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
       doc.text('Thank you! Please visit again.', 29, y, { align: 'center' });
       y += 3.8;
       doc.setFontSize(6);
-      doc.text('Powered by TriHubPay', 29, y, { align: 'center' });
+      doc.text('Powered by TriHub Technologies', 29, y, { align: 'center' });
       y += 3;
-      doc.text('https://trihubpay.in/', 29, y, { align: 'center' });
+      doc.text('https://pay.trihubtechnologies.com/', 29, y, { align: 'center' });
 
       doc.save(`TriHubPay_Receipt_${txId || 'ticket'}.pdf`);
     } catch (err) {
@@ -376,7 +376,7 @@ _Thank you for recharging with TriHubPay!_
             <div className="text-center text-[10px] text-neutral-600 space-y-1">
               <div className="font-bold text-neutral-900 uppercase">STATUS: {transaction.status || 'SUCCESS'}</div>
               <div>Thank you! Please visit again.</div>
-              <div className="text-[8px] text-neutral-400 font-sans">Powered by TriHubPay • https://trihubpay.in/</div>
+              <div className="text-[8px] text-neutral-400 font-sans">Powered by TriHub Technologies • https://pay.trihubtechnologies.com/</div>
             </div>
           </div>
         </div>
