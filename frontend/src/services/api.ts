@@ -211,6 +211,13 @@ export const api = {
     });
   },
 
+  async submitUpiDeposit(txn_ref: string, utr_number: string) {
+    return request<{ success: boolean; message: string }>('/wallet/topup/submit', {
+      method: 'POST',
+      body: JSON.stringify({ txn_ref, utr_number })
+    });
+  },
+
   async confirmUpiTopup(txn_ref: string, upi_txn_id?: string) {
     return request<{ success: boolean; message: string; data: { txn_ref: string; new_balance: number } }>('/wallet/topup/confirm', {
       method: 'POST',
@@ -307,5 +314,37 @@ export const api = {
 
   async getAllTransactions() {
     return request<{ success: boolean; data: Transaction[] }>('/admin/transactions');
+  },
+
+  async getPendingDeposits() {
+    return request<{
+      success: boolean;
+      data: Array<{
+        id: string;
+        user_id: string;
+        txn_ref: string;
+        amount: string;
+        utr_number: string;
+        status: string;
+        created_at: string;
+        organization_name: string;
+        owner_name: string;
+        phone: string;
+        current_wallet_balance: string;
+      }>;
+    }>('/admin/deposits/pending');
+  },
+
+  async approveDeposit(id: string) {
+    return request<{ success: boolean; message: string; data: { new_balance: number; amount: number } }>(`/admin/deposits/${id}/approve`, {
+      method: 'POST'
+    });
+  },
+
+  async rejectDeposit(id: string, reason?: string) {
+    return request<{ success: boolean; message: string }>(`/admin/deposits/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason })
+    });
   }
 };

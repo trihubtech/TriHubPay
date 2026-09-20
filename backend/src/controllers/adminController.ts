@@ -460,3 +460,140 @@ export async function resetUserPassword(req: Request, res: Response) {
   }
 }
 
+/**
+ * List all pending UPI cash deposits awaiting Admin verification
+ */
+export async function getPendingDeposits(req: Request, res: Response) {
+  try {
+    const result = await query(`
+      SELECT wt.id, wt.user_id, wt.txn_ref, wt.amount, wt.upi_txn_id as utr_number, wt.status, wt.created_at,
+             u.organization_name, u.owner_name, u.phone, u.current_balance as current_wallet_balance
+      FROM wallet_topups wt
+      JOIN users u ON wt.user_id = u.id
+      WHERE wt.status = 'PENDING_APPROVAL'
+      ORDER BY wt.created_at DESC;
+    `);
+
+    return res.json({
+      success: true,
+      data: result.rows
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+/**
+ * Admin approves verified UPI payment and credits retailer wallet
+ */
+export async function approveDeposit(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+
+    let updatedBalance = 0;
+    let shopName = '';
+    let amount = 0;
+
+    await withTransaction(async (client) => {
+      // Find topup
+      const topupRes = await client.query(
+        'SELECT id, user_id, amount, upi_txn_id, txn_ref, status FROM wallet_topups WHERE id = $1 FOR UPDATE',
+        [id]
+      );
+
+      if (topupRes.rows.length === 0) {
+        throw new Error('Deposit request not found');
+      }
+
+      const topup = topupRes.rows[0];
+      if (topup.status === 'COMPLETED') {
+        throw new Error('This deposit has already been approved and credited');
+      }
+
+      amount = parseFloat(topup.amount);
+
+      // Lock user row
+      const userRes = await client.query(
+        'SELECT id, organization_name, current_balance FROM users WHERE id = $1 FOR UPDATE',
+        [topup.user_id]
+      );
+
+      if (userRes.rows.length === 0) {
+        throw new Error('Associated retailer user account not found');
+      }
+
+      const user = userRes.rows[0];
+      shopName = user.organization_name;
+      const curBal = parseFloat(user.current_balance);
+      updatedBalance = Number((curBal + amount).toFixed(4));
+
+      // 1. Credit retailer balance
+      await client.query(
+        'UPDATE users SET current_balance = $1, updated_at = clock_timestamp() WHERE id = $2',
+        [updatedBalance, user.id]
+      );
+
+      // 2. Add audit entry in wallet_ledger
+      await client.query(
+        `INSERT INTO wallet_ledger (
+          user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
+        ) VALUES ($1, $2, 'CREDIT', $3, $4, $5, $6)`,
+        [
+          user.id,
+          amount,
+          curBal,
+          updatedBalance,
+          topup.txn_ref,
+          `UPI Deposit Verified & Credited (UTR: ${topup.upi_txn_id || 'BANK_VERIFIED'})`
+        ]
+      );
+
+      // 3. Mark topup as COMPLETED
+      await client.query(
+        `UPDATE wallet_topups SET 
+          status = 'COMPLETED',
+          completed_at = clock_timestamp()
+         WHERE id = $1`,
+        [id]
+      );
+    });
+
+    return res.json({
+      success: true,
+      message: `Successfully credited ₹${amount} to ${shopName}. New balance: ₹${updatedBalance}`,
+      data: {
+        new_balance: updatedBalance,
+        amount
+      }
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+/**
+ * Admin rejects invalid/unreceived UPI payment
+ */
+export async function rejectDeposit(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    await query(
+      `UPDATE wallet_topups SET 
+        status = 'REJECTED',
+        completed_at = clock_timestamp()
+       WHERE id = $1`,
+      [id]
+    );
+
+    return res.json({
+      success: true,
+      message: `Deposit request marked as rejected.`
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+

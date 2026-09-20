@@ -97,6 +97,40 @@ export async function generateUpiTopup(req: Request, res: Response) {
 }
 
 /**
+ * Retailer submits UPI deposit payment with 12-digit UTR / Reference number for Admin verification
+ */
+export async function submitUpiDeposit(req: Request, res: Response) {
+  try {
+    const { txn_ref, utr_number } = req.body;
+    const userId = req.user!.id;
+
+    if (!txn_ref) {
+      return res.status(400).json({ success: false, message: 'Transaction reference is required' });
+    }
+    if (!utr_number || String(utr_number).trim().length < 6) {
+      return res.status(400).json({ success: false, message: 'Please enter valid 12-digit UPI UTR / Reference number from your payment app' });
+    }
+
+    // Update topup record to PENDING_APPROVAL with UTR
+    await query(
+      `UPDATE wallet_topups SET 
+        status = 'PENDING_APPROVAL',
+        upi_txn_id = $1
+       WHERE txn_ref = $2 AND user_id = $3`,
+      [String(utr_number).trim(), txn_ref, userId]
+    );
+
+    return res.json({
+      success: true,
+      message: 'Deposit request submitted successfully! Admin will verify the bank transfer and credit your wallet shortly.'
+    });
+  } catch (error: any) {
+    console.error('[SUBMIT UPI DEPOSIT ERROR]:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+/**
  * Confirm/Simulate UPI Topup credit
  * In production, triggered by payment gateway webhook (Razorpay/Cashfree/Decentro/Paytm)
  * or instant UAT confirmation button in the UI.

@@ -20,6 +20,7 @@ import { ShopCustomCommissionModal } from './components/admin/ShopCustomCommissi
 import { FailoverToggle } from './components/admin/FailoverToggle';
 import { AllTransactionsTable } from './components/admin/AllTransactionsTable';
 import { OnboardShopModal } from './components/admin/OnboardShopModal';
+import { PendingDepositsTable } from './components/admin/PendingDepositsTable';
 
 // Auth Screen
 import { AuthPage } from './components/auth/AuthPage';
@@ -59,7 +60,7 @@ export function App() {
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [selectedShopForOverrides, setSelectedShopForOverrides] = useState<User | null>(null);
   const [isOnboardModalOpen, setIsOnboardModalOpen] = useState<boolean>(false);
-  const [adminSubTab, setAdminSubTab] = useState<'OVERVIEW' | 'SHOPS' | 'MATRIX' | 'FAILOVER' | 'TRANSACTIONS'>('OVERVIEW');
+  const [adminSubTab, setAdminSubTab] = useState<'OVERVIEW' | 'SHOPS' | 'MATRIX' | 'FAILOVER' | 'TRANSACTIONS' | 'DEPOSITS'>('OVERVIEW');
 
   // Check saved session on load
   useEffect(() => {
@@ -422,6 +423,16 @@ export function App() {
               >
                 Live Transaction Log
               </button>
+              <button
+                onClick={() => setAdminSubTab('DEPOSITS')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  adminSubTab === 'DEPOSITS'
+                    ? 'bg-amber-600 text-white shadow-md shadow-amber-600/20'
+                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800'
+                }`}
+              >
+                Deposit Approvals
+              </button>
             </div>
 
             <button
@@ -471,6 +482,13 @@ export function App() {
           {/* Sub-Tab 5: All Transactions */}
           {adminSubTab === 'TRANSACTIONS' && (
             <AllTransactionsTable transactions={allTransactions} />
+          )}
+
+          {/* Sub-Tab 6: UPI Deposit Approvals */}
+          {adminSubTab === 'DEPOSITS' && (
+            <div className="space-y-6">
+              <PendingDepositsTable onBalanceUpdated={loadAdminData} />
+            </div>
           )}
 
           {/* Shop-Specific Custom Commission Override Modal */}

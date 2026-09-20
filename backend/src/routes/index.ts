@@ -32,6 +32,7 @@ router.post('/bill/fetch', authenticate, operatorController.fetchElectricityBill
 // -------------------------------------------------------------
 router.get('/wallet/balance', authenticate, walletController.getBalance);
 router.post('/wallet/topup/upi', authenticate, walletController.generateUpiTopup);
+router.post('/wallet/topup/submit', authenticate, walletController.submitUpiDeposit);
 router.post('/wallet/topup/confirm', authenticate, walletController.confirmUpiTopup);
 router.get('/wallet/ledger', authenticate, walletController.getLedgerHistory);
 
@@ -69,6 +70,11 @@ router.post('/admin/users/custom-commission/delete', authenticate, requireRole([
 router.get('/admin/failover', authenticate, requireRole(['ADMIN']), adminController.getFailoverSettings);
 router.post('/admin/failover', authenticate, requireRole(['ADMIN']), adminController.updateFailoverSettings);
 router.get('/admin/transactions', authenticate, requireRole(['ADMIN']), adminController.getAllTransactions);
+
+// UPI Cash Deposit Approvals
+router.get('/admin/deposits/pending', authenticate, requireRole(['ADMIN']), adminController.getPendingDeposits);
+router.post('/admin/deposits/:id/approve', authenticate, requireRole(['ADMIN']), adminController.approveDeposit);
+router.post('/admin/deposits/:id/reject', authenticate, requireRole(['ADMIN']), adminController.rejectDeposit);
 
 // -------------------------------------------------------------
 // 6. UPSTREAM TELECOM STATUS WEBHOOK CALLBACKS

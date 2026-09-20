@@ -33,7 +33,7 @@ const memoryStore = {
       email: 'admin.pay@trihubtechnologies.com',
       password_hash: '$2a$10$MthsMeKUb8EnV5w0ak8fmuwoYLXxRignwkNzh4Imb3FqfgJ0NyBx6',
       role: 'ADMIN',
-      current_balance: '1000000.0000',
+      current_balance: '0.0000',
       locked_balance: '0.0000',
       api_key: 'trihub-master-api-key-2026',
       is_active: true,
@@ -375,20 +375,74 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
       id: `topup-${Date.now()}`,
       user_id: params[0],
       txn_ref: params[1],
-      amount: params[2],
-      status: 'PENDING'
+      amount: String(params[2]),
+      status: params[3] || 'PENDING',
+      upi_txn_id: '',
+      created_at: new Date().toISOString()
     });
     rows = [];
   }
-  // 22. SELECT ... FROM wallet_topups WHERE txn_ref = $1
-  else if (/SELECT .* FROM wallet_topups WHERE txn_ref = \$1/i.test(cleanSql)) {
-    const topup = memoryStore.wallet_topups.find(t => t.txn_ref === params[0]);
-    rows = topup ? [topup] : [];
+  // 22. SELECT ... FROM wallet_topups
+  else if (/SELECT .* FROM wallet_topups/i.test(cleanSql)) {
+    if (/status = 'PENDING_APPROVAL'/i.test(cleanSql)) {
+      rows = memoryStore.wallet_topups
+        .filter(t => t.status === 'PENDING_APPROVAL')
+        .map(t => {
+          const u = memoryStore.users.find(usr => usr.id === t.user_id);
+          return {
+            ...t,
+            utr_number: t.upi_txn_id,
+            organization_name: u?.organization_name || 'Retailer Shop',
+            owner_name: u?.owner_name || 'Shop Owner',
+            phone: u?.phone || '',
+            current_wallet_balance: u?.current_balance || '0.0000'
+          };
+        });
+    } else if (/WHERE id = \$1/i.test(cleanSql)) {
+      const topup = memoryStore.wallet_topups.find(t => t.id === params[0]);
+      rows = topup ? [topup] : [];
+    } else if (/WHERE txn_ref = \$1/i.test(cleanSql)) {
+      const topup = memoryStore.wallet_topups.find(t => t.txn_ref === params[0]);
+      rows = topup ? [topup] : [];
+    } else {
+      rows = memoryStore.wallet_topups.map(t => {
+        const u = memoryStore.users.find(usr => usr.id === t.user_id);
+        return {
+          ...t,
+          utr_number: t.upi_txn_id,
+          organization_name: u?.organization_name || 'Retailer Shop',
+          owner_name: u?.owner_name || 'Shop Owner',
+          phone: u?.phone || '',
+          current_wallet_balance: u?.current_balance || '0.0000'
+        };
+      });
+    }
   }
   // 23. UPDATE wallet_topups
-  else if (/UPDATE wallet_topups SET status = 'COMPLETED'/i.test(cleanSql)) {
-    const topup = memoryStore.wallet_topups.find(t => t.id === params[1]);
-    if (topup) topup.status = 'COMPLETED';
+  else if (/UPDATE wallet_topups/i.test(cleanSql)) {
+    if (/status = 'PENDING_APPROVAL'/i.test(cleanSql)) {
+      const utr = params[0];
+      const ref = params[1];
+      const topup = memoryStore.wallet_topups.find(t => t.txn_ref === ref);
+      if (topup) {
+        topup.status = 'PENDING_APPROVAL';
+        topup.upi_txn_id = utr;
+      }
+    } else if (/status = 'COMPLETED'/i.test(cleanSql)) {
+      const id = params[params.length - 1];
+      const topup = memoryStore.wallet_topups.find(t => t.id === id || t.txn_ref === id);
+      if (topup) {
+        topup.status = 'COMPLETED';
+        topup.completed_at = new Date().toISOString();
+      }
+    } else if (/status = 'REJECTED'/i.test(cleanSql)) {
+      const id = params[params.length - 1];
+      const topup = memoryStore.wallet_topups.find(t => t.id === id || t.txn_ref === id);
+      if (topup) {
+        topup.status = 'REJECTED';
+        topup.completed_at = new Date().toISOString();
+      }
+    }
     rows = [];
   }
   // Default: Return empty rows
