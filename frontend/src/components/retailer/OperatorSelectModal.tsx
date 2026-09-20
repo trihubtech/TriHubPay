@@ -29,13 +29,15 @@ export const OperatorSelectModal: React.FC<OperatorSelectModalProps> = ({
   }[serviceType];
 
   const filteredOperators = useMemo(() => {
+    // Only display operators belonging to the active service category (Mobile, DTH, or Electricity)
+    const scopedOperators = operators.filter(op => !op.service_type || op.service_type === serviceType);
     const q = searchQuery.toLowerCase().trim();
-    if (!q) return operators;
-    return operators.filter(op => 
+    if (!q) return scopedOperators;
+    return scopedOperators.filter(op => 
       op.operator_name.toLowerCase().includes(q) ||
       op.operator_code.toLowerCase().includes(q)
     );
-  }, [operators, searchQuery]);
+  }, [operators, searchQuery, serviceType]);
 
   if (!isOpen) return null;
 

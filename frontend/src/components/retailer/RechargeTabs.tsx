@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Smartphone, 
   Tv, 
@@ -60,8 +60,10 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({ onSuccess, walletBal
 
     api.getOperators(activeTab).then((res) => {
       if (res.success && res.data.length > 0) {
-        setOperators(res.data);
-        setSelectedOperator(res.data[0].operator_code);
+        const filtered = res.data.filter((op: Operator) => !op.service_type || op.service_type === activeTab);
+        const listToUse = filtered.length > 0 ? filtered : res.data;
+        setOperators(listToUse);
+        setSelectedOperator(listToUse[0].operator_code);
       }
     }).catch(console.error);
 
@@ -194,7 +196,12 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({ onSuccess, walletBal
     }
   };
 
-  const currentOp = operators.find(o => o.operator_code === selectedOperator);
+  // Operators strictly filtered by the current active service category (Mobile, DTH, or Electricity)
+  const tabOperators = useMemo(() => {
+    return operators.filter(op => !op.service_type || op.service_type === activeTab);
+  }, [operators, activeTab]);
+
+  const currentOp = tabOperators.find(o => o.operator_code === selectedOperator) || operators.find(o => o.operator_code === selectedOperator);
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm dark:shadow-xl">
@@ -324,12 +331,12 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({ onSuccess, walletBal
           </div>
 
           {/* Quick Operator 1-Tap Switching Strip */}
-          {operators.length > 1 && (
+          {tabOperators.length > 1 && (
             <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none pt-1">
               <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider shrink-0 mr-1">
                 Quick Select:
               </span>
-              {operators.map((op) => {
+              {tabOperators.map((op) => {
                 const isSelected = selectedOperator === op.operator_code;
                 return (
                   <button
@@ -621,7 +628,7 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({ onSuccess, walletBal
       <OperatorSelectModal
         isOpen={isOperatorModalOpen}
         onClose={() => setIsOperatorModalOpen(false)}
-        operators={operators}
+        operators={tabOperators}
         selectedOperatorCode={selectedOperator}
         serviceType={activeTab}
         onSelectOperator={(op) => {

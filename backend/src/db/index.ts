@@ -241,7 +241,12 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
   }
   // 7. SELECT ... FROM commission_matrix
   else if (/SELECT .* FROM commission_matrix/i.test(cleanSql)) {
-    rows = [...memoryStore.commission_matrix];
+    if (/service_type = \$1/i.test(cleanSql)) {
+      const st = String(params[0] || '').toUpperCase();
+      rows = memoryStore.commission_matrix.filter(c => c.service_type === st && c.is_active !== false);
+    } else {
+      rows = [...memoryStore.commission_matrix];
+    }
   }
   // 8. UPDATE commission_matrix
   else if (/UPDATE commission_matrix SET/i.test(cleanSql)) {
