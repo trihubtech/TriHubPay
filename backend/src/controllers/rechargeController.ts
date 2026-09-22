@@ -19,7 +19,7 @@ const rechargeSchema = z.object({
     'BROADBAND'
   ]),
   target_account_number: z.string().min(3, 'Target account / number / consumer ID is required'),
-  face_value: z.number().positive('Transaction amount must be greater than zero'),
+  face_value: z.number().min(10, 'Minimum recharge or bill payment amount is ₹10'),
   circle_code: z.string().optional().default('ALL_INDIA'),
   idempotency_key: z.string().optional()
 });

@@ -58,7 +58,12 @@ export const BrowsePlansModal: React.FC<BrowsePlansModalProps> = ({
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex flex-col justify-end sm:justify-center items-center bg-black/75 backdrop-blur-sm sm:p-4 animate-fadeIn">
+      <div 
+        className="fixed inset-0 z-50 flex flex-col justify-end sm:justify-center items-center bg-black/75 backdrop-blur-sm sm:p-4 animate-fadeIn"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+      >
         <div className="bg-white dark:bg-slate-900 border-t sm:border border-slate-200 dark:border-slate-800 rounded-t-[28px] sm:rounded-3xl w-full max-w-2xl shadow-2xl flex flex-col h-[92vh] sm:h-[85vh] max-h-[95vh] overflow-hidden">
           {/* Mobile Bottom Sheet Pull Handle */}
           <div className="sm:hidden pt-2.5 pb-1 flex justify-center bg-slate-50 dark:bg-slate-950/60">

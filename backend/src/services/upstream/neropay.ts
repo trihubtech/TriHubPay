@@ -29,13 +29,32 @@ const NEROPAY_OPERATOR_CODES: Record<string, string> = {
   'BESCOM': 'BESCOM',
   'MSEB': 'MSEB',
   'WBSEDCL': 'WBSEDCL',
+  'UPPCL': 'UPPCL',
 
-  // High-Margin Categories (Mapped to NeroPay Utility/Service codes)
-  'GOOGLE_PLAY': 'GOOGLE_PLAY',
-  'OTT_APPS': 'OTT_APPS',
+  // LPG Gas (from NeroPay Operator List)
+  'INDANE_GAS': 'INDANE',
+  'BHARAT_GAS': 'BPCL',
+  'HP_GAS': 'HPCL',
+  'LPG_GAS': 'INDANE',
+
+  // FASTag Toll
+  'FASTAG_PAYTM': 'FASTAG_PAYTM',
+  'FASTAG_ICICI': 'FASTAG_ICICI',
+  'FASTAG_SBI': 'FASTAG_SBI',
+  'FASTAG_AIRTEL': 'FASTAG_AIRTEL',
+  'FASTAG_HDFC': 'FASTAG_HDFC',
   'FASTAG': 'FASTAG',
-  'LPG_GAS': 'LPG_GAS',
-  'BROADBAND': 'BROADBAND'
+
+  // Broadband ISPs
+  'AIRTEL_BROADBAND': 'AIRTEL_BROADBAND',
+  'JIO_FIBER': 'JIO_FIBER',
+  'ACT_FIBERNET': 'ACT_FIBERNET',
+  'BSNL_BROADBAND': 'BSNL_BROADBAND',
+  'BROADBAND': 'BROADBAND',
+
+  // High-Margin Categories
+  'GOOGLE_PLAY': 'GOOGLE_PLAY',
+  'OTT_APPS': 'OTT_APPS'
 };
 
 export class NeroPayClient {
@@ -331,50 +350,83 @@ export class NeroPayClient {
   /**
    * Fetch live BBPS electricity/utility bill details
    */
-  async fetchElectricityBill(consumerNumber: string, operatorCode: string): Promise<UpstreamBillFetchResult> {
+  async fetchElectricityBill(
+    consumerNumber: string, 
+    operatorCode: string,
+    p2?: string,
+    p3?: string
+  ): Promise<UpstreamBillFetchResult> {
     if (this.isSandbox) {
       return this.simulateBillFetch(consumerNumber, operatorCode);
     }
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
+    const opCode = NEROPAY_OPERATOR_CODES[operatorCode] || operatorCode;
+    const candidateUrls = [
+      this.billFetchUrl,
+      `${this.baseUrl}/apiservice/bill_fetch`,
+      `${this.baseUrl}/apiservice/fetch_bill`,
+      `${this.baseUrl}/apiservice/billfetch`
+    ];
 
-    try {
-      const opCode = NEROPAY_OPERATOR_CODES[operatorCode] || operatorCode;
-      const url = `${this.billFetchUrl}?token=${encodeURIComponent(this.token)}&consumer_number=${encodeURIComponent(consumerNumber)}&operator_code=${encodeURIComponent(opCode)}`;
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' },
-        signal: controller.signal
-      });
+    for (const fetchUrl of candidateUrls) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
 
-      clearTimeout(timeoutId);
+      try {
+        const queryParams = new URLSearchParams({
+          token: this.token,
+          customer_id: consumerNumber,
+          consumer_number: consumerNumber,
+          operatorcode: opCode,
+          operator_code: opCode
+        });
+        if (p2) queryParams.set('p2', p2);
+        if (p3) queryParams.set('p3', p3);
 
-      if (!response.ok) {
-        return this.simulateBillFetch(consumerNumber, operatorCode);
+        const url = `${fetchUrl}?${queryParams.toString()}`;
+        console.log(`[NEROPAY BILL FETCH] Trying ${fetchUrl} for ${operatorCode} / ${consumerNumber}`);
+
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json', 'User-Agent': 'TriHubPay-B2B-Core/2.0' },
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) continue;
+
+        const json = await response.json() as any;
+        console.log(`[NEROPAY BILL FETCH RESPONSE]`, JSON.stringify(json));
+
+        // If returned valid bill data
+        if (json && (json.status === 'SUCCESS' || json.status === 'PAID' || json.status === 'UNPAID' || json.bill_amount !== undefined || json.amount !== undefined)) {
+          const rawAmount = json.bill_amount ?? json.amount ?? json.dueamount ?? json.due_amount ?? 0;
+          const parsedAmount = parseFloat(String(rawAmount)) || 0;
+          const isPaid = json.status === 'PAID' || parsedAmount === 0;
+
+          return {
+            success: true,
+            provider: 'NEROPAY',
+            consumerNumber,
+            consumerName: json.consumer_name || json.customer_name || json.name || 'Verified Consumer',
+            operatorCode,
+            boardName: json.board_name || json.operator_name || operatorCode,
+            billNumber: json.bill_number || json.bill_id || json.refid || `BILL_${Date.now()}`,
+            billDate: json.bill_date || new Date().toISOString().split('T')[0],
+            dueDate: json.due_date || new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
+            billAmount: parsedAmount,
+            status: isPaid ? 'PAID' : 'UNPAID',
+            rawResponse: json,
+            isSandbox: false
+          };
+        }
+      } catch (err: any) {
+        clearTimeout(timeoutId);
+        // Continue to next candidate URL
       }
-
-      const json = await response.json() as any;
-      return {
-        success: true,
-        provider: 'NEROPAY',
-        consumerNumber,
-        consumerName: json.consumer_name || 'Consumer',
-        operatorCode,
-        boardName: json.board_name || operatorCode,
-        billNumber: json.bill_number || `BILL_${Date.now()}`,
-        billDate: json.bill_date || new Date().toISOString().split('T')[0],
-        dueDate: json.due_date || new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
-        billAmount: parseFloat(json.bill_amount) || 0,
-        status: json.status === 'PAID' ? 'PAID' : 'UNPAID',
-        rawResponse: json,
-        isSandbox: false
-      };
-    } catch (err: any) {
-      clearTimeout(timeoutId);
-      return this.simulateBillFetch(consumerNumber, operatorCode);
     }
+
+    return this.simulateBillFetch(consumerNumber, operatorCode);
   }
 
   /**

@@ -180,10 +180,10 @@ export const api = {
     return request<{ success: boolean; plans: Plan[] }>(`/operators/${operatorCode}/plans`);
   },
 
-  async fetchElectricityBill(operatorCode: string, consumerNumber: string) {
+  async fetchElectricityBill(operatorCode: string, consumerNumber: string, p2?: string, p3?: string) {
     return request<{ success: boolean; data: ElectricityBillDetails }>('/bill/fetch', {
       method: 'POST',
-      body: JSON.stringify({ operator_code: operatorCode, consumer_number: consumerNumber })
+      body: JSON.stringify({ operator_code: operatorCode, consumer_number: consumerNumber, p2, p3 })
     });
   },
 

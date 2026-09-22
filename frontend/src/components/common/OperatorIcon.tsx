@@ -121,31 +121,30 @@ const LOGO_MAP: Record<string, { url?: string; isSvg?: boolean; bg: string; labe
   },
 
   // ── Electricity Boards ────────────────────────────────────────────────────
-  TNEB: {
-    bg: '#0b6e3f',
-    label: 'TNEB',
-    isSvg: true,
-  },
-  BESCOM: {
-    bg: '#0284c7',
-    label: 'BESCOM',
-    isSvg: true,
-  },
-  MSEB: {
-    bg: '#ea580c',
-    label: 'MSEB',
-    isSvg: true,
-  },
-  MSEDCL: {
-    bg: '#ea580c',
-    label: 'MSEDCL',
-    isSvg: true,
-  },
-  WBSEDCL: {
-    bg: '#0d9488',
-    label: 'WBSEDCL',
-    isSvg: true,
-  },
+  TNEB: { bg: '#0b6e3f', label: 'TNEB', isSvg: true },
+  BESCOM: { bg: '#0284c7', label: 'BESCOM', isSvg: true },
+  MSEB: { bg: '#ea580c', label: 'MSEB', isSvg: true },
+  MSEDCL: { bg: '#ea580c', label: 'MSEDCL', isSvg: true },
+  WBSEDCL: { bg: '#0d9488', label: 'WBSEDCL', isSvg: true },
+  UPPCL: { bg: '#1e3a8a', label: 'UPPCL', isSvg: true },
+
+  // ── LPG Gas Providers ─────────────────────────────────────────────────────
+  INDANE_GAS: { bg: '#e65100', label: 'Indane', isSvg: true },
+  BHARAT_GAS: { bg: '#00529b', label: 'Bharat Gas', isSvg: true },
+  HP_GAS: { bg: '#c62828', label: 'HP Gas', isSvg: true },
+
+  // ── FASTag Bank Issuers ───────────────────────────────────────────────────
+  FASTAG_PAYTM: { bg: '#00baf2', label: 'Paytm Fastag', isSvg: true },
+  FASTAG_ICICI: { bg: '#b8321e', label: 'ICICI Fastag', isSvg: true },
+  FASTAG_SBI: { bg: '#280071', label: 'SBI Fastag', isSvg: true },
+  FASTAG_AIRTEL: { bg: '#e40000', label: 'Airtel Fastag', isSvg: true },
+  FASTAG_HDFC: { bg: '#004c8f', label: 'HDFC Fastag', isSvg: true },
+
+  // ── Broadband & Fiber ISPs ────────────────────────────────────────────────
+  AIRTEL_BROADBAND: { bg: '#e40000', label: 'Airtel Fiber', isSvg: true },
+  JIO_FIBER: { bg: '#0b30a8', label: 'JioFiber', isSvg: true },
+  ACT_FIBERNET: { bg: '#e50914', label: 'ACT Fiber', isSvg: true },
+  BSNL_BROADBAND: { bg: '#004b93', label: 'BSNL Fiber', isSvg: true }
 };
 
 // ─── Match a code strictly (Exact match first, then longest matching key) ────

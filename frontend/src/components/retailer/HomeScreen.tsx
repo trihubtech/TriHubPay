@@ -114,14 +114,33 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     }, 2800);
   };
 
-  const handleShareInvite = () => {
-    const inviteText = `Join me on TriHubPay for instant mobile, DTH & electricity recharges with highest commissions! ${window.location.origin}`;
+  const handleShareInvite = async () => {
+    const inviteUrl = window.location.origin;
+    const shareData = {
+      title: 'Join TriHubPay B2B Platform',
+      text: '🏪 Join me on TriHubPay — Instant mobile, DTH & utility recharges with highest commissions and instant dispatch! Sign up here:',
+      url: inviteUrl
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          console.log('Share dismissed or failed', err);
+        }
+      }
+    }
+
+    // Fallback if Web Share API is not supported (e.g. desktop browser)
+    const fullText = `${shareData.text} ${shareData.url}`;
     if (navigator.clipboard) {
-      navigator.clipboard.writeText(inviteText);
+      await navigator.clipboard.writeText(fullText);
       setCopiedInvite(true);
       setTimeout(() => setCopiedInvite(false), 2500);
     } else {
-      window.open(`https://wa.me/?text=${encodeURIComponent(inviteText)}`, '_blank');
+      window.open(`https://wa.me/?text=${encodeURIComponent(fullText)}`, '_blank');
     }
   };
 
@@ -298,14 +317,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
             All Services
           </h2>
-          <button
-            type="button"
-            onClick={() => onNavigateToTab('RECHARGE')}
-            className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-0.5"
-          >
-            <span>View All</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
         </div>
 
         <div className="grid grid-cols-4 gap-2.5 sm:gap-4">

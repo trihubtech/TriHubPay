@@ -190,12 +190,12 @@ export class RechargeRouter {
   /**
    * Fetch electricity bill with primary -> fallback routing
    */
-  async fetchElectricityBill(consumerNumber: string, operatorCode: string): Promise<UpstreamBillFetchResult> {
+  async fetchElectricityBill(consumerNumber: string, operatorCode: string, p2?: string, p3?: string): Promise<UpstreamBillFetchResult> {
     const routing = await this.determineRouting(operatorCode);
 
     try {
       if (routing.primary === 'NEROPAY') {
-        return await this.neroClient.fetchElectricityBill(consumerNumber, operatorCode);
+        return await this.neroClient.fetchElectricityBill(consumerNumber, operatorCode, p2, p3);
       } else {
         return await this.nobleClient.fetchElectricityBill(consumerNumber, operatorCode);
       }
@@ -203,7 +203,7 @@ export class RechargeRouter {
       if (routing.fallback) {
         console.warn(`[ROUTER BILL FETCH] Primary failed, attempting fallback ${routing.fallback}...`);
         if (routing.fallback === 'NEROPAY') {
-          return await this.neroClient.fetchElectricityBill(consumerNumber, operatorCode);
+          return await this.neroClient.fetchElectricityBill(consumerNumber, operatorCode, p2, p3);
         } else {
           return await this.nobleClient.fetchElectricityBill(consumerNumber, operatorCode);
         }
@@ -227,8 +227,8 @@ export class RechargeRouter {
     return this.fetchPlans(operatorCode, circle);
   }
 
-  routeBillFetch(operatorCode: string, consumerNumber: string) {
-    return this.fetchElectricityBill(consumerNumber, operatorCode);
+  routeBillFetch(operatorCode: string, consumerNumber: string, p2?: string, p3?: string) {
+    return this.fetchElectricityBill(consumerNumber, operatorCode, p2, p3);
   }
 }
 

@@ -14,7 +14,8 @@ import {
   Building2,
   Search,
   ChevronRight,
-  ArrowLeft
+  ArrowLeft,
+  RefreshCw
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { Operator, Plan, CommissionPreview, ElectricityBillDetails, ServiceType } from '../../types';
@@ -184,30 +185,52 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
     return () => clearTimeout(timer);
   }, [selectedOperator, faceValue]);
 
+  // Comprehensive Indian Mobile Operator prefix detector (TRAI DoT series)
+  const detectIndianOperator = (num: string): string | null => {
+    if (num.length < 3) return null;
+    const p4 = parseInt(num.substring(0, 4), 10);
+    const p3 = parseInt(num.substring(0, 3), 10);
+    const p2 = parseInt(num.substring(0, 2), 10);
+
+    // 1. Jio (DoT Series: 60xx, 62xx, 63xx, 700x-707x, 74xx, 75xx, 79xx, 82xx, 89xx, 92xx, 93xx)
+    if ([620, 623, 626, 628, 629, 630, 635, 636, 637, 638, 639, 700, 701, 702, 704, 707, 790, 797, 798, 799, 827, 828, 829, 898, 920, 921, 922, 923, 924, 925, 926, 927, 928, 929, 930, 931, 932, 933, 934, 935, 936, 937, 938, 939].includes(p3)) return 'JIO';
+    if ([6289, 6290, 7000, 7001, 7002, 7003, 8270, 8981, 9830, 9831].includes(p4)) return 'JIO';
+    if (p2 === 63 || p2 === 70) return 'JIO';
+
+    // 2. Airtel (DoT Series: 708x, 709x, 76xx, 80xx, 81xx, 84xx, 85xx, 88xx, 90xx, 91xx, 96xx, 97xx, 98xx, 99xx)
+    if ([708, 709, 760, 761, 762, 763, 764, 765, 766, 767, 800, 801, 805, 808, 809, 810, 812, 813, 840, 841, 842, 843, 850, 851, 852, 880, 881, 882, 900, 901, 902, 903, 910, 911, 912, 960, 961, 962, 963, 970, 971, 972, 973, 980, 981, 984, 988, 990, 991, 992, 993, 994, 995].includes(p3)) return 'AIRTEL';
+    if ([9840, 9841, 9444, 9445, 9884, 9845, 9810, 9811, 9818, 9890, 9891].includes(p4)) return 'AIRTEL';
+
+    // 3. Vi (Vodafone Idea: 72xx, 73xx, 77xx, 78xx, 82xx, 83xx, 86xx, 87xx, 90xx, 91xx, 95xx, 982x, 989x)
+    if ([720, 721, 722, 723, 730, 731, 732, 770, 771, 772, 773, 780, 781, 782, 830, 831, 832, 860, 861, 862, 870, 871, 872, 950, 951, 952, 982, 989].includes(p3)) return 'VI';
+    if ([9820, 9821, 9892, 9819, 9822, 9823, 9824, 9825].includes(p4)) return 'VI';
+
+    // 4. BSNL (94xx series across India, plus 940-949)
+    if (p2 === 94 || [940, 941, 942, 943, 944, 945, 946, 947, 948, 949].includes(p3)) return 'BSNL';
+
+    return null;
+  };
+
   // Auto-detect Indian Mobile Operator prefix logic
   const handlePhoneChange = (val: string) => {
     const clean = val.replace(/\D/g, '').slice(0, 10);
     setAccountNumber(clean);
     setErrorMsg('');
 
-    if (activeTab === 'MOBILE' && clean.length >= 4) {
-      const prefix = clean.substring(0, 4);
-      const prefixNum = parseInt(prefix, 10);
-      
-      if ([6289, 6290, 7000, 7001, 7002, 7003, 8270, 8981, 9830, 9831].includes(prefixNum)) {
-        if (selectedOperator !== 'JIO') setSelectedOperator('JIO');
-      } else if ([9840, 9841, 9444, 9445, 9884].includes(prefixNum)) {
-        if (selectedOperator !== 'AIRTEL') setSelectedOperator('AIRTEL');
-      } else if ([9820, 9821, 9892, 9819].includes(prefixNum)) {
-        if (selectedOperator !== 'VI') setSelectedOperator('VI');
+    if (activeTab === 'MOBILE' && clean.length >= 3) {
+      const detected = detectIndianOperator(clean);
+      if (detected && detected !== selectedOperator) {
+        setSelectedOperator(detected);
       }
     }
   };
 
+  const isBillFetchSupported = ['ELECTRICITY', 'LPG_GAS', 'FASTAG', 'BROADBAND'].includes(activeTab);
+
   const handleFetchBill = async () => {
     const clean = accountNumber.trim();
     if (!clean) {
-      setErrorMsg('Please enter a consumer or account number');
+      setErrorMsg('Please enter a consumer or account number first');
       return;
     }
     setFetchingBill(true);
@@ -216,12 +239,14 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
       const res = await api.fetchElectricityBill(selectedOperator, clean);
       if (res.success && res.data) {
         setFetchedBill(res.data);
-        setFaceValue(String(res.data.bill_amount));
+        if (res.data.bill_amount > 0) {
+          setFaceValue(String(res.data.bill_amount));
+        }
       } else {
-        setErrorMsg('Could not fetch bill from electricity board. Please check consumer number.');
+        setErrorMsg('Could not fetch live bill. Please verify the account number or enter amount manually.');
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'BBPS Server could not retrieve bill for this consumer number.');
+      setErrorMsg(err.message || 'Server could not retrieve bill for this account number.');
       setFetchedBill(null);
     } finally {
       setFetchingBill(false);
@@ -233,8 +258,8 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
     if (e) e.preventDefault();
     setErrorMsg('');
 
-    // If electricity tab and bill is not fetched yet, force fetch first
-    if (activeTab === 'ELECTRICITY' && !fetchedBill) {
+    // If utility tab and bill is not fetched yet, attempt fetch first
+    if (isBillFetchSupported && !fetchedBill) {
       handleFetchBill();
       return;
     }
@@ -246,6 +271,10 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
     }
     if (isNaN(val) || val <= 0) {
       setErrorMsg('Please enter a valid recharge or bill payment amount');
+      return;
+    }
+    if (val < 10) {
+      setErrorMsg('Minimum recharge or payment amount is ₹10');
       return;
     }
 
@@ -363,7 +392,7 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
         </div>
       </div>
 
-      <div className="p-4 sm:p-6 pb-28 sm:pb-6">
+      <div className="p-4 sm:p-6 pb-36 sm:pb-6">
         {errorMsg && (
           <div className="mb-4 p-3.5 bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs rounded-xl flex items-center justify-between">
             <span>{errorMsg}</span>
@@ -389,6 +418,42 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
                 <div className="absolute right-3.5 pointer-events-none flex items-center">
                   <OperatorIcon operatorCode={selectedOperator} size="sm" />
                 </div>
+              </div>
+
+              {/* Input Helper & Fetch Bill Quick Action */}
+              <div className="flex items-center justify-between mt-1 px-1">
+                <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                  {activeTab === 'LPG_GAS' && (
+                    selectedOperator === 'INDANE_GAS' 
+                      ? 'Mobile (10 digits) or LPG ID (16 digits)' 
+                      : selectedOperator === 'BHARAT_GAS' 
+                        ? 'Contact No (10 digits) or LPG ID (17 digits)' 
+                        : 'Mobile (10 digits) or Consumer ID (17 digits)'
+                  )}
+                  {activeTab === 'FASTAG' && 'Vehicle Registration No (e.g. TN01AB1234)'}
+                  {activeTab === 'ELECTRICITY' && 'Consumer / Service Connection Number'}
+                  {activeTab === 'BROADBAND' && 'Broadband Account ID or Landline Number'}
+                </span>
+                {isBillFetchSupported && (
+                  <button
+                    type="button"
+                    onClick={handleFetchBill}
+                    disabled={fetchingBill || !accountNumber}
+                    className="text-[11px] font-bold text-blue-600 dark:text-brand-400 hover:underline flex items-center gap-1 shrink-0 ml-auto"
+                  >
+                    {fetchingBill ? (
+                      <>
+                        <RefreshCw className="w-3 h-3 animate-spin" />
+                        <span>Fetching...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-3 h-3" />
+                        <span>Fetch Bill</span>
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
 
@@ -469,8 +534,8 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
             </div>
           )}
 
-          {/* Electricity Verified Bill Detail Card */}
-          {activeTab === 'ELECTRICITY' && fetchedBill && (
+          {/* Verified Bill Detail Card for Utility Services */}
+          {isBillFetchSupported && fetchedBill && (
             <div className={`p-4 rounded-2xl animate-in fade-in space-y-2 border ${
               fetchedBill.bill_amount === 0 || fetchedBill.status === 'PAID'
                 ? 'bg-blue-500/10 border-blue-500/30'
@@ -482,7 +547,7 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
                   <span>Consumer Verified: {fetchedBill.consumer_name}</span>
                 </span>
                 <span className="text-[11px] font-mono bg-white dark:bg-slate-900 px-2 py-0.5 rounded-full text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800">
-                  Bill #{fetchedBill.bill_number}
+                  Ref #{fetchedBill.bill_number}
                 </span>
               </div>
               {fetchedBill.bill_amount === 0 || fetchedBill.status === 'PAID' ? (
@@ -492,7 +557,7 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
                     <span>No Bill Due for This Cycle</span>
                   </div>
                   <p className="text-[11px] text-slate-600 dark:text-slate-400">
-                    The bill for this consumer number has already been paid in full. You can enter an advance payment amount if you wish to pay ahead.
+                    The bill for this account is settled. You can enter an advance payment amount (min ₹10) if you wish to pay ahead.
                   </p>
                 </div>
               ) : (
@@ -508,7 +573,7 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                {activeTab === 'ELECTRICITY' ? 'INVOICE AMOUNT (INR)' : 'RECHARGE AMOUNT (INR)'}
+                {isBillFetchSupported ? 'INVOICE / BILL AMOUNT (INR)' : 'RECHARGE AMOUNT (INR)'}
               </label>
               {commissionPreview && (
                 <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 animate-in fade-in">
@@ -526,25 +591,26 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
               </span>
               <input
                 type="number"
+                min="10"
                 placeholder={
-                  activeTab === 'ELECTRICITY' 
-                    ? (fetchedBill?.bill_amount === 0 ? 'Enter advance amount (e.g. 500)' : 'Fetch bill or enter amount') 
-                    : 'e.g. 19, 299, 349'
+                  isBillFetchSupported 
+                    ? (fetchedBill?.bill_amount === 0 ? 'Enter advance amount (min ₹10)' : 'Fetch bill or enter amount (min ₹10)') 
+                    : 'e.g. 19, 299, 349 (min ₹10)'
                 }
                 value={faceValue}
                 onChange={(e) => setFaceValue(e.target.value)}
-                readOnly={activeTab === 'ELECTRICITY' && Boolean(fetchedBill && fetchedBill.bill_amount > 0)}
+                readOnly={isBillFetchSupported && Boolean(fetchedBill && fetchedBill.bill_amount > 0)}
                 className={`w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-2xl pl-9 pr-4 py-3 text-slate-900 dark:text-white font-mono font-bold text-xl focus:outline-none focus:border-brand-500 transition-all ${
-                  activeTab === 'ELECTRICITY' && fetchedBill && fetchedBill.bill_amount > 0 ? 'bg-slate-100 dark:bg-slate-900 cursor-not-allowed text-emerald-600 dark:text-emerald-400' : ''
+                  isBillFetchSupported && fetchedBill && fetchedBill.bill_amount > 0 ? 'bg-slate-100 dark:bg-slate-900 cursor-not-allowed text-emerald-600 dark:text-emerald-400' : ''
                 }`}
                 required
               />
             </div>
 
-            {activeTab === 'ELECTRICITY' && fetchedBill && fetchedBill.bill_amount > 0 && (
+            {isBillFetchSupported && fetchedBill && fetchedBill.bill_amount > 0 && (
               <p className="mt-1 text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                 <Check className="w-3 h-3" />
-                <span>Amount locked to verified BBPS electricity invoice</span>
+                <span>Amount locked to verified upstream bill invoice</span>
               </p>
             )}
           </div>
@@ -641,7 +707,7 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
           <div className="hidden sm:block pt-2">
             <button
               type="submit"
-              disabled={submitting || fetchingBill || (activeTab === 'ELECTRICITY' && !accountNumber)}
+              disabled={submitting || fetchingBill || (isBillFetchSupported && !accountNumber)}
               className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 disabled:opacity-50 text-white py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-blue-600/20 active:scale-98 transition-all flex items-center justify-center gap-2"
             >
               {submitting ? (
@@ -652,9 +718,9 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
               ) : fetchingBill ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Verifying Consumer Details with Electricity Board...</span>
+                  <span>Verifying Account Details & Fetching Live Bill...</span>
                 </>
-              ) : activeTab === 'ELECTRICITY' && !fetchedBill ? (
+              ) : isBillFetchSupported && !fetchedBill ? (
                 <>
                   <FileText className="w-4 h-4" />
                   <span>Fetch Bill Details First</span>
@@ -675,13 +741,13 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
           </div>
         </form>
 
-        {/* Mobile Fixed Sticky Checkout Bar (Always visible on mobile without scrolling!) */}
-        <div className="sm:hidden fixed bottom-14 left-0 right-0 z-30 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 px-4 py-2.5 shadow-2xl safe-area-bottom">
-          <div className="flex items-center justify-between gap-3 max-w-lg mx-auto">
+        {/* Mobile Fixed Sticky Checkout Bar (Roomy, spacious, sits comfortably above bottom nav) */}
+        <div className="sm:hidden fixed bottom-[60px] left-0 right-0 z-30 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 px-4 py-3 shadow-[0_-8px_25px_rgba(0,0,0,0.12)] safe-area-bottom">
+          <div className="flex items-center justify-between gap-4 max-w-lg mx-auto">
             <div className="flex flex-col min-w-0">
               <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">To Pay (Net)</span>
               <div className="flex items-baseline gap-1.5 truncate">
-                <span className="text-base font-black text-slate-900 dark:text-white font-mono">
+                <span className="text-lg font-black text-slate-900 dark:text-white font-mono">
                   ₹{commissionPreview ? commissionPreview.final_cost_billed.toFixed(2) : ((parseFloat(faceValue) || 0).toFixed(2))}
                 </span>
                 {commissionPreview && commissionPreview.retailer_commission > 0 && (
@@ -695,11 +761,11 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
             <button
               type="button"
               onClick={handleOpenConfirmation}
-              disabled={submitting || fetchingBill || !accountNumber || (activeTab !== 'ELECTRICITY' && (!faceValue || parseFloat(faceValue) <= 0))}
-              className="flex-1 max-w-[200px] bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 disabled:opacity-40 text-white py-2.5 px-4 rounded-xl font-bold text-xs shadow-md shadow-blue-600/20 active:scale-98 transition-all flex items-center justify-center gap-1.5"
+              disabled={submitting || fetchingBill || !accountNumber || (!isBillFetchSupported && (!faceValue || parseFloat(faceValue) < 10))}
+              className="flex-1 max-w-[210px] bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 disabled:opacity-40 text-white py-3 px-5 rounded-2xl font-bold text-xs sm:text-sm shadow-lg shadow-blue-600/25 active:scale-95 transition-all flex items-center justify-center gap-1.5"
             >
-              <span>{activeTab === 'ELECTRICITY' && !fetchedBill ? 'Fetch Bill' : 'Confirm & Pay'}</span>
-              <ChevronRight className="w-3.5 h-3.5" />
+              <span>{isBillFetchSupported && !fetchedBill ? 'Fetch Bill' : 'Confirm & Pay'}</span>
+              <ChevronRight className="w-4 h-4" />
             </button>
           </div>
         </div>

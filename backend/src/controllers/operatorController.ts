@@ -372,19 +372,19 @@ export async function getPlansForOperator(req: Request, res: Response) {
  */
 export async function fetchElectricityBill(req: Request, res: Response) {
   try {
-    const { operator_code, consumer_number } = req.body;
+    const { operator_code, consumer_number, p2, p3 } = req.body;
     if (!operator_code || !consumer_number) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Electricity Board (operator_code) and Consumer Account Number are required' 
+        message: 'Provider (operator_code) and Consumer / Account Number are required' 
       });
     }
 
     const cleanNumber = String(consumer_number).trim();
-    if (cleanNumber.length < 5) {
+    if (cleanNumber.length < 4) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Please enter a valid Consumer Service Connection Number (minimum 5 digits)' 
+        message: 'Please enter a valid Consumer Service Connection Number (minimum 4 digits)' 
       });
     }
 
@@ -394,11 +394,11 @@ export async function fetchElectricityBill(req: Request, res: Response) {
       [operator_code]
     );
 
-    const boardName = boardRes.rows[0]?.operator_name || `${operator_code} State Electricity Board`;
+    const boardName = boardRes.rows[0]?.operator_name || `${operator_code} Service Provider`;
 
-    // 1. Attempt Live BBPS Bill Fetch via Upstream Router (A1Topup / Noble Web)
+    // 1. Attempt Live BBPS Bill Fetch via Upstream Router (NeroPay / Noble Web)
     try {
-      const liveBill = await upstreamRouter.routeBillFetch(operator_code, cleanNumber);
+      const liveBill = await upstreamRouter.routeBillFetch(operator_code, cleanNumber, p2, p3);
       if (liveBill && liveBill.success) {
         return res.json({
           success: true,
