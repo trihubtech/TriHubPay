@@ -176,7 +176,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               </div>
 
               <div className="text-2xl sm:text-3xl font-black tracking-tight font-mono text-white mt-0.5">
-                ₹{currentUser.current_balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ₹{Number(currentUser?.current_balance ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
 
               <div className="mt-1.5 flex items-center gap-1.5">
@@ -223,7 +223,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               {todayStats.rechargeCount}
             </div>
             <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">
-              ₹ {todayStats.rechargeVolume.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ₹ {Number(todayStats?.rechargeVolume ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
           </div>
         </div>
@@ -240,7 +240,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </div>
           <div>
             <div className="text-xl sm:text-2xl font-black text-purple-600 dark:text-purple-400 font-mono">
-              ₹ {todayStats.totalCommission.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ₹ {Number(todayStats?.totalCommission ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">
               Net Profit Credited
@@ -263,7 +263,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               {todayStats.pendingCount}
             </div>
             <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">
-              ₹ {todayStats.pendingAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ₹ {Number(todayStats?.pendingAmount ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
           </div>
         </div>
@@ -283,7 +283,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               {todayStats.failedCount}
             </div>
             <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">
-              ₹ {todayStats.failedAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ₹ {Number(todayStats?.failedAmount ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
           </div>
         </div>

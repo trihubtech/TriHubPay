@@ -41,11 +41,11 @@ export const DashboardKPIs: React.FC<DashboardKPIsProps> = ({ kpis, onRefresh })
             </div>
           </div>
           <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">
-            ₹{kpis.network_volume.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ₹{Number(kpis?.network_volume ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-1.5">
-            <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{kpis.total_transactions} txs</span>
-            <span>across {kpis.total_retailers} active accounts</span>
+            <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{kpis?.total_transactions ?? 0} txs</span>
+            <span>across {kpis?.total_retailers ?? 0} active accounts</span>
           </div>
         </div>
 
@@ -58,11 +58,11 @@ export const DashboardKPIs: React.FC<DashboardKPIsProps> = ({ kpis, onRefresh })
             </div>
           </div>
           <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 font-mono">
-            ₹{kpis.net_admin_profit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ₹{Number(kpis?.net_admin_profit ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-1.5">
             <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-brand-500/15 text-brand-700 dark:text-brand-300">
-              {kpis.effective_admin_margin_percent}% Net Margin
+              {kpis?.effective_admin_margin_percent ?? 0}% Net Margin
             </span>
             <span>Target: 5.0%</span>
           </div>
@@ -77,14 +77,14 @@ export const DashboardKPIs: React.FC<DashboardKPIsProps> = ({ kpis, onRefresh })
             </div>
           </div>
           <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">
-            {kpis.success_rate_percent}%
+            {kpis?.success_rate_percent ?? 100}%
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-2">
-            <span className="text-emerald-600 dark:text-emerald-400">{kpis.success_count} OK</span>
+            <span className="text-emerald-600 dark:text-emerald-400">{kpis?.success_count ?? 0} OK</span>
             <span>•</span>
-            <span className="text-rose-600 dark:text-rose-400">{kpis.failed_count} Fail</span>
+            <span className="text-rose-600 dark:text-rose-400">{kpis?.failed_count ?? 0} Fail</span>
             <span>•</span>
-            <span className="text-amber-600 dark:text-amber-400">{kpis.pending_count} Pend</span>
+            <span className="text-amber-600 dark:text-amber-400">{kpis?.pending_count ?? 0} Pend</span>
           </div>
         </div>
 
@@ -93,7 +93,7 @@ export const DashboardKPIs: React.FC<DashboardKPIsProps> = ({ kpis, onRefresh })
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
             <span className="text-xs font-semibold uppercase tracking-wider">Master API Balance</span>
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-              kpis.master_wallet.is_low_balance
+              kpis?.master_wallet?.is_low_balance
                 ? 'bg-amber-500/10 border border-amber-500/20 text-amber-500 dark:text-amber-400'
                 : 'bg-brand-500/10 border border-brand-500/20 text-brand-600 dark:text-brand-400'
             }`}>
@@ -101,10 +101,10 @@ export const DashboardKPIs: React.FC<DashboardKPIsProps> = ({ kpis, onRefresh })
             </div>
           </div>
           <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">
-            ₹{kpis.master_wallet.balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            ₹{Number(kpis?.master_wallet?.balance ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center justify-between">
-            <span>Wallet liability: ₹{kpis.retailer_float_liability.toFixed(0)}</span>
+            <span>Wallet liability: ₹{Number(kpis?.retailer_float_liability ?? 0).toFixed(0)}</span>
             <span className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
               NeroPay Live

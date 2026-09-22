@@ -72,14 +72,14 @@ export function humanizeErrorMessage(rawError: any, status?: number): string {
     return `Insufficient wallet cash. Please add cash via UPI QR or contact TriHubPay Support.`;
   }
 
-  // Server error 500/502/503/504
-  if (status && status >= 500) {
-    return `The TriHubPay platform is momentarily busy processing live bank orders. Please try again shortly or contact TriHubPay Support (${TRIHUB_SUPPORT.phone}).`;
+  // Clean custom message from backend if already human-readable
+  if (msg && !msg.startsWith('HTTP') && !msg.includes('SyntaxError') && !msg.includes('<!DOCTYPE')) {
+    return msg;
   }
 
-  // Clean custom message from backend if already human-readable
-  if (msg && !msg.startsWith('HTTP') && !msg.includes('{') && !msg.includes('JSON')) {
-    return msg;
+  // Server error 500/502/503/504 fallback
+  if (status && status >= 500) {
+    return `The TriHubPay platform is momentarily busy processing live bank orders. Please try again shortly or contact TriHubPay Support (${TRIHUB_SUPPORT.phone}).`;
   }
 
   return `We encountered an issue processing your request. Please try again or reach TriHubPay Support (${TRIHUB_SUPPORT.phone} / ${TRIHUB_SUPPORT.email}).`;
