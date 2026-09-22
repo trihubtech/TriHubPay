@@ -86,4 +86,11 @@ router.post('/admin/deposits/:id/reject', authenticate, requireRole(['ADMIN']), 
 // -------------------------------------------------------------
 // 6. UPSTREAM TELECOM STATUS WEBHOOK CALLBACKS
 // -------------------------------------------------------------
+// Dedicated NeroPay Webhook Callbacks (Conforms to https://docs.neropay.co.in/#callback)
+router.get('/webhook/neropay', webhookController.handleNeroPayWebhook);
+router.post('/webhook/neropay', webhookController.handleNeroPayWebhook);
+router.get('/recharge/callback/neropay', webhookController.handleNeroPayWebhook);
+router.post('/recharge/callback/neropay', webhookController.handleNeroPayWebhook);
+
+// Generic / Legacy HMAC Webhook
 router.post('/webhook/upstream', verifyWebhookHmac, webhookController.handleUpstreamWebhook);

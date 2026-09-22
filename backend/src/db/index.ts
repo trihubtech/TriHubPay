@@ -529,46 +529,74 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
   }
   // 15. INSERT INTO transactions
   else if (/INSERT INTO transactions/i.test(cleanSql)) {
+    let internalId = params[0];
+    let retailerId = params[1];
+    let billedCost = 0;
+
+    if (params.length === 3) {
+      internalId = params[0];
+      retailerId = params[1];
+      billedCost = parseFloat(params[2]) || 0;
+    } else if (params.length >= 11) {
+      billedCost = parseFloat(params[10]) || 0;
+    }
+
     const newTx = {
       id: `tx-id-${Date.now()}`,
-      internal_tx_id: params[0],
-      retailer_id: params[1],
-      service_type: params[2],
-      operator_code: params[3],
-      target_account_number: params[4],
-      circle_code: params[5],
-      face_value: params[6],
-      retailer_commission: params[7],
-      admin_commission: params[8],
-      master_commission: params[9],
-      final_cost_billed: params[10],
+      internal_tx_id: internalId,
+      retailer_id: retailerId,
+      service_type: params[2] || 'MOBILE',
+      operator_code: params[3] || 'JIO',
+      target_account_number: params[4] || '9999999999',
+      circle_code: params[5] || 'ALL_INDIA',
+      face_value: params[6] || billedCost,
+      retailer_commission: params[7] || '0',
+      admin_commission: params[8] || '0',
+      master_commission: params[9] || '0',
+      final_cost_billed: String(billedCost),
       upstream_api_used: 'PENDING',
       status: 'PENDING',
       created_at: new Date().toISOString()
     };
     memoryStore.transactions.unshift(newTx);
     savePersistentStore();
-    rows = [{ id: newTx.id }];
+    rows = [newTx];
   }
   // 16. UPDATE transactions
-  else if (/UPDATE transactions SET status = \$1/i.test(cleanSql)) {
+  else if (/UPDATE transactions/i.test(cleanSql)) {
     const txId = params[params.length - 1];
     const tx = memoryStore.transactions.find(t => t.id === txId || t.internal_tx_id === txId);
     if (tx) {
-      tx.status = params[0];
-      if (params.length >= 4) {
-        tx.upstream_api_used = params[1];
-        tx.upstream_operator_ref = params[2];
-      }
-      if (params.length >= 6) {
-        tx.voucher_code = params[4];
-        tx.voucher_pin = params[5];
+      if (/status = 'SUCCESS'/i.test(cleanSql)) {
+        tx.status = 'SUCCESS';
+        if (params[0]) tx.upstream_operator_ref = params[0];
+        if (params[1]) tx.upstream_tx_id = params[1];
+      } else if (/status = 'REFUNDED'/i.test(cleanSql)) {
+        tx.status = 'REFUNDED';
+        if (params[0]) tx.failure_reason = params[0];
+      } else if (params[0]) {
+        tx.status = params[0];
+        if (params.length >= 4) {
+          tx.upstream_api_used = params[1];
+          tx.upstream_operator_ref = params[2];
+        }
+        if (params.length >= 6) {
+          tx.voucher_code = params[4];
+          tx.voucher_pin = params[5];
+        }
       }
       savePersistentStore();
     }
     rows = [];
   }
-  // 17. SELECT ... FROM transactions WHERE retailer_id = $1
+  // 17a. SELECT ... FROM transactions WHERE internal_tx_id
+  else if (/SELECT .* FROM transactions WHERE (internal_tx_id = \$1|upstream_tx_id = \$2)/i.test(cleanSql)) {
+    const targetRef = params[0];
+    const upstreamRef = params[1];
+    const match = memoryStore.transactions.find(t => t.internal_tx_id === targetRef || (upstreamRef && t.upstream_tx_id === upstreamRef));
+    rows = match ? [{ ...match, final_cost_billed: String(match.final_cost_billed || '0') }] : [];
+  }
+  // 17b. SELECT ... FROM transactions WHERE retailer_id = $1
   else if (/SELECT .* FROM transactions WHERE retailer_id = \$1/i.test(cleanSql)) {
     rows = memoryStore.transactions.filter(t => t.retailer_id === params[0]);
   }

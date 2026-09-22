@@ -1,3 +1,4 @@
+import { config } from '../config';
 import { query } from '../db';
 import { NeroPayClient } from './upstream/neropay';
 import { NobleWebClient } from './upstream/nobleWeb';
@@ -59,10 +60,14 @@ export class RechargeRouter {
       console.warn(`[ROUTER] Operator ${operatorCode} not found in commission_matrix, defaulting to NeroPay primary`);
     }
 
-    // Step B (Phase 1 Logic): If is_noble_active is FALSE, bypass Noble entirely. Direct 100% of traffic to NeroPay.
+    // Dynamic Provider Overrides from config / .env (Swappable with 0 code changes)
+    const configuredPrimary = (config.primaryProvider === 'NOBLE' ? 'NOBLE' : 'NEROPAY') as UpstreamProviderName;
+    const fallbackEnabled = config.providerFallbackEnabled;
+
+    // Step B (Phase 1 Logic): If is_noble_active is FALSE, bypass Noble entirely. Direct 100% of traffic to configured primary.
     if (!isNobleActive) {
       return {
-        primary: 'NEROPAY',
+        primary: configuredPrimary,
         fallback: null,
         isNobleActive: false,
         neropayMasterRate: neropayRate,
@@ -70,12 +75,12 @@ export class RechargeRouter {
       };
     }
 
-    // Step C (Phase 2 Logic): If is_noble_active is TRUE, compare neropay_master_rate vs noble_master_rate.
-    // The provider with the HIGHER master rate is PRIMARY; the lower is FALLBACK.
+    // Step C (Phase 2 Logic): If is_noble_active is TRUE, dynamically evaluate master rates.
+    // The provider with the HIGHER master rate is PRIMARY; the other is FALLBACK.
     if (nobleRate > neropayRate) {
       return {
         primary: 'NOBLE',
-        fallback: 'NEROPAY',
+        fallback: fallbackEnabled ? 'NEROPAY' : null,
         isNobleActive: true,
         neropayMasterRate: neropayRate,
         nobleMasterRate: nobleRate
@@ -84,7 +89,7 @@ export class RechargeRouter {
       // In case of equal rates or NeroPay higher, NeroPay is Primary and Noble is Fallback
       return {
         primary: 'NEROPAY',
-        fallback: 'NOBLE',
+        fallback: fallbackEnabled ? 'NOBLE' : null,
         isNobleActive: true,
         neropayMasterRate: neropayRate,
         nobleMasterRate: nobleRate

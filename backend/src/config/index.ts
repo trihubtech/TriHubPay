@@ -12,26 +12,38 @@ export const config = {
   jwtSecret: process.env.JWT_SECRET || 'trihub_technologies_corporate_jwt_secret_2026',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   
-  // Upstream Primary: NeroPay Gateway API
+  // Dynamic Upstream Provider Routing (Change via .env with zero code changes)
+  primaryProvider: (process.env.PRIMARY_PROVIDER || 'NEROPAY').toUpperCase(),
+  fallbackProvider: (process.env.FALLBACK_PROVIDER || 'NOBLE').toUpperCase(),
+  providerFallbackEnabled: process.env.PROVIDER_FALLBACK_ENABLED !== 'false',
+
+  // Upstream Primary: NeroPay Gateway API (https://docs.neropay.co.in)
   neroPay: {
-    apiUrl: process.env.NEROPAY_API_URL || 'https://api.neropay.in/v1/recharge',
-    voucherUrl: process.env.NEROPAY_VOUCHER_URL || 'https://api.neropay.in/v1/voucher/issue',
-    billFetchUrl: process.env.NEROPAY_BILL_FETCH_URL || 'https://api.neropay.in/v1/bbps/fetch',
-    plansUrl: process.env.NEROPAY_PLANS_URL || 'https://api.neropay.in/v1/plans',
-    apiKey: process.env.NEROPAY_API_KEY || '',
-    merchantId: process.env.NEROPAY_MERCHANT_ID || '',
-    timeoutMs: 8000, // Strict 8-second HTTP timeout requirement
-    isSandbox: !process.env.NEROPAY_API_KEY || process.env.NEROPAY_API_KEY.trim() === ''
+    baseUrl: process.env.NEROPAY_BASE_URL || 'https://app.neropay.co.in',
+    apiUrl: process.env.NEROPAY_API_URL || `${process.env.NEROPAY_BASE_URL || 'https://app.neropay.co.in'}/apiservice/utility_payments`,
+    balanceUrl: process.env.NEROPAY_BALANCE_URL || `${process.env.NEROPAY_BASE_URL || 'https://app.neropay.co.in'}/apiservice/balance_check`,
+    statusUrl: process.env.NEROPAY_STATUS_URL || `${process.env.NEROPAY_BASE_URL || 'https://app.neropay.co.in'}/apiservice/status_check`,
+    disputeUrl: process.env.NEROPAY_DISPUTE_URL || `${process.env.NEROPAY_BASE_URL || 'https://app.neropay.co.in'}/apiservice/raise_dispute`,
+    voucherUrl: process.env.NEROPAY_VOUCHER_URL || `${process.env.NEROPAY_BASE_URL || 'https://app.neropay.co.in'}/apiservice/utility_payments`,
+    billFetchUrl: process.env.NEROPAY_BILL_FETCH_URL || `${process.env.NEROPAY_BASE_URL || 'https://app.neropay.co.in'}/apiservice/bill_fetch`,
+    plansUrl: process.env.NEROPAY_PLANS_URL || `${process.env.NEROPAY_BASE_URL || 'https://app.neropay.co.in'}/apiservice/plans`,
+    token: (process.env.NEROPAY_TOKEN || process.env.NEROPAY_API_KEY || '').trim(),
+    apiKey: (process.env.NEROPAY_TOKEN || process.env.NEROPAY_API_KEY || '').trim(),
+    merchantId: (process.env.NEROPAY_MERCHANT_ID || '').trim(),
+    timeoutMs: parseInt(process.env.NEROPAY_TIMEOUT_MS || '8000', 10), // Strict 8-second HTTP timeout requirement
+    isSandbox: !(process.env.NEROPAY_TOKEN || process.env.NEROPAY_API_KEY) || (process.env.NEROPAY_TOKEN || process.env.NEROPAY_API_KEY || '').trim() === ''
   },
 
   // Upstream Failover / Dynamic Engine: Noble Web Studio / E2E Networks
   nobleWeb: {
+    baseUrl: process.env.NOBLE_BASE_URL || 'https://api.noblewebstudio.in',
     apiUrl: process.env.NOBLE_API_URL || 'https://api.noblewebstudio.in/v1/recharge',
     voucherUrl: process.env.NOBLE_VOUCHER_URL || 'https://api.noblewebstudio.in/v1/voucher/issue',
     billFetchUrl: process.env.NOBLE_BILL_FETCH_URL || 'https://api.noblewebstudio.in/v1/bill/fetch',
     plansUrl: process.env.NOBLE_PLANS_URL || 'https://api.noblewebstudio.in/v1/plans',
-    apiKey: process.env.NOBLE_API_KEY || '',
-    timeoutMs: 8000, // Strict 8-second timeout requirement
+    apiKey: (process.env.NOBLE_API_KEY || '').trim(),
+    token: (process.env.NOBLE_API_TOKEN || process.env.NOBLE_API_KEY || '').trim(),
+    timeoutMs: parseInt(process.env.NOBLE_TIMEOUT_MS || '8000', 10), // Strict 8-second timeout requirement
     isSandbox: !process.env.NOBLE_API_KEY || process.env.NOBLE_API_KEY.trim() === ''
   },
 
