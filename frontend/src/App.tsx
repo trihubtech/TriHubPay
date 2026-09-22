@@ -376,7 +376,15 @@ export function App() {
                 />
               )}
               {retailerTab === 'COMMISSIONS' && (
-                <MyCommissionsTable />
+                <>
+                  <MyCommissionsTable />
+                  {/* ── Dashboard & Insights accordion below commission structure (desktop) ── */}
+                  <RetailerInsightsCard
+                    transactions={retailerTransactions}
+                    onNavigateToCommissions={() => setRetailerTab('COMMISSIONS')}
+                    onNavigateToPassbook={() => setRetailerTab('PASSBOOK')}
+                  />
+                </>
               )}
             </div>
 
@@ -384,13 +392,10 @@ export function App() {
             <div className="sm:hidden space-y-4">
               {retailerTab === 'RECHARGE' && (
                 <>
-                  {/* ── Recharge panel first ── */}
                   <RechargeTabs
                     onSuccess={handleRechargeSuccess}
                     walletBalance={currentUser.current_balance}
                   />
-
-                  {/* Recent transaction quick-link */}
                   {retailerTransactions.length > 0 && (
                     <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between text-xs shadow-sm">
                       <span className="text-slate-600 dark:text-slate-400 truncate max-w-[200px]">
@@ -404,16 +409,8 @@ export function App() {
                       </button>
                     </div>
                   )}
-
-                  {/* ── Dashboard & Insights accordion below recharge ── */}
-                  <RetailerInsightsCard
-                    transactions={retailerTransactions}
-                    onNavigateToCommissions={() => setRetailerTab('COMMISSIONS')}
-                    onNavigateToPassbook={() => setRetailerTab('PASSBOOK')}
-                  />
                 </>
               )}
-
               {retailerTab === 'PASSBOOK' && (
                 <LedgerTable
                   transactions={retailerTransactions}
@@ -423,19 +420,17 @@ export function App() {
                   }}
                 />
               )}
-
               {retailerTab === 'COMMISSIONS' && (
-                <MyCommissionsTable />
+                <>
+                  <MyCommissionsTable />
+                  {/* ── Dashboard & Insights accordion below commission structure (mobile) ── */}
+                  <RetailerInsightsCard
+                    transactions={retailerTransactions}
+                    onNavigateToCommissions={() => setRetailerTab('COMMISSIONS')}
+                    onNavigateToPassbook={() => setRetailerTab('PASSBOOK')}
+                  />
+                </>
               )}
-            </div>
-
-            {/* ── DESKTOP: Insights accordion below content ── */}
-            <div className="hidden sm:block">
-              <RetailerInsightsCard
-                transactions={retailerTransactions}
-                onNavigateToCommissions={() => setRetailerTab('COMMISSIONS')}
-                onNavigateToPassbook={() => setRetailerTab('PASSBOOK')}
-              />
             </div>
 
           </div>

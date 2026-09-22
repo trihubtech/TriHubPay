@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RetailerInsights, InsightsPeriod, Transaction } from '../../types';
+import { RetailerInsights, InsightsPeriod, Transaction, RetailerCommissionRate } from '../../types';
 import { api } from '../../services/api';
 import { 
   TrendingUp, 
@@ -12,7 +12,10 @@ import {
   RefreshCw, 
   ArrowUpRight,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Smartphone,
+  Tv,
+  Coins
 } from 'lucide-react';
 
 interface RetailerInsightsCardProps {
@@ -30,8 +33,11 @@ export const RetailerInsightsCard: React.FC<RetailerInsightsCardProps> = ({
   const [insights, setInsights] = useState<RetailerInsights | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [refreshing, setRefreshing] = useState<boolean>(false);
-  // Collapsed by default so Recharge shows first
+  // Collapsed by default
   const [isOpen, setIsOpen] = useState<boolean>(false);
+  // Commission rates — loaded once when first opened
+  const [rates, setRates] = useState<RetailerCommissionRate[]>([]);
+  const [ratesLoaded, setRatesLoaded] = useState<boolean>(false);
 
   const fetchInsights = async (selectedPeriod: InsightsPeriod, isManualRefresh = false) => {
     if (isManualRefresh) setRefreshing(true);
@@ -48,6 +54,19 @@ export const RetailerInsightsCard: React.FC<RetailerInsightsCardProps> = ({
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const fetchRates = async () => {
+    if (ratesLoaded) return;
+    try {
+      const res = await api.getMyCommissions();
+      if (res.success && res.data) {
+        setRates(res.data);
+        setRatesLoaded(true);
+      }
+    } catch {
+      // ignore — we'll just show 0% if unavailable
     }
   };
 
@@ -133,8 +152,15 @@ export const RetailerInsightsCard: React.FC<RetailerInsightsCardProps> = ({
   useEffect(() => {
     if (isOpen) {
       fetchInsights(period);
+      fetchRates(); // fetch commission rates once for the margin highlights
     }
   }, [period, isOpen, transactions.length]);
+
+  // Compute max rates from loaded commission data
+  const mobileRates = rates.filter(r => r.service_type === 'MOBILE');
+  const maxMobile = mobileRates.length > 0 ? Math.max(...mobileRates.map(r => r.commission_rate)) : 0;
+  const dthRates = rates.filter(r => r.service_type === 'DTH');
+  const maxDth = dthRates.length > 0 ? Math.max(...dthRates.map(r => r.commission_rate)) : 0;
 
   const periodLabels: Record<InsightsPeriod, string> = {
     today: 'Today',
@@ -168,7 +194,7 @@ export const RetailerInsightsCard: React.FC<RetailerInsightsCardProps> = ({
             <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
               {isOpen
                 ? 'Tap to hide your earnings dashboard'
-                : 'Tap to view earnings, orders & commission details'}
+                : 'Tap to see your margin rates & earnings summary'}
             </div>
           </div>
         </div>
@@ -232,6 +258,48 @@ export const RetailerInsightsCard: React.FC<RetailerInsightsCardProps> = ({
             </div>
           ) : (
             <>
+              {/* ── Margin Highlights (Up to X%) ── */}
+              {(maxMobile > 0 || maxDth > 0) && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-transparent border border-blue-500/20 flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                      <Smartphone className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Mobile Recharge</div>
+                      <div className="text-base font-extrabold text-blue-600 dark:text-blue-400">
+                        Up to {maxMobile.toFixed(2)}%
+                      </div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">Instant cash discount</div>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500/10 via-purple-500/5 to-transparent border border-purple-500/20 flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                      <Tv className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">DTH / Dish TV</div>
+                      <div className="text-base font-extrabold text-purple-600 dark:text-purple-400">
+                        Up to {maxDth.toFixed(2)}%
+                      </div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">Tata Play, Sun Direct & more</div>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                      <Coins className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Instant Payout</div>
+                      <div className="text-base font-extrabold text-emerald-600 dark:text-emerald-400">100% Real-Time</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">Deducted automatically</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* KPI 4-Card Grid */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
 

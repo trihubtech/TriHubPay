@@ -86,61 +86,6 @@ export const MyCommissionsTable: React.FC = () => {
 
   return (
     <div className="space-y-5 animate-in fade-in duration-200">
-      {/* Top Banner & KPI Highlights */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-transparent border border-blue-500/20 shadow-sm flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-xl bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-            <Smartphone className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Mobile Recharge Margin
-            </div>
-            <div className="text-xl font-extrabold text-blue-600 dark:text-blue-400">
-              Up to {maxMobile.toFixed(2)}%
-            </div>
-            <div className="text-[11px] text-slate-500 dark:text-slate-400">
-              Instant upfront cash discount
-            </div>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-500/10 via-purple-500/5 to-transparent border border-purple-500/20 shadow-sm flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
-            <Tv className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              DTH Dish TV Margin
-            </div>
-            <div className="text-xl font-extrabold text-purple-600 dark:text-purple-400">
-              Up to {maxDth.toFixed(2)}%
-            </div>
-            <div className="text-[11px] text-slate-500 dark:text-slate-400">
-              Tata Play, Sun Direct & more
-            </div>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 shadow-sm flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-            <Coins className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Instant Payout
-            </div>
-            <div className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400">
-              100% Real-Time
-            </div>
-            <div className="text-[11px] text-slate-500 dark:text-slate-400">
-              Billed at net discount automatically
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Commission Card */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
         {/* Header with Title and Search */}
         <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
