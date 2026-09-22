@@ -3,6 +3,7 @@ import { api } from './services/api';
 import { User, Transaction, DashboardKPIs, CommissionMatrixItem } from './types';
 
 // Retailer components
+import { HomeScreen } from './components/retailer/HomeScreen';
 import { WalletStrip } from './components/retailer/WalletStrip';
 import { UpiTopupModal } from './components/retailer/UpiTopupModal';
 import { RechargeTabs } from './components/retailer/RechargeTabs';
@@ -32,6 +33,7 @@ import { AppInstallPrompt } from './components/common/AppInstallPrompt';
 import { SignOutConfirmModal } from './components/common/SignOutConfirmModal';
 
 import { 
+  Home,
   ShieldCheck, 
   RefreshCw, 
   Zap,
@@ -54,7 +56,8 @@ export function App() {
   const [isReceiptOpen, setIsReceiptOpen] = useState<boolean>(false);
   const [isRefreshingRetailer, setIsRefreshingRetailer] = useState<boolean>(false);
   const [welcomeBanner, setWelcomeBanner] = useState<string>('');
-  const [retailerTab, setRetailerTab] = useState<'RECHARGE' | 'PASSBOOK' | 'COMMISSIONS'>('RECHARGE');
+  const [retailerTab, setRetailerTab] = useState<'HOME' | 'RECHARGE' | 'PASSBOOK' | 'COMMISSIONS'>('HOME');
+  const [selectedRechargeService, setSelectedRechargeService] = useState<'MOBILE' | 'DTH' | 'ELECTRICITY'>('MOBILE');
   const [isShopInfoOpen, setIsShopInfoOpen] = useState<boolean>(false);
   const [isSignOutConfirmOpen, setIsSignOutConfirmOpen] = useState<boolean>(false);
 
@@ -269,14 +272,16 @@ export function App() {
           {/* PWA 1-Click Install Banner for Mobile Phones */}
           <PwaInstallBanner />
 
-          {/* Top Wallet Balance Banner */}
-          <WalletStrip
-            balance={currentUser.current_balance}
-            shopName={currentUser.organization_name}
-            onOpenTopup={() => setIsTopupOpen(true)}
-            onRefresh={loadRetailerData}
-            isRefreshing={isRefreshingRetailer}
-          />
+          {/* Top Wallet Balance Banner: shown on tabs OTHER than HOME to avoid duplicate balance */}
+          {retailerTab !== 'HOME' && (
+            <WalletStrip
+              balance={currentUser.current_balance}
+              shopName={currentUser.organization_name}
+              onOpenTopup={() => setIsTopupOpen(true)}
+              onRefresh={loadRetailerData}
+              isRefreshing={isRefreshingRetailer}
+            />
+          )}
 
           <div className="max-w-4xl mx-auto px-4 pt-4 pb-6 space-y-4">
 
@@ -304,6 +309,18 @@ export function App() {
             {/* ── DESKTOP: Tab switcher ── */}
             <div className="hidden sm:flex items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRetailerTab('HOME')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                    retailerTab === 'HOME'
+                      ? 'bg-brand-600 text-white shadow-md shadow-brand-600/20'
+                      : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Home className="w-3.5 h-3.5" />
+                  Home
+                </button>
                 <button
                   type="button"
                   onClick={() => setRetailerTab('RECHARGE')}
@@ -343,6 +360,7 @@ export function App() {
               </div>
 
               <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                {retailerTab === 'HOME' && 'Retailer Partner Portal • Fast & Reliable'}
                 {retailerTab === 'RECHARGE' && 'Instant 0.8s Lapu / BBPS Dispatch'}
                 {retailerTab === 'PASSBOOK' && `${retailerTransactions.length} Total Transactions`}
                 {retailerTab === 'COMMISSIONS' && 'Your Allocated Commission Margins'}
@@ -351,9 +369,24 @@ export function App() {
 
             {/* ── DESKTOP: Tab content ── */}
             <div className="hidden sm:block space-y-6">
+              {retailerTab === 'HOME' && (
+                <HomeScreen
+                  currentUser={currentUser}
+                  transactions={retailerTransactions}
+                  onOpenTopup={() => setIsTopupOpen(true)}
+                  onSelectService={(service) => {
+                    setSelectedRechargeService(service);
+                    setRetailerTab('RECHARGE');
+                  }}
+                  onNavigateToTab={(tab) => setRetailerTab(tab)}
+                  onRefreshData={loadRetailerData}
+                  isRefreshing={isRefreshingRetailer}
+                />
+              )}
               {retailerTab === 'RECHARGE' && (
                 <>
                   <RechargeTabs
+                    initialService={selectedRechargeService}
                     onSuccess={handleRechargeSuccess}
                     walletBalance={currentUser.current_balance}
                   />
@@ -390,9 +423,25 @@ export function App() {
 
             {/* ── MOBILE: Tab content switched by bottom nav ── */}
             <div className="sm:hidden space-y-4">
+              {retailerTab === 'HOME' && (
+                <HomeScreen
+                  currentUser={currentUser}
+                  transactions={retailerTransactions}
+                  onOpenTopup={() => setIsTopupOpen(true)}
+                  onSelectService={(service) => {
+                    setSelectedRechargeService(service);
+                    setRetailerTab('RECHARGE');
+                  }}
+                  onNavigateToTab={(tab) => setRetailerTab(tab)}
+                  onRefreshData={loadRetailerData}
+                  isRefreshing={isRefreshingRetailer}
+                />
+              )}
+
               {retailerTab === 'RECHARGE' && (
                 <>
                   <RechargeTabs
+                    initialService={selectedRechargeService}
                     onSuccess={handleRechargeSuccess}
                     walletBalance={currentUser.current_balance}
                   />
@@ -454,7 +503,6 @@ export function App() {
           <RetailerBottomNav
             currentTab={retailerTab}
             onSelectTab={setRetailerTab}
-            onOpenTopup={() => setIsTopupOpen(true)}
             onOpenShopInfo={() => setIsShopInfoOpen(true)}
           />
         </main>

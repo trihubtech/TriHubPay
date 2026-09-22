@@ -58,10 +58,15 @@ export const BrowsePlansModal: React.FC<BrowsePlansModalProps> = ({
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-3 sm:p-4 animate-fadeIn">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+      <div className="fixed inset-0 z-50 flex flex-col justify-end sm:justify-center items-center bg-black/75 backdrop-blur-sm sm:p-4 animate-fadeIn">
+        <div className="bg-white dark:bg-slate-900 border-t sm:border border-slate-200 dark:border-slate-800 rounded-t-[28px] sm:rounded-3xl w-full max-w-2xl shadow-2xl flex flex-col h-[92vh] sm:h-[85vh] max-h-[95vh] overflow-hidden">
+          {/* Mobile Bottom Sheet Pull Handle */}
+          <div className="sm:hidden pt-2.5 pb-1 flex justify-center bg-slate-50 dark:bg-slate-950/60">
+            <div className="w-10 h-1 bg-slate-300 dark:bg-slate-700 rounded-full" />
+          </div>
+
           {/* Modal Header */}
-          <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 flex items-center justify-between">
+          <div className="px-4 py-3 sm:p-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-3">
               <OperatorIcon operatorCode={operatorCode} size="md" />
               <div>
@@ -74,14 +79,14 @@ export const BrowsePlansModal: React.FC<BrowsePlansModalProps> = ({
 
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition-colors"
+              className="w-8 h-8 rounded-full bg-slate-150 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Search Bar */}
-          <div className="p-3.5 sm:p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+          {/* Search Bar (Sticky) */}
+          <div className="p-3 sm:p-3.5 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
@@ -102,13 +107,13 @@ export const BrowsePlansModal: React.FC<BrowsePlansModalProps> = ({
             </div>
           </div>
 
-          {/* Category Filter Pills (Horizontal Scroll) */}
-          <div className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 flex items-center gap-2 overflow-x-auto scrollbar-none">
+          {/* Category Filter Pills (Horizontal Scroll - No Scrollbar) */}
+          <div className="px-3.5 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 flex items-center gap-2 overflow-x-auto no-scrollbar scrollbar-none touch-scroll shrink-0">
             {categories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 ${
                   activeCategory === cat
                     ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
                     : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-slate-700'
@@ -119,8 +124,8 @@ export const BrowsePlansModal: React.FC<BrowsePlansModalProps> = ({
             ))}
           </div>
 
-          {/* Plan Cards List (PhonePe / GPay Style) */}
-          <div className="p-3 sm:p-4 overflow-y-auto space-y-3 flex-1">
+          {/* Plan Cards List (Smooth Independent Scroll) */}
+          <div className="p-3.5 sm:p-4 overflow-y-auto space-y-3 flex-1 touch-scroll overscroll-contain">
             {filteredPlans.length === 0 ? (
               <div className="text-center py-12 text-slate-500 dark:text-slate-400 text-xs">
                 No plans found matching &quot;{searchQuery}&quot;. Try a different keyword or category.
@@ -224,13 +229,13 @@ export const BrowsePlansModal: React.FC<BrowsePlansModalProps> = ({
             )}
           </div>
 
-          {/* Modal Footer */}
-          <div className="p-3.5 sm:p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-center text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between">
-            <span>Showing {filteredPlans.length} plans</span>
+          {/* Modal Footer (Sticky Bottom) */}
+          <div className="px-4 py-3 sm:py-3.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/80 text-center text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between shrink-0">
+            <span className="font-medium">Showing {filteredPlans.length} plans</span>
             <button
               type="button"
               onClick={onClose}
-              className="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white font-semibold"
+              className="px-4 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold transition-colors"
             >
               Close
             </button>

@@ -26,10 +26,17 @@ import { formatOperatorName } from '../../utils/formatters';
 interface RechargeTabsProps {
   onSuccess: (txData: any, newBalance: number) => void;
   walletBalance: number;
+  initialService?: 'MOBILE' | 'DTH' | 'ELECTRICITY';
 }
 
-export const RechargeTabs: React.FC<RechargeTabsProps> = ({ onSuccess, walletBalance }) => {
-  const [activeTab, setActiveTab] = useState<'MOBILE' | 'DTH' | 'ELECTRICITY'>('MOBILE');
+export const RechargeTabs: React.FC<RechargeTabsProps> = ({ onSuccess, walletBalance, initialService }) => {
+  const [activeTab, setActiveTab] = useState<'MOBILE' | 'DTH' | 'ELECTRICITY'>(initialService || 'MOBILE');
+
+  useEffect(() => {
+    if (initialService) {
+      setActiveTab(initialService);
+    }
+  }, [initialService]);
 
   // Form states - clean and un-hardcoded
   const [accountNumber, setAccountNumber] = useState<string>('');
@@ -333,31 +340,33 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({ onSuccess, walletBal
 
           {/* Quick Operator 1-Tap Switching Strip */}
           {tabOperators.length > 1 && (
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none pt-1">
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider shrink-0 mr-1">
-                Quick Select:
-              </span>
-              {tabOperators.map((op) => {
-                const isSelected = selectedOperator === op.operator_code;
-                return (
-                  <button
-                    key={op.operator_code}
-                    type="button"
-                    onClick={() => {
-                      setSelectedOperator(op.operator_code);
-                      setFetchedBill(null);
-                    }}
-                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl border text-xs font-semibold shrink-0 transition-all ${
-                      isSelected
-                        ? 'bg-blue-50/90 dark:bg-brand-500/15 border-blue-600 dark:border-brand-500 text-blue-700 dark:text-brand-300 ring-1 ring-blue-500/30 shadow-xs'
-                        : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700'
-                    }`}
-                  >
-                    <OperatorIcon operatorCode={op.operator_code} size="xs" />
-                    <span className="truncate max-w-[120px]">{formatOperatorName(op.operator_code, op.operator_name)}</span>
-                  </button>
-                );
-              })}
+            <div className="pt-0.5">
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scrollbar-none touch-scroll py-1 -mx-1 px-1">
+                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider shrink-0 pr-1 select-none">
+                  Quick Select:
+                </span>
+                {tabOperators.map((op) => {
+                  const isSelected = selectedOperator === op.operator_code;
+                  return (
+                    <button
+                      key={op.operator_code}
+                      type="button"
+                      onClick={() => {
+                        setSelectedOperator(op.operator_code);
+                        setFetchedBill(null);
+                      }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold shrink-0 transition-all active:scale-95 ${
+                        isSelected
+                          ? 'bg-blue-50/90 dark:bg-brand-500/15 border-blue-600 dark:border-brand-500 text-blue-700 dark:text-brand-300 ring-1 ring-blue-500/30 shadow-xs'
+                          : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900'
+                      }`}
+                    >
+                      <OperatorIcon operatorCode={op.operator_code} size="xs" />
+                      <span className="whitespace-nowrap">{formatOperatorName(op.operator_code, op.operator_name)}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 

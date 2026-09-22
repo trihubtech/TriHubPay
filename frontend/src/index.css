@@ -35,6 +35,25 @@ code, pre, .font-mono {
   background: #475569;
 }
 
+/* Hide scrollbar utility for clean mobile scrolling */
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-none::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+.no-scrollbar,
+.scrollbar-none {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+/* Smooth touch scrolling */
+.touch-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
 /* Thermal Receipt Print Styles for 58mm / 80mm POS Printers */
 @media print {
   @page {
