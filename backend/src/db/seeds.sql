@@ -8,26 +8,45 @@ VALUES
     ('00000000-0000-0000-0000-000000000001', 'TriHub Technologies (Platform Master)', 'TriHub Admin', '6374569225', 'admin.pay@trihubtechnologies.com', '$2a$10$MthsMeKUb8EnV5w0ak8fmuwoYLXxRignwkNzh4Imb3FqfgJ0NyBx6', 'ADMIN', 0.0000, 'trihub-master-api-key-2026', true)
 ON CONFLICT (id) DO NOTHING;
 
--- 3. SEED GLOBAL COMMISSION MATRIX
-INSERT INTO commission_matrix (operator_code, operator_name, service_type, master_api_rate, retailer_pass_down_rate)
-VALUES 
+-- 3. SEED GLOBAL COMMISSION MATRIX (NeroPay Primary + Noble Dynamic Failover)
+INSERT INTO commission_matrix (
+    operator_code, 
+    operator_name, 
+    service_type, 
+    commission_type, 
+    neropay_master_rate, 
+    noble_master_rate, 
+    retailer_pass_down_rate, 
+    admin_net_margin, 
+    is_noble_active, 
+    is_active
+) VALUES 
     -- Mobile Prepaid Operators
-    ('JIO', 'Reliance Jio Infocomm', 'MOBILE', 5.80, 3.00),
-    ('AIRTEL', 'Bharti Airtel', 'MOBILE', 5.50, 2.80),
-    ('VI', 'Vodafone Idea', 'MOBILE', 6.00, 3.50),
-    ('BSNL', 'BSNL GSM / Topup', 'MOBILE', 6.20, 4.00),
+    ('JIO', 'Jio', 'MOBILE', 'PERCENT', 1.00, 1.00, 0.58, 0.42, false, true),
+    ('AIRTEL', 'Airtel', 'MOBILE', 'PERCENT', 0.90, 1.00, 0.58, 0.42, false, true),
+    ('VI', 'Vi', 'MOBILE', 'PERCENT', 3.50, 3.50, 2.03, 1.47, false, true),
+    ('BSNL', 'BSNL', 'MOBILE', 'PERCENT', 3.00, 3.00, 1.74, 1.26, false, true),
     
     -- DTH Operators
-    ('TATAPLAY', 'Tata Play DTH', 'DTH', 5.60, 3.20),
-    ('AIRTEL_DTH', 'Airtel Digital TV', 'DTH', 5.50, 3.00),
-    ('DISHTV', 'Dish TV India', 'DTH', 6.00, 3.60),
-    ('SUNDIRECT', 'Sun Direct TV', 'DTH', 5.80, 3.50),
+    ('TATAPLAY', 'Tata Play', 'DTH', 'PERCENT', 3.10, 2.60, 1.80, 1.30, false, true),
+    ('AIRTEL_DTH', 'Airtel DTH', 'DTH', 'PERCENT', 4.10, 3.50, 2.38, 1.72, false, true),
+    ('DISHTV', 'Dish TV', 'DTH', 'PERCENT', 3.20, 3.50, 2.03, 1.47, false, true),
+    ('SUNDIRECT', 'Sun Direct', 'DTH', 'PERCENT', 2.80, 3.60, 2.09, 1.51, false, true),
+    ('VIDEOCON', 'Videocon d2h', 'DTH', 'PERCENT', 3.50, 3.60, 2.09, 1.51, false, true),
+    ('VIDEOCON_D2H', 'Videocon d2h', 'DTH', 'PERCENT', 3.50, 3.60, 2.09, 1.51, false, true),
     
     -- Electricity Boards
-    ('TNEB', 'Tamil Nadu Generation and Distribution Corp (TANGEDCO)', 'ELECTRICITY', 1.50, 0.50),
-    ('BESCOM', 'Bangalore Electricity Supply Company', 'ELECTRICITY', 1.50, 0.50),
-    ('WBSEDCL', 'West Bengal State Electricity Distribution', 'ELECTRICITY', 1.50, 0.50),
-    ('MSEB', 'Maharashtra State Electricity Distribution (MSEDCL)', 'ELECTRICITY', 1.50, 0.50)
+    ('TNEB', 'TNEB Electricity', 'ELECTRICITY', 'FLAT', 0.00, 2.50, 1.45, 1.05, false, true),
+    ('BESCOM', 'BESCOM Electricity', 'ELECTRICITY', 'FLAT', 0.00, 2.00, 1.16, 0.84, false, true),
+    ('WBSEDCL', 'WBSEDCL Electricity', 'ELECTRICITY', 'FLAT', 0.00, 2.00, 1.16, 0.84, false, true),
+    ('MSEB', 'MSEB Electricity', 'ELECTRICITY', 'FLAT', 0.00, 2.00, 1.16, 0.84, false, true),
+
+    -- High-Margin New Categories
+    ('GOOGLE_PLAY', 'Google Play Redeem Code', 'GOOGLE_PLAY', 'PERCENT', 2.00, 3.00, 1.74, 1.26, false, true),
+    ('OTT_APPS', 'OTT Streaming Vouchers', 'OTT_APPS', 'PERCENT', 3.50, 4.00, 2.32, 1.68, false, true),
+    ('FASTAG', 'FASTag Recharge', 'FASTAG', 'PERCENT', 0.15, 0.30, 0.17, 0.13, false, true),
+    ('LPG_GAS', 'LPG Gas Cylinder Booking', 'LPG_GAS', 'FLAT', 0.40, 6.00, 3.50, 2.50, false, true),
+    ('BROADBAND', 'Broadband Bill Payment', 'BROADBAND', 'PERCENT', 0.50, 0.80, 0.46, 0.34, false, true)
 ON CONFLICT (operator_code) DO NOTHING;
 
 -- 4. SEED PER-SHOP CUSTOMIZED COMMISSION OVERRIDE

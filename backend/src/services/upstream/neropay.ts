@@ -1,50 +1,54 @@
 import { config } from '../../config';
 import { UpstreamRequestPayload, UpstreamBillFetchResult, UpstreamPlanItem } from './types';
 
-// Noble Web Studio / E2E Networks Provider Operator Code Dictionary
-const NOBLE_OPERATOR_CODES: Record<string, string> = {
+// NeroPay Operator Code Normalizer
+const NEROPAY_OPERATOR_CODES: Record<string, string> = {
   'JIO': 'JIO',
   'AIRTEL': 'AIRTEL',
   'VI': 'VI',
   'BSNL': 'BSNL',
-  'TATAPLAY': 'TATA_SKY',
-  'TATA_PLAY': 'TATA_SKY',
+  'TATAPLAY': 'TATASKY',
+  'TATA_PLAY': 'TATASKY',
   'AIRTEL_DTH': 'AIRTEL_DTH',
-  'DISHTV': 'DISH_TV',
-  'SUNDIRECT': 'SUN_DIRECT',
-  'SUN_DIRECT': 'SUN_DIRECT',
-  'VIDEOCON': 'VIDEOCON',
-  'VIDEOCON_D2H': 'VIDEOCON',
-  'TNEB': 'TNEB',
-  'BESCOM': 'BESCOM',
-  'MSEB': 'MSEB',
-  'WBSEDCL': 'WBSEDCL',
-  'GOOGLE_PLAY': 'GOOGLE_PLAY',
-  'OTT_APPS': 'OTT_APPS',
-  'FASTAG': 'FASTAG',
-  'LPG_GAS': 'LPG_GAS',
-  'BROADBAND': 'BROADBAND'
+  'DISHTV': 'DISHTV',
+  'SUNDIRECT': 'SUNDIRECT',
+  'SUN_DIRECT': 'SUNDIRECT',
+  'VIDEOCON': 'VIDEOCON_D2H',
+  'VIDEOCON_D2H': 'VIDEOCON_D2H',
+  'TNEB': 'TNEB_EB',
+  'BESCOM': 'BESCOM_EB',
+  'MSEB': 'MSEB_EB',
+  'WBSEDCL': 'WBSEDCL_EB',
+  'GOOGLE_PLAY': 'GOOGLE_PLAY_CODE',
+  'OTT_APPS': 'OTT_VOUCHER',
+  'FASTAG': 'FASTAG_NETC',
+  'LPG_GAS': 'LPG_CYLINDER',
+  'BROADBAND': 'BROADBAND_FIBER'
 };
 
-export class NobleWebClient {
+export class NeroPayClient {
   private apiUrl: string;
+  private voucherUrl: string;
   private billFetchUrl: string;
   private plansUrl: string;
   private apiKey: string;
+  private merchantId: string;
   private timeoutMs: number;
   private isSandbox: boolean;
 
   constructor() {
-    this.apiUrl = config.nobleWeb.apiUrl;
-    this.billFetchUrl = config.nobleWeb.billFetchUrl;
-    this.plansUrl = config.nobleWeb.plansUrl;
-    this.apiKey = config.nobleWeb.apiKey;
-    this.timeoutMs = config.nobleWeb.timeoutMs || 8000; // Strict 8-second timeout
-    this.isSandbox = config.nobleWeb.isSandbox;
+    this.apiUrl = config.neroPay.apiUrl;
+    this.voucherUrl = config.neroPay.voucherUrl;
+    this.billFetchUrl = config.neroPay.billFetchUrl;
+    this.plansUrl = config.neroPay.plansUrl;
+    this.apiKey = config.neroPay.apiKey;
+    this.merchantId = config.neroPay.merchantId;
+    this.timeoutMs = config.neroPay.timeoutMs || 8000; // Strict 8-second timeout
+    this.isSandbox = config.neroPay.isSandbox;
   }
 
   /**
-   * Execute recharge via Noble Web Studio / E2E Networks Fast REST Endpoint
+   * Execute recharge or voucher generation via NeroPay Gateway
    */
   async executeRecharge(payload: UpstreamRequestPayload): Promise<{
     status: 'SUCCESS' | 'PENDING' | 'FAILED';
@@ -59,79 +63,92 @@ export class NobleWebClient {
       return this.executeSandboxSimulation(payload);
     }
 
-    // 2. Production REST JSON call with strict 8-second timeout
+    // 2. Production HTTP Request with strict 8-second timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
 
     try {
-      const upstreamOp = NOBLE_OPERATOR_CODES[payload.operatorCode] || payload.operatorCode;
+      const isVoucher = payload.serviceType === 'GOOGLE_PLAY' || payload.serviceType === 'OTT_APPS';
+      const endpoint = isVoucher ? this.voucherUrl : this.apiUrl;
+      const opCode = NEROPAY_OPERATOR_CODES[payload.operatorCode] || payload.operatorCode;
 
-      const response = await fetch(this.apiUrl, {
+      const requestBody = {
+        merchant_id: this.merchantId,
+        client_ref_id: payload.internalTxId,
+        operator_code: opCode,
+        service_type: payload.serviceType,
+        account_number: payload.targetAccountNumber,
+        amount: payload.faceValue,
+        circle: payload.circleCode || 'ALL_INDIA',
+        timestamp: new Date().toISOString()
+      };
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `ApiKey ${this.apiKey}`,
+          'Authorization': `Bearer ${this.apiKey}`,
+          'X-Merchant-ID': this.merchantId,
           'Accept': 'application/json'
         },
-        body: JSON.stringify({
-          client_id: payload.internalTxId,
-          operator_code: upstreamOp,
-          service_type: payload.serviceType,
-          service_number: payload.targetAccountNumber,
-          recharge_amount: payload.faceValue,
-          circle: payload.circleCode || 'ALL'
-        }),
+        body: JSON.stringify(requestBody),
         signal: controller.signal
       });
 
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`Noble Web HTTP ${response.status}: ${errText}`);
+        const errorText = await response.text();
+        throw new Error(`NeroPay HTTP ${response.status}: ${errorText}`);
       }
 
       const json = await response.json() as any;
 
+      // Parse structural response
+      const isSuccess = json.status === 'SUCCESS' || json.code === '00' || json.result === 'success';
+      const isPending = json.status === 'PENDING' || json.code === '01';
+
+      // Parse digital voucher code / pin if available
       let voucherCode: string | undefined = undefined;
       let voucherPin: string | undefined = undefined;
-      if (json.voucher || json.pin) {
-        voucherCode = json.voucher?.code || json.voucher_code || json.code;
-        voucherPin = json.voucher?.pin || json.pin || json.voucher_pin;
+
+      if (json.voucher || json.data?.voucher || json.pin || json.data?.pin) {
+        voucherCode = json.voucher?.code || json.data?.voucher_code || json.voucher_code || json.code_pin;
+        voucherPin = json.voucher?.pin || json.data?.voucher_pin || json.pin || json.voucher_pin;
       }
 
-      if (json.status === 'SUCCESS' || json.code === 200 || json.result === 'success') {
+      if (isSuccess) {
         return {
           status: 'SUCCESS',
-          upstreamRef: json.operator_id || json.rrn || `NOBLE_${Date.now()}`,
-          message: json.message || 'Processed through Noble Web Studio failover channel',
+          upstreamRef: json.operator_ref || json.txn_id || json.rrn || `NERO_${Date.now()}`,
+          message: json.message || 'Transaction executed successfully by NeroPay Primary',
           rawResponse: json,
           voucherCode,
           voucherPin
         };
-      } else if (json.status === 'PENDING') {
+      } else if (isPending) {
         return {
           status: 'PENDING',
-          upstreamRef: json.operator_id || `NOBLE_P_${Date.now()}`,
-          message: 'Processing through Noble Web failover channel',
+          upstreamRef: json.operator_ref || json.txn_id || `NERO_P_${Date.now()}`,
+          message: json.message || 'Transaction accepted in PENDING status by NeroPay',
           rawResponse: json,
           voucherCode,
           voucherPin
         };
       } else {
-        throw new Error(`Noble Web API Reject: ${json.error || json.message || 'Transaction rejected'}`);
+        throw new Error(`NeroPay Rejected: ${json.message || json.error_description || 'Execution failed'}`);
       }
     } catch (err: any) {
       clearTimeout(timeoutId);
       if (err.name === 'AbortError') {
-        throw new Error(`NOBLE_TIMEOUT: Request timed out after ${this.timeoutMs}ms strict threshold`);
+        throw new Error(`NEROPAY_TIMEOUT: Request timed out after ${this.timeoutMs}ms strict threshold`);
       }
       throw err;
     }
   }
 
   /**
-   * Fast Electricity / BBPS Bill Fetch via Noble Web Studio
+   * Fetch live BBPS electricity/utility bill details
    */
   async fetchElectricityBill(consumerNumber: string, operatorCode: string): Promise<UpstreamBillFetchResult> {
     if (this.isSandbox) {
@@ -142,16 +159,16 @@ export class NobleWebClient {
     const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
 
     try {
-      const upstreamOp = NOBLE_OPERATOR_CODES[operatorCode] || operatorCode;
       const response = await fetch(this.billFetchUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `ApiKey ${this.apiKey}`
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Accept': 'application/json'
         },
         body: JSON.stringify({
           consumer_number: consumerNumber,
-          operator_code: upstreamOp
+          operator_code: NEROPAY_OPERATOR_CODES[operatorCode] || operatorCode
         }),
         signal: controller.signal
       });
@@ -159,13 +176,13 @@ export class NobleWebClient {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        throw new Error(`Noble Web Bill Fetch HTTP ${response.status}`);
+        throw new Error(`NeroPay Bill Fetch HTTP ${response.status}`);
       }
 
       const json = await response.json() as any;
       return {
         success: true,
-        provider: 'NOBLE_WEB',
+        provider: 'NEROPAY',
         consumerNumber,
         consumerName: json.consumer_name || 'Consumer',
         operatorCode,
@@ -185,17 +202,17 @@ export class NobleWebClient {
   }
 
   /**
-   * Fetch operator plans
+   * Fetch browse plans from NeroPay
    */
-  async fetchPlans(operatorCode: string): Promise<UpstreamPlanItem[]> {
+  async fetchPlans(operatorCode: string, circle: string = 'ALL_INDIA'): Promise<UpstreamPlanItem[]> {
     if (this.isSandbox) {
       return this.simulatePlans(operatorCode);
     }
 
     try {
-      const upstreamOp = NOBLE_OPERATOR_CODES[operatorCode] || operatorCode;
-      const response = await fetch(`${this.plansUrl}?operator=${upstreamOp}`, {
-        headers: { 'Authorization': `ApiKey ${this.apiKey}` }
+      const url = `${this.plansUrl}?operator=${encodeURIComponent(operatorCode)}&circle=${encodeURIComponent(circle)}`;
+      const response = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${this.apiKey}` }
       });
       if (!response.ok) return this.simulatePlans(operatorCode);
       const json = await response.json() as any;
@@ -205,10 +222,14 @@ export class NobleWebClient {
     }
   }
 
+  // -------------------------------------------------------------
+  // HIGH-FIDELITY SANDBOX SIMULATORS (For seamless local/test execution)
+  // -------------------------------------------------------------
   private async executeSandboxSimulation(payload: UpstreamRequestPayload) {
-    // Ultra-fast sub-400ms target simulation
-    await new Promise(r => setTimeout(r, 220 + Math.random() * 80));
+    // Simulate real network latency (250ms - 450ms)
+    await new Promise(r => setTimeout(r, 300 + Math.random() * 150));
 
+    // Support digital voucher code generation for Google Play and OTT
     let voucherCode: string | undefined = undefined;
     let voucherPin: string | undefined = undefined;
 
@@ -216,23 +237,23 @@ export class NobleWebClient {
       const randomAlphanumeric = Math.random().toString(36).substring(2, 6).toUpperCase() + '-' +
                                  Math.random().toString(36).substring(2, 6).toUpperCase() + '-' +
                                  Math.random().toString(36).substring(2, 6).toUpperCase();
-      voucherCode = `GPLAY-NW-${randomAlphanumeric}`;
+      voucherCode = `GPLAY-${randomAlphanumeric}`;
       voucherPin = Math.floor(100000 + Math.random() * 900000).toString();
     } else if (payload.serviceType === 'OTT_APPS') {
       const randomAlphanumeric = Math.random().toString(36).substring(2, 6).toUpperCase() + '-' +
                                  Math.random().toString(36).substring(2, 6).toUpperCase();
-      voucherCode = `OTT-NW-${randomAlphanumeric}`;
+      voucherCode = `OTT-${randomAlphanumeric}`;
       voucherPin = Math.floor(1000 + Math.random() * 9000).toString();
     }
 
-    const simRef = `NOBLE_SBX_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
+    const simRef = `NERO_SBX_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
 
     return {
       status: 'SUCCESS' as const,
       upstreamRef: simRef,
-      message: 'Processed through Noble Web Studio failover channel [Sandbox Simulation]',
+      message: `Processed successfully via NeroPay Primary Gateway [Sandbox Simulation]`,
       rawResponse: {
-        gateway: 'NOBLE_WEB',
+        gateway: 'NEROPAY',
         mode: 'SIMULATION',
         operator_ref: simRef,
         amount: payload.faceValue,
@@ -254,9 +275,9 @@ export class NobleWebClient {
 
     return {
       success: true,
-      provider: 'NOBLE_WEB',
+      provider: 'NEROPAY',
       consumerNumber,
-      consumerName: 'Verified Consumer (Noble Web BBPS)',
+      consumerName: 'Verified Consumer (NeroPay BBPS)',
       operatorCode,
       boardName: operatorCode === 'TNEB' ? 'TANGEDCO Tamil Nadu' : operatorCode,
       billNumber: `BILL-${today.getFullYear()}-${hash}`,
@@ -264,9 +285,9 @@ export class NobleWebClient {
       dueDate: dueDate.toISOString().split('T')[0],
       billAmount: mockAmount,
       status: 'UNPAID',
-      rawResponse: { simulated: true, provider: 'NOBLE_WEB' },
+      rawResponse: { simulated: true, gateway: 'NEROPAY' },
       isSandbox: true,
-      message: 'Active bill fetched successfully via Noble Web Studio BBPS'
+      message: 'Active bill fetched successfully via NeroPay BBPS Sandbox'
     };
   }
 
@@ -274,7 +295,8 @@ export class NobleWebClient {
     return [
       { amount: 299, validity: '28 Days', data: '1.5 GB/Day', description: 'Unlimited Voice Calls + 100 SMS/Day', category: 'Popular', tag: 'Best Seller' },
       { amount: 349, validity: '28 Days', data: '2.0 GB/Day', description: 'Unlimited 5G Data + Unlimited Calls', category: 'Truly Unlimited', tag: 'Trending 5G' },
-      { amount: 719, validity: '84 Days', data: '1.5 GB/Day', description: 'Unlimited Voice + 100 SMS/Day + High Value', category: 'Validity Plans', tag: 'Value Pack' }
+      { amount: 719, validity: '84 Days', data: '1.5 GB/Day', description: 'Unlimited Voice + 100 SMS/Day + High Value', category: 'Validity Plans', tag: 'Value Pack' },
+      { amount: 2999, validity: '365 Days', data: '2.5 GB/Day', description: 'Annual 365 Days Plan + 5G Unlimited', category: 'Annual Plans', tag: 'Long Term' }
     ];
   }
 }

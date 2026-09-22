@@ -42,20 +42,24 @@ CREATE INDEX IF NOT EXISTS idx_ledger_user_created ON wallet_ledger(user_id, cre
 CREATE INDEX IF NOT EXISTS idx_ledger_reference ON wallet_ledger(reference_id);
 
 -- 3. GLOBAL COMMISSION MATRIX TABLE
--- Baseline rates configured by Admin across all telecom, DTH, and EB operators
+-- Baseline rates configured by Admin across all telecom, DTH, EB, and digital service categories
 CREATE TABLE IF NOT EXISTS commission_matrix (
     id SERIAL PRIMARY KEY,
     operator_code VARCHAR(50) UNIQUE NOT NULL,
     operator_name VARCHAR(100) NOT NULL,
-    service_type VARCHAR(20) NOT NULL CHECK (service_type IN ('MOBILE', 'DTH', 'ELECTRICITY')),
-    master_api_rate NUMERIC(5, 2) NOT NULL DEFAULT 5.50 CHECK (master_api_rate >= 0),
-    retailer_pass_down_rate NUMERIC(5, 2) NOT NULL DEFAULT 3.00 CHECK (retailer_pass_down_rate >= 0),
-    admin_net_margin NUMERIC(5, 2) GENERATED ALWAYS AS (master_api_rate - retailer_pass_down_rate) STORED,
+    service_type VARCHAR(50) NOT NULL CHECK (service_type IN ('MOBILE', 'DTH', 'ELECTRICITY', 'GOOGLE_PLAY', 'OTT_APPS', 'FASTAG', 'LPG_GAS', 'BROADBAND')),
+    commission_type VARCHAR(20) NOT NULL DEFAULT 'PERCENT' CHECK (commission_type IN ('PERCENT', 'FLAT')),
+    neropay_master_rate NUMERIC(5, 2) NOT NULL DEFAULT 0.00 CHECK (neropay_master_rate >= 0),
+    noble_master_rate NUMERIC(5, 2) NOT NULL DEFAULT 0.00 CHECK (noble_master_rate >= 0),
+    retailer_pass_down_rate NUMERIC(5, 2) NOT NULL DEFAULT 0.00 CHECK (retailer_pass_down_rate >= 0),
+    admin_net_margin NUMERIC(5, 2) NOT NULL DEFAULT 0.00,
+    is_noble_active BOOLEAN NOT NULL DEFAULT false,
     is_active BOOLEAN NOT NULL DEFAULT true,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp()
 );
 
 CREATE INDEX IF NOT EXISTS idx_comm_matrix_service ON commission_matrix(service_type);
+CREATE INDEX IF NOT EXISTS idx_comm_matrix_operator ON commission_matrix(operator_code);
 
 -- 4. PER-SHOP CUSTOMIZED COMMISSION OVERRIDES TABLE
 -- Allows Platform Admin to assign specific, custom commission rates to individual retail shops
@@ -71,12 +75,12 @@ CREATE TABLE IF NOT EXISTS user_commissions (
 CREATE INDEX IF NOT EXISTS idx_user_commissions_lookup ON user_commissions(user_id, operator_code);
 
 -- 5. CORE TRANSACTIONS TABLE
--- Full audit trail of every recharge attempt, upstream routing, pricing breakdown, and execution status
+-- Full audit trail of every recharge attempt, upstream routing, pricing breakdown, digital vouchers, and execution status
 CREATE TABLE IF NOT EXISTS transactions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     internal_tx_id VARCHAR(100) UNIQUE NOT NULL,
     retailer_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
-    service_type VARCHAR(20) NOT NULL CHECK (service_type IN ('MOBILE', 'DTH', 'ELECTRICITY')),
+    service_type VARCHAR(50) NOT NULL CHECK (service_type IN ('MOBILE', 'DTH', 'ELECTRICITY', 'GOOGLE_PLAY', 'OTT_APPS', 'FASTAG', 'LPG_GAS', 'BROADBAND')),
     operator_code VARCHAR(50) NOT NULL,
     target_account_number VARCHAR(100) NOT NULL,
     circle_code VARCHAR(50) DEFAULT 'ALL_INDIA',
@@ -84,10 +88,12 @@ CREATE TABLE IF NOT EXISTS transactions (
     retailer_commission NUMERIC(10, 4) NOT NULL DEFAULT 0.0000,
     admin_commission NUMERIC(10, 4) NOT NULL DEFAULT 0.0000,
     master_commission NUMERIC(10, 4) NOT NULL DEFAULT 0.0000,
-    final_cost_billed NUMERIC(10, 4) NOT NULL CHECK (final_cost_billed > 0),
-    upstream_api_used VARCHAR(50) NOT NULL CHECK (upstream_api_used IN ('A1TOPUP', 'NOBLE_WEB', 'MANUAL', 'NONE', 'PENDING', 'A1TOPUP & NOBLE_WEB')),
+    final_cost_billed NUMERIC(10, 4) NOT NULL CHECK (final_cost_billed >= 0),
+    upstream_api_used VARCHAR(50) NOT NULL CHECK (upstream_api_used IN ('NEROPAY', 'NOBLE', 'NEROPAY & NOBLE', 'A1TOPUP', 'NOBLE_WEB', 'MANUAL', 'NONE', 'PENDING', 'A1TOPUP & NOBLE_WEB')),
     upstream_operator_ref VARCHAR(150),
     upstream_response_raw JSONB,
+    voucher_code VARCHAR(255),
+    voucher_pin VARCHAR(255),
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'SUCCESS', 'FAILED', 'REFUNDED')),
     failure_reason TEXT,
     idempotency_key VARCHAR(100) UNIQUE,

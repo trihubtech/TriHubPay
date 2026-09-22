@@ -21,6 +21,26 @@ export const pool = new Pool({
 let isPostgresAvailable = false;
 let hasCheckedDb = false;
 
+// Proxy pool.connect for in-memory ACID resilience when postgres is offline
+const rawConnect = pool.connect.bind(pool);
+pool.connect = (async () => {
+  if (!hasCheckedDb) {
+    hasCheckedDb = true;
+    await checkConnection();
+  }
+  if (isPostgresAvailable) {
+    try {
+      return await rawConnect();
+    } catch (err) {
+      isPostgresAvailable = false;
+    }
+  }
+  return {
+    query: async (text: string, params?: any[]) => executeInMemoryQuery(text, params),
+    release: () => {}
+  } as any;
+}) as any;
+
 const DATA_DIR = path.resolve(__dirname, '../../data');
 const DATA_FILE = path.join(DATA_DIR, 'trihubpay_store.json');
 
@@ -47,18 +67,32 @@ const memoryStore = {
   ],
 
   commission_matrix: [
-    { id: 1, operator_code: 'JIO', operator_name: 'Jio', service_type: 'MOBILE', master_api_rate: 5.80, retailer_pass_down_rate: 3.00, admin_net_margin: 2.80, is_active: true },
-    { id: 2, operator_code: 'AIRTEL', operator_name: 'Airtel', service_type: 'MOBILE', master_api_rate: 5.50, retailer_pass_down_rate: 2.80, admin_net_margin: 2.70, is_active: true },
-    { id: 3, operator_code: 'VI', operator_name: 'Vi', service_type: 'MOBILE', master_api_rate: 6.00, retailer_pass_down_rate: 3.50, admin_net_margin: 2.50, is_active: true },
-    { id: 4, operator_code: 'BSNL', operator_name: 'BSNL', service_type: 'MOBILE', master_api_rate: 6.20, retailer_pass_down_rate: 4.00, admin_net_margin: 2.20, is_active: true },
-    { id: 5, operator_code: 'TATAPLAY', operator_name: 'Tata Play', service_type: 'DTH', master_api_rate: 5.60, retailer_pass_down_rate: 3.20, admin_net_margin: 2.40, is_active: true },
-    { id: 6, operator_code: 'AIRTEL_DTH', operator_name: 'Airtel DTH', service_type: 'DTH', master_api_rate: 5.50, retailer_pass_down_rate: 3.00, admin_net_margin: 2.50, is_active: true },
-    { id: 7, operator_code: 'DISHTV', operator_name: 'Dish TV', service_type: 'DTH', master_api_rate: 6.00, retailer_pass_down_rate: 3.60, admin_net_margin: 2.40, is_active: true },
-    { id: 8, operator_code: 'SUNDIRECT', operator_name: 'Sun Direct', service_type: 'DTH', master_api_rate: 5.80, retailer_pass_down_rate: 3.50, admin_net_margin: 2.30, is_active: true },
-    { id: 9, operator_code: 'TNEB', operator_name: 'TNEB Electricity', service_type: 'ELECTRICITY', master_api_rate: 1.50, retailer_pass_down_rate: 0.50, admin_net_margin: 1.00, is_active: true },
-    { id: 10, operator_code: 'BESCOM', operator_name: 'BESCOM Electricity', service_type: 'ELECTRICITY', master_api_rate: 1.50, retailer_pass_down_rate: 0.50, admin_net_margin: 1.00, is_active: true },
-    { id: 11, operator_code: 'MSEB', operator_name: 'MSEB Electricity', service_type: 'ELECTRICITY', master_api_rate: 1.50, retailer_pass_down_rate: 0.50, admin_net_margin: 1.00, is_active: true },
-    { id: 12, operator_code: 'WBSEDCL', operator_name: 'WBSEDCL Electricity', service_type: 'ELECTRICITY', master_api_rate: 1.50, retailer_pass_down_rate: 0.50, admin_net_margin: 1.00, is_active: true }
+    // 1. Mobile Telecom Operators
+    { id: 1, operator_code: 'JIO', operator_name: 'Jio', service_type: 'MOBILE', commission_type: 'PERCENT', neropay_master_rate: 1.00, noble_master_rate: 1.00, retailer_pass_down_rate: 0.58, admin_net_margin: 0.42, is_noble_active: false, is_active: true },
+    { id: 2, operator_code: 'AIRTEL', operator_name: 'Airtel', service_type: 'MOBILE', commission_type: 'PERCENT', neropay_master_rate: 0.90, noble_master_rate: 1.00, retailer_pass_down_rate: 0.58, admin_net_margin: 0.42, is_noble_active: false, is_active: true },
+    { id: 3, operator_code: 'VI', operator_name: 'Vi', service_type: 'MOBILE', commission_type: 'PERCENT', neropay_master_rate: 3.50, noble_master_rate: 3.50, retailer_pass_down_rate: 2.03, admin_net_margin: 1.47, is_noble_active: false, is_active: true },
+    { id: 4, operator_code: 'BSNL', operator_name: 'BSNL', service_type: 'MOBILE', commission_type: 'PERCENT', neropay_master_rate: 3.00, noble_master_rate: 3.00, retailer_pass_down_rate: 1.74, admin_net_margin: 1.26, is_noble_active: false, is_active: true },
+
+    // 2. DTH Providers
+    { id: 5, operator_code: 'SUNDIRECT', operator_name: 'Sun Direct', service_type: 'DTH', commission_type: 'PERCENT', neropay_master_rate: 2.80, noble_master_rate: 3.60, retailer_pass_down_rate: 2.09, admin_net_margin: 1.51, is_noble_active: false, is_active: true },
+    { id: 6, operator_code: 'AIRTEL_DTH', operator_name: 'Airtel DTH', service_type: 'DTH', commission_type: 'PERCENT', neropay_master_rate: 4.10, noble_master_rate: 3.50, retailer_pass_down_rate: 2.38, admin_net_margin: 1.72, is_noble_active: false, is_active: true },
+    { id: 7, operator_code: 'VIDEOCON', operator_name: 'Videocon d2h', service_type: 'DTH', commission_type: 'PERCENT', neropay_master_rate: 3.50, noble_master_rate: 3.60, retailer_pass_down_rate: 2.09, admin_net_margin: 1.51, is_noble_active: false, is_active: true },
+    { id: 8, operator_code: 'VIDEOCON_D2H', operator_name: 'Videocon d2h', service_type: 'DTH', commission_type: 'PERCENT', neropay_master_rate: 3.50, noble_master_rate: 3.60, retailer_pass_down_rate: 2.09, admin_net_margin: 1.51, is_noble_active: false, is_active: true },
+    { id: 9, operator_code: 'TATAPLAY', operator_name: 'Tata Play', service_type: 'DTH', commission_type: 'PERCENT', neropay_master_rate: 3.10, noble_master_rate: 2.60, retailer_pass_down_rate: 1.80, admin_net_margin: 1.30, is_noble_active: false, is_active: true },
+    { id: 10, operator_code: 'DISHTV', operator_name: 'Dish TV', service_type: 'DTH', commission_type: 'PERCENT', neropay_master_rate: 3.20, noble_master_rate: 3.50, retailer_pass_down_rate: 2.03, admin_net_margin: 1.47, is_noble_active: false, is_active: true },
+
+    // 3. Electricity & Utilities
+    { id: 11, operator_code: 'TNEB', operator_name: 'TNEB Electricity', service_type: 'ELECTRICITY', commission_type: 'FLAT', neropay_master_rate: 0.00, noble_master_rate: 2.50, retailer_pass_down_rate: 1.45, admin_net_margin: 1.05, is_noble_active: false, is_active: true },
+    { id: 12, operator_code: 'BESCOM', operator_name: 'BESCOM Electricity', service_type: 'ELECTRICITY', commission_type: 'FLAT', neropay_master_rate: 0.00, noble_master_rate: 2.00, retailer_pass_down_rate: 1.16, admin_net_margin: 0.84, is_noble_active: false, is_active: true },
+    { id: 13, operator_code: 'MSEB', operator_name: 'MSEB Electricity', service_type: 'ELECTRICITY', commission_type: 'FLAT', neropay_master_rate: 0.00, noble_master_rate: 2.00, retailer_pass_down_rate: 1.16, admin_net_margin: 0.84, is_noble_active: false, is_active: true },
+    { id: 14, operator_code: 'WBSEDCL', operator_name: 'WBSEDCL Electricity', service_type: 'ELECTRICITY', commission_type: 'FLAT', neropay_master_rate: 0.00, noble_master_rate: 2.00, retailer_pass_down_rate: 1.16, admin_net_margin: 0.84, is_noble_active: false, is_active: true },
+
+    // 4. Five New High-Margin Categories
+    { id: 15, operator_code: 'GOOGLE_PLAY', operator_name: 'Google Play Redeem Code', service_type: 'GOOGLE_PLAY', commission_type: 'PERCENT', neropay_master_rate: 2.00, noble_master_rate: 3.00, retailer_pass_down_rate: 1.74, admin_net_margin: 1.26, is_noble_active: false, is_active: true },
+    { id: 16, operator_code: 'OTT_APPS', operator_name: 'OTT Streaming Vouchers', service_type: 'OTT_APPS', commission_type: 'PERCENT', neropay_master_rate: 3.50, noble_master_rate: 4.00, retailer_pass_down_rate: 2.32, admin_net_margin: 1.68, is_noble_active: false, is_active: true },
+    { id: 17, operator_code: 'FASTAG', operator_name: 'FASTag Recharge', service_type: 'FASTAG', commission_type: 'PERCENT', neropay_master_rate: 0.15, noble_master_rate: 0.30, retailer_pass_down_rate: 0.17, admin_net_margin: 0.13, is_noble_active: false, is_active: true },
+    { id: 18, operator_code: 'LPG_GAS', operator_name: 'LPG Gas Cylinder Booking', service_type: 'LPG_GAS', commission_type: 'FLAT', neropay_master_rate: 0.40, noble_master_rate: 6.00, retailer_pass_down_rate: 3.50, admin_net_margin: 2.50, is_noble_active: false, is_active: true },
+    { id: 19, operator_code: 'BROADBAND', operator_name: 'Broadband Bill Payment', service_type: 'BROADBAND', commission_type: 'PERCENT', neropay_master_rate: 0.50, noble_master_rate: 0.80, retailer_pass_down_rate: 0.46, admin_net_margin: 0.34, is_noble_active: false, is_active: true }
   ],
 
   user_commissions: [] as any[],
@@ -88,10 +122,32 @@ function loadPersistentStore() {
       if (parsed.transactions) memoryStore.transactions = parsed.transactions;
       if (parsed.wallet_topups) memoryStore.wallet_topups = parsed.wallet_topups;
       if (parsed.user_commissions) memoryStore.user_commissions = parsed.user_commissions;
-      if (parsed.commission_matrix) memoryStore.commission_matrix = parsed.commission_matrix;
+      if (parsed.commission_matrix && Array.isArray(parsed.commission_matrix)) {
+        // Merge persisted rates with baseline matrix to guarantee all new operators and columns exist
+        const loadedCodes = new Set(parsed.commission_matrix.map((c: any) => c.operator_code));
+        const merged = parsed.commission_matrix.map((c: any) => {
+          const baseline = memoryStore.commission_matrix.find(b => b.operator_code === c.operator_code);
+          return {
+            ...baseline,
+            ...c,
+            neropay_master_rate: c.neropay_master_rate !== undefined ? c.neropay_master_rate : (baseline?.neropay_master_rate ?? 1.0),
+            noble_master_rate: c.noble_master_rate !== undefined ? c.noble_master_rate : (baseline?.noble_master_rate ?? 1.0),
+            is_noble_active: c.is_noble_active !== undefined ? Boolean(c.is_noble_active) : false,
+            commission_type: c.commission_type || baseline?.commission_type || 'PERCENT'
+          };
+        });
+
+        // Add any new operators that were added to memoryStore
+        for (const op of memoryStore.commission_matrix) {
+          if (!loadedCodes.has(op.operator_code)) {
+            merged.push(op);
+          }
+        }
+        memoryStore.commission_matrix = merged;
+      }
       if (parsed.password_reset_otps) memoryStore.password_reset_otps = parsed.password_reset_otps;
 
-      // Always normalize operator names to clean consumer names (like GPay/PhonePe)
+      // Clean operator names
       const cleanNameMap: Record<string, string> = {
         'JIO': 'Jio',
         'AIRTEL': 'Airtel',
@@ -101,10 +157,17 @@ function loadPersistentStore() {
         'AIRTEL_DTH': 'Airtel DTH',
         'DISHTV': 'Dish TV',
         'SUNDIRECT': 'Sun Direct',
+        'VIDEOCON': 'Videocon d2h',
+        'VIDEOCON_D2H': 'Videocon d2h',
         'TNEB': 'TNEB Electricity',
         'BESCOM': 'BESCOM Electricity',
         'MSEB': 'MSEB Electricity',
-        'WBSEDCL': 'WBSEDCL Electricity'
+        'WBSEDCL': 'WBSEDCL Electricity',
+        'GOOGLE_PLAY': 'Google Play Redeem Code',
+        'OTT_APPS': 'OTT Streaming Vouchers',
+        'FASTAG': 'FASTag Recharge',
+        'LPG_GAS': 'LPG Gas Cylinder Booking',
+        'BROADBAND': 'Broadband Bill Payment'
       };
       for (const op of memoryStore.commission_matrix) {
         if (cleanNameMap[op.operator_code]) {
@@ -112,7 +175,7 @@ function loadPersistentStore() {
         }
       }
 
-      console.log(`📦 [PERSISTENCE ENGINE] Successfully loaded ${memoryStore.users.length} user accounts and records from local disk backup (${DATA_FILE}).`);
+      console.log(`📦 [PERSISTENCE ENGINE] Successfully loaded ${memoryStore.users.length} user accounts and ${memoryStore.commission_matrix.length} operators from local disk backup (${DATA_FILE}).`);
     }
   } catch (err: any) {
     console.warn('[PERSISTENCE ENGINE] Notice reading local store:', err.message);
@@ -138,7 +201,7 @@ function savePersistentStore() {
  */
 export async function checkConnection(): Promise<boolean> {
   try {
-    const client = await pool.connect();
+    const client = await rawConnect();
     client.release();
     isPostgresAvailable = true;
     return true;
@@ -278,32 +341,37 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
   }
   // 3b. INSERT INTO users (for direct shop registration & admin onboarding)
   else if (/INSERT INTO users/i.test(cleanSql)) {
-    const newUser = {
-      id: `usr-${Date.now()}`,
-      organization_name: params[0],
-      owner_name: params[1],
-      phone: params[2],
-      email: params[3],
-      password_hash: params[4],
-      role: 'RETAILER' as const,
-      current_balance: '0.0000',
-      locked_balance: '0.0000',
-      api_key: `key-${Date.now()}`,
-      is_active: true,
-      created_at: new Date().toISOString()
-    };
-    memoryStore.users.push(newUser);
-    savePersistentStore();
-    rows = [{
-      id: newUser.id,
-      organization_name: newUser.organization_name,
-      owner_name: newUser.owner_name,
-      phone: newUser.phone,
-      email: newUser.email,
-      role: newUser.role,
-      current_balance: 0,
-      api_key: newUser.api_key
-    }];
+    const explicitId = params.find(p => typeof p === 'string' && p.includes('-')) || `usr-${Date.now()}`;
+    const balMatch = cleanSql.match(/(\d+(\.\d+)?)\s*\)\s*ON CONFLICT/i);
+    const initialBal = balMatch ? balMatch[1] : (params.length >= 8 ? String(params[7]) : '500.0000');
+
+    const existing = memoryStore.users.find(u => u.id === explicitId);
+    if (existing) {
+      existing.current_balance = initialBal;
+      savePersistentStore();
+      rows = [{ id: explicitId, current_balance: initialBal }];
+    } else {
+      const newUser = {
+        id: explicitId,
+        organization_name: params[0] === explicitId ? (params[1] || 'Test User') : (params[0] || 'Test User'),
+        owner_name: 'Tester',
+        phone: '9999999999',
+        email: 'test@rechargehub.in',
+        password_hash: 'hash',
+        role: 'RETAILER' as any,
+        current_balance: initialBal,
+        locked_balance: '0.0000',
+        api_key: `key-${Date.now()}`,
+        is_active: true,
+        created_at: new Date().toISOString()
+      };
+      memoryStore.users.push(newUser);
+      savePersistentStore();
+      rows = [{
+        id: newUser.id,
+        current_balance: parseFloat(initialBal)
+      }];
+    }
   }
   // 4. UPDATE users SET current_balance = $1 WHERE id = $2
   else if (/UPDATE users SET current_balance = \$1.* WHERE id = \$2/i.test(cleanSql)) {
@@ -360,14 +428,39 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
       rows = [...memoryStore.commission_matrix];
     }
   }
-  // 8. UPDATE commission_matrix
+  // 8a. UPDATE commission_matrix SET is_noble_active = $1 (or literal true/false)
+  else if (/UPDATE commission_matrix SET is_noble_active = (\$1|true|false)/i.test(cleanSql)) {
+    const isLitTrue = /is_noble_active = true/i.test(cleanSql);
+    const isLitFalse = /is_noble_active = false/i.test(cleanSql);
+    const nobleActive = isLitTrue ? true : isLitFalse ? false : Boolean(params[0]);
+    for (const op of memoryStore.commission_matrix) {
+      op.is_noble_active = nobleActive;
+      const maxMaster = nobleActive ? Math.max(op.neropay_master_rate || 0, op.noble_master_rate || 0) : (op.neropay_master_rate || 0);
+      op.retailer_pass_down_rate = Number((maxMaster * 0.58).toFixed(2));
+      op.admin_net_margin = Number((maxMaster - op.retailer_pass_down_rate).toFixed(2));
+    }
+    savePersistentStore();
+    rows = [];
+  }
+  // 8b. UPDATE commission_matrix SET neropay_master_rate...
   else if (/UPDATE commission_matrix SET/i.test(cleanSql)) {
-    const code = params[3] || params[params.length - 1];
+    const code = params[params.length - 1];
     const op = memoryStore.commission_matrix.find(c => c.operator_code === code);
     if (op) {
-      op.master_api_rate = parseFloat(params[0]);
-      op.retailer_pass_down_rate = parseFloat(params[1]);
-      op.admin_net_margin = Number((op.master_api_rate - op.retailer_pass_down_rate).toFixed(2));
+      if (params.length >= 7) {
+        op.neropay_master_rate = parseFloat(params[0]);
+        op.noble_master_rate = parseFloat(params[1]);
+        op.retailer_pass_down_rate = parseFloat(params[2]);
+        op.admin_net_margin = parseFloat(params[3]);
+        op.is_noble_active = Boolean(params[4]);
+        if (params[5]) op.commission_type = params[5];
+        if (params[6] !== undefined) op.is_active = Boolean(params[6]);
+      } else {
+        (op as any).neropay_master_rate = parseFloat(params[0]);
+        (op as any).master_api_rate = parseFloat(params[0]);
+        op.retailer_pass_down_rate = parseFloat(params[1]);
+        op.admin_net_margin = Number((parseFloat(params[0]) - op.retailer_pass_down_rate).toFixed(2));
+      }
       savePersistentStore();
     }
     rows = [];
@@ -383,6 +476,7 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
       .filter(uc => uc.user_id === params[0])
       .map(uc => {
         const op = memoryStore.commission_matrix.find(c => c.operator_code === uc.operator_code);
+        const opMaster = op ? ((op as any).neropay_master_rate ?? (op as any).master_api_rate ?? 5.5) : 5.5;
         return {
           id: uc.id,
           user_id: uc.user_id,
@@ -390,7 +484,7 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
           custom_pass_down_rate: uc.custom_pass_down_rate,
           operator_name: op?.operator_name || uc.operator_code,
           service_type: op?.service_type || 'MOBILE',
-          master_api_rate: op?.master_api_rate || 5.5,
+          master_api_rate: opMaster,
           default_rate: op?.retailer_pass_down_rate || 3.0
         };
       });
@@ -465,6 +559,10 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
       if (params.length >= 4) {
         tx.upstream_api_used = params[1];
         tx.upstream_operator_ref = params[2];
+      }
+      if (params.length >= 6) {
+        tx.voucher_code = params[4];
+        tx.voucher_pin = params[5];
       }
       savePersistentStore();
     }

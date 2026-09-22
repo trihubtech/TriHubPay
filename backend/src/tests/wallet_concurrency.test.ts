@@ -9,13 +9,17 @@ async function runConcurrencyTest() {
 
   // Test setup: Create a temporary test retailer with exactly ₹500 balance
   const testUserId = '99999999-9999-9999-9999-999999999999';
-  await query(`
-    INSERT INTO users (id, organization_name, owner_name, phone, email, password_hash, role, current_balance)
-    VALUES ($1, 'Concurrency Test Shop', 'Tester', '9999999999', 'test@rechargehub.in', 'hash', 'RETAILER', 500.0000)
-    ON CONFLICT (id) DO UPDATE SET current_balance = 500.0000;
-  `, [testUserId]);
-
-  console.log('✅ Initial balance established: ₹500.00');
+  try {
+    await query(`
+      INSERT INTO users (id, organization_name, owner_name, phone, email, password_hash, role, current_balance)
+      VALUES ($1, 'Concurrency Test Shop', 'Tester', '9999999999', 'test@rechargehub.in', 'hash', 'RETAILER', 500.0000)
+      ON CONFLICT (id) DO UPDATE SET current_balance = 500.0000;
+    `, [testUserId]);
+    console.log('✅ Initial balance established: ₹500.00');
+  } catch (setupErr: any) {
+    console.error('Setup error in test:', setupErr.message);
+    throw setupErr;
+  }
 
   // Simulate 5 simultaneous concurrent checkout threads attempting to debit ₹290.00 each
   // With ₹500 starting balance, EXACTLY ONE transaction must succeed, and the other 4 MUST be safely rejected!
@@ -70,7 +74,7 @@ async function runConcurrencyTest() {
 
   for (const r of results) {
     if (r.status === 'fulfilled') {
-      console.log(`Thread ${r.value.threadId}: ${r.value.status} (Balance: ₹${r.value.balance || 'N/A'})`);
+      console.log(`Thread ${r.value.threadId}: ${r.value.status} ${r.value.error ? `[${r.value.error}]` : ''} (Balance: ₹${r.value.balance || 'N/A'})`);
       if (r.value.status === 'SUCCESS') successCount++;
       if (r.value.status === 'REJECTED_INSUFFICIENT_FUNDS') rejectedCount++;
     }
@@ -95,6 +99,7 @@ async function runConcurrencyTest() {
   await pool.end();
 }
 
-if (require.main === module) {
-  runConcurrencyTest().catch(console.error);
-}
+runConcurrencyTest().catch(err => {
+  console.error('Fatal concurrency test error:', err);
+  process.exit(1);
+});

@@ -1,6 +1,16 @@
+export type ValidServiceType = 
+  | 'MOBILE' 
+  | 'DTH' 
+  | 'ELECTRICITY' 
+  | 'GOOGLE_PLAY' 
+  | 'OTT_APPS' 
+  | 'FASTAG' 
+  | 'LPG_GAS' 
+  | 'BROADBAND';
+
 export interface UpstreamRequestPayload {
   internalTxId: string;
-  serviceType: 'MOBILE' | 'DTH' | 'ELECTRICITY';
+  serviceType: ValidServiceType;
   operatorCode: string;
   targetAccountNumber: string;
   circleCode?: string;
@@ -9,7 +19,7 @@ export interface UpstreamRequestPayload {
 
 export interface UpstreamExecutionResult {
   success: boolean;
-  provider: 'A1TOPUP' | 'NOBLE_WEB';
+  provider: 'NEROPAY' | 'NOBLE' | 'A1TOPUP' | 'NOBLE_WEB';
   status: 'SUCCESS' | 'PENDING' | 'FAILED';
   upstreamOperatorRef: string;
   message: string;
@@ -17,11 +27,13 @@ export interface UpstreamExecutionResult {
   rawResponse: any;
   didFailover: boolean;
   failoverReason?: string;
+  voucherCode?: string;
+  voucherPin?: string;
 }
 
 export interface UpstreamBillFetchResult {
   success: boolean;
-  provider: 'A1TOPUP' | 'NOBLE_WEB' | 'SANDBOX';
+  provider: 'NEROPAY' | 'NOBLE' | 'A1TOPUP' | 'NOBLE_WEB' | 'SANDBOX';
   consumerNumber: string;
   consumerName: string;
   operatorCode: string;

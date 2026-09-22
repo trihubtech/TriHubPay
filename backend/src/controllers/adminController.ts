@@ -290,15 +290,15 @@ export async function updateUserProfile(req: Request, res: Response) {
 }
 
 /**
- * Get global commission matrix
+ * Get global commission matrix with dual-provider rates
  */
 export async function getCommissionMatrix(req: Request, res: Response) {
   try {
     const matrixRes = await query(`
       SELECT 
-        id, operator_code, operator_name, service_type, 
-        master_api_rate, retailer_pass_down_rate, admin_net_margin, 
-        is_active, updated_at
+        id, operator_code, operator_name, service_type, commission_type,
+        neropay_master_rate, noble_master_rate, retailer_pass_down_rate, 
+        admin_net_margin, is_noble_active, is_active, updated_at
       FROM commission_matrix
       ORDER BY service_type, operator_name ASC
     `);
@@ -314,33 +314,58 @@ export async function getCommissionMatrix(req: Request, res: Response) {
  */
 export async function updateCommissionMatrix(req: Request, res: Response) {
   try {
-    const { operator_code, master_api_rate, retailer_pass_down_rate, is_active } = req.body;
+    const { 
+      operator_code, 
+      neropay_master_rate, 
+      noble_master_rate, 
+      retailer_pass_down_rate, 
+      is_noble_active,
+      commission_type,
+      is_active 
+    } = req.body;
 
     if (!operator_code) {
       return res.status(400).json({ success: false, message: 'operator_code is required' });
     }
 
-    const masterRate = parseFloat(master_api_rate);
-    const retailerRate = parseFloat(retailer_pass_down_rate);
+    const neroRate = parseFloat(neropay_master_rate || '0');
+    const nobleRate = parseFloat(noble_master_rate || '0');
+    const nobleActive = is_noble_active !== undefined ? Boolean(is_noble_active) : false;
+    const maxMaster = nobleActive ? Math.max(neroRate, nobleRate) : neroRate;
 
-    if (retailerRate > masterRate) {
-      return res.status(400).json({
-        success: false,
-        message: `Retailer rate (${retailerRate}%) cannot exceed Master API payout (${masterRate}%). You would lose money on every recharge!`
-      });
+    // Standard 58% pass down if not specified explicitly
+    let passDown = retailer_pass_down_rate !== undefined ? parseFloat(retailer_pass_down_rate) : Number((maxMaster * 0.58).toFixed(2));
+    if (passDown > maxMaster) {
+      passDown = maxMaster;
     }
+    const adminMargin = Number((maxMaster - passDown).toFixed(2));
 
     await query(
       `UPDATE commission_matrix SET 
-        master_api_rate = $1,
-        retailer_pass_down_rate = $2,
-        is_active = COALESCE($3, is_active),
+        neropay_master_rate = $1,
+        noble_master_rate = $2,
+        retailer_pass_down_rate = $3,
+        admin_net_margin = $4,
+        is_noble_active = $5,
+        commission_type = COALESCE($6, commission_type),
+        is_active = COALESCE($7, is_active),
         updated_at = clock_timestamp()
-       WHERE operator_code = $4`,
-      [masterRate, retailerRate, is_active, operator_code]
+       WHERE operator_code = $8`,
+      [neroRate, nobleRate, passDown, adminMargin, nobleActive, commission_type, is_active, operator_code]
     );
 
-    return res.json({ success: true, message: `Commission matrix for ${operator_code} updated successfully` });
+    return res.json({ 
+      success: true, 
+      message: `Commission matrix for ${operator_code} updated successfully`,
+      data: {
+        operator_code,
+        neropay_master_rate: neroRate,
+        noble_master_rate: nobleRate,
+        is_noble_active: nobleActive,
+        retailer_pass_down_rate: passDown,
+        admin_net_margin: adminMargin
+      }
+    });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -443,12 +468,33 @@ export async function getFailoverSettings(req: Request, res: Response) {
 
 export async function updateFailoverSettings(req: Request, res: Response) {
   try {
-    const { mode, timeout_ms } = req.body;
-    if (!['AUTO', 'FORCE_A1TOPUP', 'FORCE_NOBLE_WEB'].includes(mode)) {
-      return res.status(400).json({ success: false, message: "Mode must be 'AUTO', 'FORCE_A1TOPUP', or 'FORCE_NOBLE_WEB'" });
+    const { mode, timeout_ms, is_noble_active } = req.body;
+    const validModes = ['AUTO', 'PHASE_1_NEROPAY', 'PHASE_2_DYNAMIC_FAILOVER', 'FORCE_NEROPAY', 'FORCE_NOBLE_WEB', 'FORCE_A1TOPUP'];
+    
+    if (mode && !validModes.includes(mode)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Mode must be one of: ${validModes.join(', ')}` 
+      });
     }
 
-    const value = { mode, timeout_ms: timeout_ms || 8000, updated_by: req.user!.email, updated_at: new Date().toISOString() };
+    const currentMode = mode || 'AUTO';
+    const nobleActive = is_noble_active !== undefined 
+      ? Boolean(is_noble_active) 
+      : (currentMode === 'PHASE_2_DYNAMIC_FAILOVER' || currentMode === 'AUTO');
+
+    // Update is_noble_active across commission_matrix if explicitly toggled or switching phase
+    if (is_noble_active !== undefined || currentMode === 'PHASE_1_NEROPAY' || currentMode === 'PHASE_2_DYNAMIC_FAILOVER') {
+      await query('UPDATE commission_matrix SET is_noble_active = $1, updated_at = clock_timestamp()', [nobleActive]);
+    }
+
+    const value = { 
+      mode: currentMode, 
+      is_noble_active: nobleActive,
+      timeout_ms: timeout_ms || 8000, 
+      updated_by: req.user!.email, 
+      updated_at: new Date().toISOString() 
+    };
 
     await query(
       `INSERT INTO system_settings (key, value)
@@ -459,7 +505,7 @@ export async function updateFailoverSettings(req: Request, res: Response) {
 
     return res.json({
       success: true,
-      message: `Failover routing mode set to: ${mode}`,
+      message: `Routing mode updated to: ${currentMode} (is_noble_active: ${nobleActive})`,
       data: value
     });
   } catch (error: any) {

@@ -3,21 +3,30 @@ import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { pool, withTransaction, query } from '../db';
 import { calculateCommission } from '../services/commissionService';
-import { upstreamRouter } from '../services/upstream/router';
+import { rechargeRouter } from '../services/rechargeRouter';
 import { releaseDedupKey } from '../middleware/dedup';
 
 const rechargeSchema = z.object({
   operator_code: z.string().min(2, 'Operator code is required'),
-  service_type: z.enum(['MOBILE', 'DTH', 'ELECTRICITY']),
-  target_account_number: z.string().min(3, 'Target account / number is required'),
-  face_value: z.number().positive('Recharge amount must be greater than zero'),
+  service_type: z.enum([
+    'MOBILE', 
+    'DTH', 
+    'ELECTRICITY', 
+    'GOOGLE_PLAY', 
+    'OTT_APPS', 
+    'FASTAG', 
+    'LPG_GAS', 
+    'BROADBAND'
+  ]),
+  target_account_number: z.string().min(3, 'Target account / number / consumer ID is required'),
+  face_value: z.number().positive('Transaction amount must be greater than zero'),
   circle_code: z.string().optional().default('ALL_INDIA'),
   idempotency_key: z.string().optional()
 });
 
 /**
  * Controller executing ACID-compliant recharge sequence with row-level locks,
- * dynamic commission discount, two-tier upstream routing, and automated failure rollback.
+ * dynamic commission discount, two-tier upstream routing, voucher extraction, and automated failure rollback.
  */
 export async function executeRecharge(req: Request, res: Response) {
   const dedupKey = (req as any).dedupKey;
@@ -39,20 +48,20 @@ export async function executeRecharge(req: Request, res: Response) {
     const idempotencyKey = parsed.data.idempotency_key || `IDEMP_${uuidv4()}`;
     const internalTxId = `TXN_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
 
-    // 2. Dynamic Commission Calculation (Shop Custom Rate vs Matrix)
+    // 2. Dynamic 58% / 42% Commission Calculation
     const comm = await calculateCommission(retailerId, operator_code, face_value);
-    const billedCost = comm.finalCostBilled; // Net amount debited
+    const billedCost = comm.finalCostBilled; // Net discounted amount debited upfront
 
     let transactionDbId: string;
     let balanceBefore: number;
     let balanceAfter: number;
 
-    // 3. ATOMIC WALLET DEDUCTION WITH ROW-LEVEL LOCKING (SELECT ... FOR UPDATE)
+    // 3. STEP 1: ROW-LEVEL DATABASE LOCKING (SELECT ... FOR UPDATE) & ATOMIC DEBIT
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
 
-      // Lock user row exclusively to prevent concurrency race conditions
+      // Lock user wallet row exclusively to prevent concurrency multi-click double deductions
       const userRes = await client.query(
         'SELECT current_balance, is_active, organization_name FROM users WHERE id = $1 FOR UPDATE',
         [retailerId]
@@ -75,7 +84,7 @@ export async function executeRecharge(req: Request, res: Response) {
         return res.status(400).json({
           success: false,
           code: 'INSUFFICIENT_FUNDS',
-          message: `Insufficient prepaid wallet balance. Required: ₹${billedCost.toFixed(2)} (after ₹${comm.retailerCommission.toFixed(2)} commission discount), Available: ₹${balanceBefore.toFixed(2)}`
+          message: `Insufficient prepaid wallet balance. Required: ₹${billedCost.toFixed(2)} (after ₹${comm.retailerCommission.toFixed(2)} upfront discount), Available: ₹${balanceBefore.toFixed(2)}`
         });
       }
 
@@ -98,7 +107,7 @@ export async function executeRecharge(req: Request, res: Response) {
           balanceBefore,
           balanceAfter,
           internalTxId,
-          `Recharge ${comm.operatorName} ${target_account_number} (Face: ₹${face_value}, Comm: ₹${comm.retailerCommission})`
+          `Order ${comm.operatorName} ${target_account_number} (Face: ₹${face_value}, Discount: ₹${comm.retailerCommission})`
         ]
       );
 
@@ -108,7 +117,7 @@ export async function executeRecharge(req: Request, res: Response) {
           internal_tx_id, retailer_id, service_type, operator_code, target_account_number,
           circle_code, face_value, retailer_commission, admin_commission, master_commission,
           final_cost_billed, upstream_api_used, status, idempotency_key
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'NONE', 'PENDING', $12)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'PENDING', 'PENDING', $12)
         RETURNING id`,
         [
           internalTxId,
@@ -136,9 +145,9 @@ export async function executeRecharge(req: Request, res: Response) {
       client.release();
     }
 
-    // 4. TWO-TIER UPSTREAM ROUTING (Primary A1Topup -> Automated Failover Noble Web Studio)
+    // 4. DYNAMIC SMART UPSTREAM ROUTING (NeroPay Primary -> Automated Failover Noble Web Studio)
     try {
-      const upstreamResult = await upstreamRouter.routeRecharge({
+      const upstreamResult = await rechargeRouter.routeRecharge({
         internalTxId,
         serviceType: service_type,
         operatorCode: comm.operatorCode,
@@ -147,30 +156,38 @@ export async function executeRecharge(req: Request, res: Response) {
         faceValue: face_value
       });
 
-      // Update transaction status to SUCCESS / PENDING
+      // Update transaction status and voucher codes in database
       await query(
         `UPDATE transactions SET 
           status = $1,
           upstream_api_used = $2,
           upstream_operator_ref = $3,
           upstream_response_raw = $4,
+          voucher_code = $5,
+          voucher_pin = $6,
           updated_at = clock_timestamp()
-         WHERE id = $5`,
+         WHERE id = $7`,
         [
           upstreamResult.status,
           upstreamResult.provider,
           upstreamResult.upstreamOperatorRef,
           JSON.stringify(upstreamResult.rawResponse),
+          upstreamResult.voucherCode || null,
+          upstreamResult.voucherPin || null,
           transactionDbId
         ]
       );
 
+      if (dedupKey) releaseDedupKey(dedupKey);
+
+      // STEP 2: Return clean JSON with parsed digital voucher code pin for Google Play / OTT
       return res.status(200).json({
         success: true,
         message: upstreamResult.message,
         data: {
           transaction_id: internalTxId,
           status: upstreamResult.status,
+          service_type: service_type,
           operator_name: comm.operatorName,
           operator_code: comm.operatorCode,
           target_account: target_account_number,
@@ -182,19 +199,22 @@ export async function executeRecharge(req: Request, res: Response) {
           upstream_operator_ref: upstreamResult.upstreamOperatorRef,
           remaining_wallet_balance: balanceAfter,
           did_failover: upstreamResult.didFailover,
+          // Digital Voucher details
+          voucher_code: upstreamResult.voucherCode || null,
+          voucher_pin: upstreamResult.voucherPin || null,
+          is_digital_voucher: Boolean(upstreamResult.voucherCode),
           timestamp: new Date().toISOString()
         }
       });
     } catch (upstreamError: any) {
-      // 5. AUTOMATED FAILURE ROLLBACK
-      // If both upstream providers fail, execute atomic transaction block:
-      // mark FAILED and refund exact billed cost back to retailer wallet ledger
+      // 5. STEP 3: AUTOMATED CLEANUP ROLLBACK SYSTEM (ACID Rollback)
+      // If both NeroPay and Noble fail or time out, return the exact deducted balance to retailer wallet
       console.error(`[TRANSACTION FAILED ${internalTxId}] Initiating atomic refund rollback:`, upstreamError.message);
 
       let refundedBalance: number = balanceAfter;
 
       await withTransaction(async (rollbackClient) => {
-        // Lock user row again
+        // Lock user wallet row again to prevent concurrency conflicts during refund
         const uLock = await rollbackClient.query(
           'SELECT current_balance FROM users WHERE id = $1 FOR UPDATE',
           [retailerId]
@@ -202,13 +222,13 @@ export async function executeRecharge(req: Request, res: Response) {
         const curBal = parseFloat(uLock.rows[0].current_balance);
         refundedBalance = Number((curBal + billedCost).toFixed(4));
 
-        // Credit wallet back
+        // Return exact deducted balance
         await rollbackClient.query(
           'UPDATE users SET current_balance = $1, updated_at = clock_timestamp() WHERE id = $2',
           [refundedBalance, retailerId]
         );
 
-        // Insert credit ledger record
+        // Log detailed credit transaction trail in wallet ledger
         await rollbackClient.query(
           `INSERT INTO wallet_ledger (
             user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
@@ -219,16 +239,16 @@ export async function executeRecharge(req: Request, res: Response) {
             curBal,
             refundedBalance,
             internalTxId,
-            `AUTO-REFUND: Dual provider failure on ${internalTxId}`
+            `AUTO-REFUND: Dual provider failure on ${internalTxId} (${upstreamError.message || 'Upstream Rejected'})`
           ]
         );
 
-        // Mark transaction as FAILED
+        // Mark transaction as FAILED in transactions audit table
         await rollbackClient.query(
           `UPDATE transactions SET 
             status = 'FAILED',
             failure_reason = $1,
-            upstream_api_used = 'A1TOPUP & NOBLE_WEB',
+            upstream_api_used = 'NEROPAY & NOBLE',
             updated_at = clock_timestamp()
            WHERE id = $2`,
           [upstreamError.message || 'Dual upstream providers failed', transactionDbId]
@@ -239,252 +259,210 @@ export async function executeRecharge(req: Request, res: Response) {
 
       return res.status(502).json({
         success: false,
-        code: 'UPSTREAM_FAILURE_REFUNDED',
-        message: 'Recharge could not be completed by upstream providers. Your wallet has been safely and automatically refunded.',
-        details: {
+        code: 'TRANSACTION_REVERSED',
+        message: 'Order failed to process through both primary and failover gateways. Your wallet has been 100% refunded.',
+        details: upstreamError.message,
+        data: {
           transaction_id: internalTxId,
-          refunded_amount: billedCost,
-          current_wallet_balance: refundedBalance,
-          reason: upstreamError.message
+          refund_status: 'REFUNDED_TO_WALLET',
+          amount_refunded: billedCost,
+          current_wallet_balance: refundedBalance
         }
       });
     }
   } catch (error: any) {
     if (dedupKey) releaseDedupKey(dedupKey);
-    console.error('[RECHARGE CONTROLLER FATAL]:', error);
+    console.error('[EXECUTE RECHARGE ERROR]', error);
     return res.status(500).json({
       success: false,
-      message: error.message || 'Internal server error processing recharge'
+      message: error.message || 'Internal server error during recharge processing'
     });
   }
 }
 
 /**
- * Fetch commission preview for a given operator and face value before checkout
+ * Preview commission and exact debit amount before user confirms transaction
  */
-export async function getCommissionPreview(req: Request, res: Response) {
+export async function previewRechargeCommission(req: Request, res: Response) {
   try {
-    const { operator_code, face_value } = req.query;
-    if (!operator_code || !face_value) {
-      return res.status(400).json({ success: false, message: 'operator_code and face_value are required' });
+    const operatorCode = req.query.operator_code as string;
+    const faceValue = parseFloat(req.query.face_value as string);
+
+    if (!operatorCode || isNaN(faceValue) || faceValue <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'operator_code and a valid positive face_value are required'
+      });
     }
 
     const retailerId = req.user!.id;
-    const comm = await calculateCommission(retailerId, String(operator_code), parseFloat(String(face_value)));
+    const comm = await calculateCommission(retailerId, operatorCode, faceValue);
 
     return res.json({
       success: true,
       data: {
         operator_code: comm.operatorCode,
         operator_name: comm.operatorName,
+        service_type: comm.serviceType,
+        commission_type: comm.commissionType,
         face_value: comm.faceValue,
         retailer_rate_percent: comm.retailerPassDownRate,
         retailer_commission: comm.retailerCommission,
+        admin_net_margin: comm.adminCommission,
         final_cost_billed: comm.finalCostBilled,
-        is_shop_customized: comm.isShopCustomized
+        is_shop_customized: comm.isShopCustomized,
+        is_noble_active: comm.isNobleActive
       }
     });
-  } catch (err: any) {
-    return res.status(400).json({ success: false, message: err.message });
+  } catch (error: any) {
+    return res.status(400).json({
+      success: false,
+      message: error.message
+    });
   }
 }
 
 /**
- * Fetch active transaction history for the authenticated retailer
+ * Fetch BBPS Electricity / Utility Bill
  */
+export async function fetchElectricityBill(req: Request, res: Response) {
+  try {
+    const { consumer_number, operator_code } = req.body;
+    if (!consumer_number || !operator_code) {
+      return res.status(400).json({
+        success: false,
+        message: 'consumer_number and operator_code are required'
+      });
+    }
+
+    const bill = await rechargeRouter.fetchElectricityBill(consumer_number, operator_code);
+    return res.json({
+      success: true,
+      data: {
+        consumer_number: bill.consumerNumber,
+        consumer_name: bill.consumerName,
+        operator_code: bill.operatorCode,
+        board_name: bill.boardName,
+        bill_number: bill.billNumber,
+        bill_date: bill.billDate,
+        due_date: bill.dueDate,
+        bill_amount: bill.billAmount,
+        status: bill.status,
+        provider: bill.provider
+      }
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch utility bill details'
+    });
+  }
+}
+
+/**
+ * Browse Plans for Telecom / DTH
+ */
+export async function browsePlans(req: Request, res: Response) {
+  try {
+    const operatorCode = req.query.operator as string;
+    const circle = (req.query.circle as string) || 'ALL_INDIA';
+
+    if (!operatorCode) {
+      return res.status(400).json({ success: false, message: 'operator query parameter is required' });
+    }
+
+    const plans = await rechargeRouter.fetchPlans(operatorCode, circle);
+    return res.json({ success: true, data: plans });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+/**
+ * Get Retailer Commission Rates Table
+ */
+export async function getRetailerCommissionRates(req: Request, res: Response) {
+  try {
+    const retailerId = req.user!.id;
+    const ratesRes = await query(`
+      SELECT 
+        cm.operator_code, 
+        cm.operator_name, 
+        cm.service_type, 
+        cm.commission_type,
+        cm.neropay_master_rate,
+        cm.noble_master_rate,
+        cm.is_noble_active,
+        COALESCE(uc.custom_pass_down_rate, cm.retailer_pass_down_rate) as commission_rate,
+        (uc.custom_pass_down_rate IS NOT NULL) as is_custom
+      FROM commission_matrix cm
+      LEFT JOIN user_commissions uc 
+        ON uc.operator_code = cm.operator_code AND uc.user_id = $1
+      WHERE cm.is_active = true
+      ORDER BY cm.service_type, cm.operator_name ASC;
+    `, [retailerId]);
+
+    return res.json({ success: true, data: ratesRes.rows });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export const getCommissionPreview = previewRechargeCommission;
+export const getMyCommissionsList = getRetailerCommissionRates;
+
 export async function getRetailerTransactions(req: Request, res: Response) {
   try {
     const retailerId = req.user!.id;
     const limit = parseInt(String(req.query.limit || '50'), 10);
-    const offset = parseInt(String(req.query.offset || '0'), 10);
-
     const txRes = await query(
-      `SELECT 
-        id, internal_tx_id, service_type, operator_code, target_account_number,
-        face_value, retailer_commission, final_cost_billed, upstream_api_used,
-        upstream_operator_ref, status, failure_reason, created_at
-       FROM transactions
-       WHERE retailer_id = $1
-       ORDER BY created_at DESC
-       LIMIT $2 OFFSET $3`,
-      [retailerId, limit, offset]
+      `SELECT * FROM transactions WHERE retailer_id = $1 ORDER BY created_at DESC LIMIT $2`,
+      [retailerId, limit]
     );
-
-    return res.json({
-      success: true,
-      data: txRes.rows
-    });
+    return res.json({ success: true, data: txRes.rows });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
   }
 }
 
-/**
- * Returns the personalized commission matrix for the authenticated retailer.
- * Strictly exposes ONLY the user's allocated pass-down rate (or customized override)
- * without leaking master upstream rates or platform net margins.
- */
-export async function getMyCommissionsList(req: Request, res: Response) {
-  try {
-    const retailerId = req.user!.id;
-
-    // 1. Fetch all active operators from the global commission matrix
-    const matrixRes = await query(
-      `SELECT operator_code, operator_name, service_type, retailer_pass_down_rate, is_active
-       FROM commission_matrix 
-       WHERE is_active = true
-       ORDER BY 
-         CASE service_type 
-           WHEN 'MOBILE' THEN 1 
-           WHEN 'DTH' THEN 2 
-           WHEN 'ELECTRICITY' THEN 3 
-           ELSE 4 
-         END,
-         operator_name ASC`
-    );
-
-    // 2. Fetch custom overrides configured specifically for this retailer
-    const customRes = await query(
-      `SELECT operator_code, custom_pass_down_rate 
-       FROM user_commissions 
-       WHERE user_id = $1`,
-      [retailerId]
-    );
-
-    const customMap = new Map<string, number>();
-    for (const row of customRes.rows) {
-      customMap.set(row.operator_code, parseFloat(row.custom_pass_down_rate));
-    }
-
-    // 3. Assemble personalized list
-    const myCommissions = matrixRes.rows.map(row => {
-      const isCustom = customMap.has(row.operator_code);
-      const effectiveRate = isCustom 
-        ? customMap.get(row.operator_code)! 
-        : parseFloat(row.retailer_pass_down_rate);
-
-      return {
-        operator_code: row.operator_code,
-        operator_name: row.operator_name,
-        service_type: row.service_type,
-        commission_rate: effectiveRate,
-        is_custom: isCustom,
-        earnings_per_100: Number(((100 * effectiveRate) / 100).toFixed(2)),
-        earnings_per_1000: Number(((1000 * effectiveRate) / 100).toFixed(2))
-      };
-    });
-
-    return res.json({
-      success: true,
-      data: myCommissions
-    });
-  } catch (error: any) {
-    return res.status(500).json({ success: false, message: error.message });
-  }
-}
-
-/**
- * Actionable Retailer Insights & Commission Earnings
- * Computes live profits, volumes, and margins by date range
- */
 export async function getMyInsights(req: Request, res: Response) {
   try {
     const retailerId = req.user!.id;
-    const period = String(req.query.period || 'today').toLowerCase();
-
-    // Fetch retailer transactions
     const txRes = await query(
-      `SELECT service_type, operator_code, face_value, retailer_commission, status, created_at
-       FROM transactions
-       WHERE retailer_id = $1`,
+      `SELECT face_value, retailer_commission, status, created_at FROM transactions WHERE retailer_id = $1`,
       [retailerId]
     );
 
-    const now = new Date();
-    let startDate: Date;
-    let endDate: Date = now;
-
-    if (period === 'yesterday') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
-      endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
-    } else if (period === 'this_week') {
-      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    } else if (period === 'this_month') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-    } else if (period === 'all') {
-      startDate = new Date(0);
-    } else {
-      // 'today' is default
-      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-    }
-
-    const filtered = txRes.rows.filter(tx => {
-      const txTime = new Date(tx.created_at).getTime();
-      return txTime >= startDate.getTime() && txTime <= endDate.getTime();
-    });
-
-    let totalCommission = 0;
     let totalVolume = 0;
+    let totalCommission = 0;
     let successCount = 0;
     let failedCount = 0;
     let pendingCount = 0;
 
-    const opMap: Record<string, { earnings: number; volume: number }> = {};
-    const serviceEarnings: Record<string, number> = { MOBILE: 0, DTH: 0, ELECTRICITY: 0 };
-
-    for (const tx of filtered) {
-      if (tx.status === 'SUCCESS') {
-        const comm = parseFloat(tx.retailer_commission || 0);
-        const val = parseFloat(tx.face_value || 0);
-        totalCommission += comm;
-        totalVolume += val;
+    for (const t of txRes.rows) {
+      if (t.status === 'SUCCESS') {
+        totalVolume += parseFloat(t.face_value || '0');
+        totalCommission += parseFloat(t.retailer_commission || '0');
         successCount++;
-
-        const op = tx.operator_code || 'OTHER';
-        if (!opMap[op]) opMap[op] = { earnings: 0, volume: 0 };
-        opMap[op].earnings += comm;
-        opMap[op].volume += val;
-
-        const sType = tx.service_type || 'MOBILE';
-        serviceEarnings[sType] = (serviceEarnings[sType] || 0) + comm;
-      } else if (tx.status === 'FAILED') {
+      } else if (t.status === 'FAILED') {
         failedCount++;
-      } else {
+      } else if (t.status === 'PENDING') {
         pendingCount++;
       }
     }
 
-    // Top operator
-    let topOp: { operator_code: string; earnings: number; volume: number } | null = null;
-    for (const [code, stats] of Object.entries(opMap)) {
-      if (!topOp || stats.earnings > topOp.earnings) {
-        topOp = { operator_code: code, earnings: Number(stats.earnings.toFixed(2)), volume: Number(stats.volume.toFixed(2)) };
-      }
-    }
-
-    const totalTxs = filtered.length;
-    const successRate = totalTxs > 0 ? Number(((successCount / totalTxs) * 100).toFixed(1)) : 100;
-    const avgCommissionRate = totalVolume > 0 ? Number(((totalCommission / totalVolume) * 100).toFixed(2)) : 0;
-
     return res.json({
       success: true,
       data: {
-        period,
-        total_commission: Number(totalCommission.toFixed(2)),
-        total_sales_volume: Number(totalVolume.toFixed(2)),
-        total_transactions: totalTxs,
-        successful_transactions: successCount,
-        failed_transactions: failedCount,
-        pending_transactions: pendingCount,
-        success_rate: successRate,
-        average_commission_rate: avgCommissionRate,
-        top_operator: topOp,
-        earnings_by_service: serviceEarnings
+        totalVolume,
+        totalCommission,
+        successCount,
+        failedCount,
+        pendingCount,
+        totalOrders: txRes.rows.length
       }
     });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
   }
 }
-
-
