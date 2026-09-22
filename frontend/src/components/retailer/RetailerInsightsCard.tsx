@@ -157,10 +157,14 @@ export const RetailerInsightsCard: React.FC<RetailerInsightsCardProps> = ({
   }, [period, isOpen, transactions.length]);
 
   // Compute max rates from loaded commission data
+  const getRateSafe = (r: any) => {
+    const val = parseFloat(String(r.commission_rate ?? r.retailer_pass_down_rate ?? 0));
+    return isNaN(val) ? 0 : val;
+  };
   const mobileRates = rates.filter(r => r.service_type === 'MOBILE');
-  const maxMobile = mobileRates.length > 0 ? Math.max(...mobileRates.map(r => r.commission_rate)) : 0;
+  const maxMobile = mobileRates.length > 0 ? Math.max(...mobileRates.map(getRateSafe)) : 0;
   const dthRates = rates.filter(r => r.service_type === 'DTH');
-  const maxDth = dthRates.length > 0 ? Math.max(...dthRates.map(r => r.commission_rate)) : 0;
+  const maxDth = dthRates.length > 0 ? Math.max(...dthRates.map(getRateSafe)) : 0;
 
   const periodLabels: Record<InsightsPeriod, string> = {
     today: 'Today',

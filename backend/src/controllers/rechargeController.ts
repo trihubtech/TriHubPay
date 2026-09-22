@@ -402,7 +402,18 @@ export async function getRetailerCommissionRates(req: Request, res: Response) {
       ORDER BY cm.service_type, cm.operator_name ASC;
     `, [retailerId]);
 
-    return res.json({ success: true, data: ratesRes.rows });
+    const formatted = ratesRes.rows.map(row => {
+      const rawRate = row.commission_rate !== undefined ? row.commission_rate : row.retailer_pass_down_rate;
+      const numRate = parseFloat(String(rawRate ?? 0));
+      const safeRate = isNaN(numRate) ? 0 : numRate;
+      return {
+        ...row,
+        commission_rate: safeRate,
+        retailer_pass_down_rate: safeRate
+      };
+    });
+
+    return res.json({ success: true, data: formatted });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
   }

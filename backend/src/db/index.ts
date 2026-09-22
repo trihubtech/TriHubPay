@@ -431,12 +431,27 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
   }
   // 7. SELECT ... FROM commission_matrix
   else if (/SELECT .* FROM commission_matrix/i.test(cleanSql)) {
+    let list = [...memoryStore.commission_matrix];
     if (/service_type = \$1/i.test(cleanSql)) {
       const st = String(params[0] || '').toUpperCase();
-      rows = memoryStore.commission_matrix.filter(c => c.service_type === st && c.is_active !== false);
+      list = list.filter(c => c.service_type === st && c.is_active !== false);
     } else {
-      rows = [...memoryStore.commission_matrix];
+      list = list.filter(c => c.is_active !== false);
     }
+
+    const userId = (params && params[0] && typeof params[0] === 'string' && params[0].length > 10) ? params[0] : null;
+    rows = list.map(c => {
+      const userCustom = userId ? memoryStore.user_commissions.find(uc => uc.user_id === userId && uc.operator_code === c.operator_code) : null;
+      const rawRate = userCustom ? userCustom.custom_pass_down_rate : (c as any).retailer_pass_down_rate;
+      const numRate = parseFloat(rawRate !== undefined ? rawRate : 0);
+      const safeRate = isNaN(numRate) ? 0 : numRate;
+      return {
+        ...c,
+        commission_rate: safeRate,
+        retailer_pass_down_rate: safeRate,
+        is_custom: Boolean(userCustom)
+      };
+    });
   }
   // 8a. UPDATE commission_matrix SET is_noble_active = $1 (or literal true/false)
   else if (/UPDATE commission_matrix SET is_noble_active = (\$1|true|false)/i.test(cleanSql)) {

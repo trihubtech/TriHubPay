@@ -53,12 +53,17 @@ export const MyCommissionsTable: React.FC = () => {
     return matchesService && matchesSearch;
   });
 
+  const getRate = (item: any): number => {
+    const val = parseFloat(String(item?.commission_rate ?? item?.retailer_pass_down_rate ?? 0));
+    return isNaN(val) ? 0 : val;
+  };
+
   // Calculate quick stats
   const mobileRates = rates.filter(r => r.service_type === 'MOBILE');
-  const maxMobile = mobileRates.length > 0 ? Math.max(...mobileRates.map(r => r.commission_rate)) : 0;
+  const maxMobile = mobileRates.length > 0 ? Math.max(...mobileRates.map(r => getRate(r))) : 0;
   
   const dthRates = rates.filter(r => r.service_type === 'DTH');
-  const maxDth = dthRates.length > 0 ? Math.max(...dthRates.map(r => r.commission_rate)) : 0;
+  const maxDth = dthRates.length > 0 ? Math.max(...dthRates.map(r => getRate(r))) : 0;
 
   const getServiceIcon = (type: ServiceType) => {
     switch (type) {
@@ -243,18 +248,18 @@ export const MyCommissionsTable: React.FC = () => {
                       {/* Your Commission Rate */}
                       <td className="py-3.5 px-4 text-center">
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-mono">
-                          <span>{Number(item.commission_rate).toFixed(2)}%</span>
+                          <span>{getRate(item).toFixed(2)}%</span>
                         </span>
                       </td>
 
                       {/* Earnings on ₹500 */}
                       <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-700 dark:text-slate-200">
-                        +₹{((500 * item.commission_rate) / 100).toFixed(2)}
+                        +₹{((500 * getRate(item)) / 100).toFixed(2)}
                       </td>
 
                       {/* Earnings on ₹1,000 */}
                       <td className="py-3.5 px-4 text-right font-mono font-extrabold text-emerald-600 dark:text-emerald-400">
-                        +₹{((1000 * item.commission_rate) / 100).toFixed(2)}
+                        +₹{((1000 * getRate(item)) / 100).toFixed(2)}
                       </td>
 
                       {/* Payout Status */}

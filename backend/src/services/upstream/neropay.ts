@@ -344,11 +344,11 @@ export class NeroPayClient {
   }
 
   /**
-   * Fetch browse plans from NeroPay
+   * Fetch browse plans from NeroPay (falls back to Standard Catalog if not supported)
    */
   async fetchPlans(operatorCode: string, circle: string = 'ALL_INDIA'): Promise<UpstreamPlanItem[]> {
     if (this.isSandbox) {
-      return this.simulatePlans(operatorCode);
+      return [];
     }
 
     try {
@@ -357,11 +357,11 @@ export class NeroPayClient {
       const response = await fetch(url, {
         headers: { 'Accept': 'application/json' }
       });
-      if (!response.ok) return this.simulatePlans(operatorCode);
+      if (!response.ok) return [];
       const json = await response.json() as any;
-      return json.plans || [];
+      return Array.isArray(json.plans) ? json.plans : [];
     } catch {
-      return this.simulatePlans(operatorCode);
+      return [];
     }
   }
 

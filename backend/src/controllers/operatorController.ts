@@ -40,6 +40,8 @@ const STANDARD_PLANS: Record<string, PlanItem[]> = {
     { amount: 1199, validity: '84 Days', data: '3.0 GB/Day', description: '84 Days Premium Pack: 3GB/Day + Ultra 5G Speeds', category: 'Truly Unlimited' },
 
     // Cricket & OTT Entertainment
+    { amount: 98, validity: '7 Days', data: '10 MB', description: 'Popular, Cricket/data Pack + JioGames Pass & more', category: 'Popular', tag: 'Cricket/Data' },
+    { amount: 149, validity: '30 Days', data: '10 GB Total', description: 'Popular Data Pack + JioHotstar Mobile 30 Days', category: 'Popular', tag: 'Hotstar' },
     { amount: 175, validity: '28 Days', data: '10 GB Total', description: 'SonyLIV + ZEE5 Combo + 10GB High Speed Data', category: 'OTT Entertainment', tag: 'SonyLIV' },
     { amount: 448, validity: '28 Days', data: '2.0 GB/Day', description: 'SonyLIV + ZEE5 + 2GB/Day + True 5G Unlimited', category: 'OTT Entertainment', tag: 'Hotstar' },
     { amount: 1028, validity: '84 Days', data: '2.0 GB/Day', description: 'Swiggy One Lite (3 Months) + Unlimited 5G Data + 2GB/Day', category: 'OTT Entertainment' },
@@ -48,11 +50,16 @@ const STANDARD_PLANS: Record<string, PlanItem[]> = {
     { amount: 1799, validity: '84 Days', data: '3.0 GB/Day', description: 'Netflix Basic (TV + Mobile) + 3GB/Day Data + 5G', category: 'OTT Entertainment', tag: 'Netflix HD' },
 
     // Data Add-on Packs
-    { amount: 19, validity: 'Existing Active Plan', data: '1 GB', description: 'High Speed 4G/5G Data Booster Pack', category: 'Data Add-on' },
-    { amount: 29, validity: 'Existing Active Plan', data: '2 GB', description: 'High Speed Data Booster for Browsing', category: 'Data Add-on' },
+    { amount: 15, validity: 'Existing Active Plan', data: '1 GB', description: '1 GB High Speed 4G/5G Data Booster Pack', category: 'Data Add-on' },
+    { amount: 19, validity: 'Existing Active Plan', data: '1.5 GB', description: 'High Speed 4G/5G Data Booster Pack', category: 'Data Add-on', tag: 'Best Value' },
+    { amount: 25, validity: 'Existing Active Plan', data: '2 GB', description: '2 GB High Speed 4G/5G Data Booster Pack', category: 'Data Add-on' },
+    { amount: 29, validity: 'Existing Active Plan', data: '2.5 GB', description: 'High Speed Data Booster for Browsing', category: 'Data Add-on' },
     { amount: 49, validity: '1 Day', data: 'Unlimited', description: 'Cricket / Day Pass: Unlimited High Speed Data for 24 Hours', category: 'Data Add-on', tag: 'Unlimited' },
-    { amount: 69, validity: 'Existing Active Plan', data: '6 GB', description: '5G Upgrade Data Booster for Non-5G Plans', category: 'Data Add-on', tag: '5G Upgrade' },
+    { amount: 61, validity: 'Existing Active Plan', data: '6 GB', description: '5G Upgrade Data Booster for Non-5G Plans', category: 'Data Add-on', tag: '5G Upgrade' },
+    { amount: 69, validity: 'Existing Active Plan', data: '6 GB', description: 'High Speed Bulk Data Booster Pack', category: 'Data Add-on' },
+    { amount: 98, validity: '7 Days', data: '10 MB', description: 'Cricket / Data Booster with JioGames Pass', category: 'Data Add-on' },
     { amount: 139, validity: 'Existing Active Plan', data: '12 GB', description: 'Bulk Data Booster for Heavy Streaming', category: 'Data Add-on' },
+    { amount: 149, validity: '30 Days', data: '10 GB', description: '10 GB Bulk Data Booster + JioHotstar Mobile 30 Days', category: 'Data Add-on', tag: 'Hotstar' },
     { amount: 181, validity: '30 Days', data: '30 GB', description: 'Work From Home 30GB High Speed Data Pack', category: 'Data Add-on' },
     { amount: 241, validity: '30 Days', data: '40 GB', description: 'Heavy Work Pack: 40GB High Speed Data', category: 'Data Add-on' },
     { amount: 301, validity: '30 Days', data: '50 GB', description: 'Super Data Booster: 50GB High Speed Data', category: 'Data Add-on' },
@@ -294,10 +301,10 @@ export async function getPlansForOperator(req: Request, res: Response) {
       });
     }
 
-    // 1. Attempt Live Plans fetch from upstream gateway (A1Topup / Noble Web)
+    // 1. Attempt Live Plans fetch from upstream gateway (A1Topup / Noble Web / NeroPay)
     try {
       const livePlans = await upstreamRouter.routeFetchPlans(operatorCode, circle);
-      if (livePlans && livePlans.length > 0) {
+      if (livePlans && livePlans.length >= 10) {
         return res.json({
           success: true,
           operator_code: operatorCode,

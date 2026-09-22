@@ -189,7 +189,7 @@ export class NobleWebClient {
    */
   async fetchPlans(operatorCode: string): Promise<UpstreamPlanItem[]> {
     if (this.isSandbox) {
-      return this.simulatePlans(operatorCode);
+      return [];
     }
 
     try {
@@ -197,11 +197,11 @@ export class NobleWebClient {
       const response = await fetch(`${this.plansUrl}?operator=${upstreamOp}`, {
         headers: { 'Authorization': `ApiKey ${this.apiKey}` }
       });
-      if (!response.ok) return this.simulatePlans(operatorCode);
+      if (!response.ok) return [];
       const json = await response.json() as any;
-      return json.plans || [];
+      return Array.isArray(json.plans) ? json.plans : [];
     } catch {
-      return this.simulatePlans(operatorCode);
+      return [];
     }
   }
 

@@ -496,7 +496,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         <div className="flex items-center gap-2.5 overflow-x-auto no-scrollbar scrollbar-none touch-scroll py-1 -mx-1 px-1">
           {showcaseOperators.map((item) => {
             const matchedRate = rates.find(r => r.operator_code === item.code);
-            const rateVal = matchedRate ? matchedRate.commission_rate : item.defaultRate;
+            const rawRate = matchedRate ? (matchedRate.commission_rate ?? (matchedRate as any).retailer_pass_down_rate) : undefined;
+            const parsedRate = rawRate !== undefined ? parseFloat(String(rawRate)) : NaN;
+            const rateVal = !isNaN(parsedRate) ? parsedRate : item.defaultRate;
             return (
               <button
                 key={item.code}
