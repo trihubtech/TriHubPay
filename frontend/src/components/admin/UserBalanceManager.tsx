@@ -29,6 +29,7 @@ import {
 
 interface UserBalanceManagerProps {
   users: User[];
+  masterBalance?: number;
   onRefresh: () => void;
   onOpenCustomCommissions: (user: User) => void;
   onOpenOnboardShop?: () => void;
@@ -36,6 +37,7 @@ interface UserBalanceManagerProps {
 
 export const UserBalanceManager: React.FC<UserBalanceManagerProps> = ({
   users,
+  masterBalance = 100,
   onRefresh,
   onOpenCustomCommissions,
   onOpenOnboardShop
@@ -315,6 +317,30 @@ export const UserBalanceManager: React.FC<UserBalanceManagerProps> = ({
         </div>
       </div>
 
+      {/* Upstream Master Wallet Float Banner */}
+      <div className="mx-6 mt-4 p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-lg font-mono">
+            ₹
+          </div>
+          <div>
+            <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <span>NeroPay Master Upstream Float:</span>
+              <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                ₹{masterBalance.toFixed(2)}
+              </span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                LIVE UPSTREAM
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+              This is your live operating balance in NeroPay. Retailer balances below represent internal credit liabilities.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Directory Table */}
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs text-slate-700 dark:text-slate-300">
@@ -343,12 +369,26 @@ export const UserBalanceManager: React.FC<UserBalanceManagerProps> = ({
                 </td>
 
                 <td className="py-3.5 px-4 text-right">
-                  <div className="font-mono font-bold text-slate-900 dark:text-white text-sm">
-                    ₹{Number(u.current_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                  </div>
-                  <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                    {u.total_recharges || 0} recharges done
-                  </div>
+                  {u.role === 'ADMIN' ? (
+                    <div>
+                      <div className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-sm">
+                        ₹{masterBalance.toFixed(2)}
+                      </div>
+                      <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center justify-end gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        NeroPay Live Float
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="font-mono font-bold text-slate-900 dark:text-white text-sm">
+                        ₹{Number(u.current_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                        {u.total_recharges || 0} recharges done
+                      </div>
+                    </div>
+                  )}
                 </td>
 
                 <td className="py-3.5 px-4 text-center">

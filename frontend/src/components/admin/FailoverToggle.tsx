@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { api } from '../../services/api';
-import { ToggleLeft, ToggleRight, ShieldAlert, Cpu, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Cpu, CheckCircle2, AlertTriangle, Zap, ShieldCheck } from 'lucide-react';
 
 interface FailoverToggleProps {
-  currentMode: 'AUTO' | 'FORCE_A1TOPUP' | 'FORCE_NOBLE_WEB';
+  currentMode: string;
   onUpdate: (newMode: string) => void;
 }
 
 export const FailoverToggle: React.FC<FailoverToggleProps> = ({ currentMode, onUpdate }) => {
   const [updating, setUpdating] = useState<boolean>(false);
-  const [selectedMode, setSelectedMode] = useState<string>(currentMode);
+  const normalizedMode = (currentMode === 'FORCE_A1TOPUP' ? 'FORCE_NEROPAY' : currentMode) || 'AUTO';
+  const [selectedMode, setSelectedMode] = useState<string>(normalizedMode);
   const [msg, setMsg] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string>('');
 
@@ -35,13 +36,13 @@ export const FailoverToggle: React.FC<FailoverToggleProps> = ({ currentMode, onU
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm dark:shadow-xl space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
             <Cpu className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="font-bold text-base text-slate-900 dark:text-white">Global Upstream API Failover Toggle</h3>
+            <h3 className="font-bold text-base text-slate-900 dark:text-white">Upstream Multi-Gateway Smart Router</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Manual master override switch to divert network traffic during provider outages.
+              Primary Gateway: NeroPay • Failover Engine: Noble Web Studio
             </p>
           </div>
         </div>
@@ -76,10 +77,11 @@ export const FailoverToggle: React.FC<FailoverToggleProps> = ({ currentMode, onU
             <span className={`w-2.5 h-2.5 rounded-full ${selectedMode === 'AUTO' ? 'bg-blue-600 dark:bg-brand-400 animate-pulse' : 'bg-slate-300 dark:bg-slate-600'}`}></span>
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Primary A1Topup (8s limit) ➔ Seamless fallback to Noble Web Studio.
+            Primary NeroPay (8s limit) ➔ Automated margin failover to Noble Web Studio.
           </div>
-          <div className="mt-3 text-[10px] font-semibold text-blue-600 dark:text-brand-400 uppercase">
-            Recommended Default
+          <div className="mt-3 text-[10px] font-semibold text-blue-600 dark:text-brand-400 uppercase flex items-center gap-1">
+            <ShieldCheck className="w-3 h-3" />
+            <span>Recommended Default</span>
           </div>
         </div>
 
@@ -97,7 +99,7 @@ export const FailoverToggle: React.FC<FailoverToggleProps> = ({ currentMode, onU
             <span className={`w-2.5 h-2.5 rounded-full ${selectedMode === 'FORCE_NOBLE_WEB' ? 'bg-amber-500 dark:bg-amber-400 animate-pulse' : 'bg-slate-300 dark:bg-slate-600'}`}></span>
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Bypass A1Topup completely. 100% traffic routed to sub-400ms REST endpoint.
+            Bypass NeroPay completely. 100% traffic routed to Noble Web Studio.
           </div>
           <div className="mt-3 text-[10px] font-semibold text-amber-600 dark:text-amber-400 uppercase flex items-center gap-1">
             <AlertTriangle className="w-3 h-3" />
@@ -105,24 +107,25 @@ export const FailoverToggle: React.FC<FailoverToggleProps> = ({ currentMode, onU
           </div>
         </div>
 
-        {/* Mode 3: FORCE A1TOPUP */}
+        {/* Mode 3: FORCE NEROPAY */}
         <div
-          onClick={() => handleModeChange('FORCE_A1TOPUP')}
+          onClick={() => handleModeChange('FORCE_NEROPAY')}
           className={`cursor-pointer p-4 rounded-xl border transition-all ${
-            selectedMode === 'FORCE_A1TOPUP'
-              ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-500 shadow-md shadow-blue-500/10'
+            selectedMode === 'FORCE_NEROPAY' || selectedMode === 'FORCE_A1TOPUP'
+              ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-500 shadow-md shadow-emerald-500/10'
               : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="font-bold text-slate-900 dark:text-white text-sm">Force A1Topup Only</span>
-            <span className={`w-2.5 h-2.5 rounded-full ${selectedMode === 'FORCE_A1TOPUP' ? 'bg-blue-600 dark:bg-blue-400 animate-pulse' : 'bg-slate-300 dark:bg-slate-600'}`}></span>
+            <span className="font-bold text-slate-900 dark:text-white text-sm">Force NeroPay Only</span>
+            <span className={`w-2.5 h-2.5 rounded-full ${selectedMode === 'FORCE_NEROPAY' || selectedMode === 'FORCE_A1TOPUP' ? 'bg-emerald-600 dark:bg-emerald-400 animate-pulse' : 'bg-slate-300 dark:bg-slate-600'}`}></span>
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Strictly use A1Topup. No failover channel even if timeouts or rejections occur.
+            Strictly route 100% of recharges to NeroPay Primary Gateway.
           </div>
-          <div className="mt-3 text-[10px] font-semibold text-blue-600 dark:text-blue-400 uppercase">
-            Max Commission Locked
+          <div className="mt-3 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase flex items-center gap-1">
+            <Zap className="w-3 h-3" />
+            <span>NeroPay Primary Locked</span>
           </div>
         </div>
       </div>

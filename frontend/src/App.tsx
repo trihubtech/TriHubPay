@@ -576,13 +576,19 @@ export function App() {
               </button>
             </div>
 
-            <button
-              onClick={loadAdminData}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-xs font-semibold shadow-sm"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Refresh Metrics</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-xs font-bold text-emerald-700 dark:text-emerald-400">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>NeroPay Float: ₹{(adminKPIs?.master_wallet?.balance ?? 100).toFixed(2)}</span>
+              </div>
+              <button
+                onClick={loadAdminData}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-xs font-semibold shadow-sm"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Refresh</span>
+              </button>
+            </div>
           </div>
 
           {/* Sub-Tab 1: Overview KPIs */}
@@ -597,6 +603,7 @@ export function App() {
           {adminSubTab === 'SHOPS' && (
             <UserBalanceManager
               users={allUsers}
+              masterBalance={adminKPIs?.master_wallet?.balance ?? 100}
               onRefresh={loadAdminData}
               onOpenCustomCommissions={(shop) => setSelectedShopForOverrides(shop)}
               onOpenOnboardShop={() => setIsOnboardModalOpen(true)}
