@@ -1,5 +1,13 @@
 export type Role = 'ADMIN' | 'DISTRIBUTOR' | 'RETAILER';
-export type ServiceType = 'MOBILE' | 'DTH' | 'ELECTRICITY';
+export type ServiceType = 
+  | 'MOBILE' 
+  | 'DTH' 
+  | 'ELECTRICITY' 
+  | 'GOOGLE_PLAY' 
+  | 'OTT_APPS' 
+  | 'FASTAG' 
+  | 'LPG_GAS' 
+  | 'BROADBAND';
 export type TxStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'REFUNDED';
 export type UpstreamProvider = 'A1TOPUP' | 'NOBLE_WEB' | 'MANUAL' | 'NONE';
 

@@ -18,9 +18,12 @@ import {
   Share2, 
   Check, 
   RefreshCw,
-  Percent
+  Percent,
+  Wifi,
+  Flame,
+  Film
 } from 'lucide-react';
-import { Transaction, RetailerCommissionRate, User } from '../../types';
+import { Transaction, RetailerCommissionRate, User, ServiceType } from '../../types';
 import { api } from '../../services/api';
 import { OperatorIcon } from '../common/OperatorIcon';
 
@@ -28,7 +31,7 @@ interface HomeScreenProps {
   currentUser: User;
   transactions: Transaction[];
   onOpenTopup: () => void;
-  onSelectService: (service: 'MOBILE' | 'DTH' | 'ELECTRICITY') => void;
+  onSelectService: (service: ServiceType) => void;
   onNavigateToTab: (tab: 'RECHARGE' | 'PASSBOOK' | 'COMMISSIONS') => void;
   onRefreshData?: () => void;
   isRefreshing?: boolean;
@@ -348,11 +351,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             </span>
           </button>
 
-          {/* Tile 4: FASTag (Coming Soon) */}
+          {/* Tile 4: FASTag */}
           <button
             type="button"
-            onClick={() => handleComingSoon('FASTag Recharge')}
-            className="flex flex-col items-center text-center p-2 sm:p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all active:scale-95 group relative"
+            onClick={() => onSelectService('FASTAG')}
+            className="flex flex-col items-center text-center p-2 sm:p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all active:scale-95 group"
           >
             <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center mb-2 shadow-xs group-hover:scale-105 transition-transform">
               <Car className="w-6 h-6 sm:w-7 sm:h-7" />
@@ -360,16 +363,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             <span className="text-[11px] sm:text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">
               FASTag
             </span>
-            <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.2 rounded-full mt-0.5 border border-blue-200 dark:border-blue-900">
-              Soon
-            </span>
           </button>
 
           {/* Tile 5: Google Play */}
           <button
             type="button"
-            onClick={() => handleComingSoon('Google Play Recharge')}
-            className="flex flex-col items-center text-center p-2 sm:p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all active:scale-95 group relative"
+            onClick={() => onSelectService('GOOGLE_PLAY')}
+            className="flex flex-col items-center text-center p-2 sm:p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all active:scale-95 group"
           >
             <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2 shadow-xs group-hover:scale-105 transition-transform">
               <Play className="w-6 h-6 sm:w-7 sm:h-7" />
@@ -377,59 +377,47 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             <span className="text-[11px] sm:text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">
               Google Play
             </span>
-            <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.2 rounded-full mt-0.5 border border-blue-200 dark:border-blue-900">
-              Soon
+          </button>
+
+          {/* Tile 6: LPG Gas Cylinder */}
+          <button
+            type="button"
+            onClick={() => onSelectService('LPG_GAS')}
+            className="flex flex-col items-center text-center p-2 sm:p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all active:scale-95 group"
+          >
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center mb-2 shadow-xs group-hover:scale-105 transition-transform">
+              <Flame className="w-6 h-6 sm:w-7 sm:h-7" />
+            </div>
+            <span className="text-[11px] sm:text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">
+              LPG Gas
             </span>
           </button>
 
-          {/* Tile 6: Insurance */}
+          {/* Tile 7: Broadband */}
           <button
             type="button"
-            onClick={() => handleComingSoon('Insurance Premium Payment')}
-            className="flex flex-col items-center text-center p-2 sm:p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all active:scale-95 group relative"
+            onClick={() => onSelectService('BROADBAND')}
+            className="flex flex-col items-center text-center p-2 sm:p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all active:scale-95 group"
           >
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center mb-2 shadow-xs group-hover:scale-105 transition-transform">
-              <ShieldCheck className="w-6 h-6 sm:w-7 sm:h-7" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center justify-center mb-2 shadow-xs group-hover:scale-105 transition-transform">
+              <Wifi className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
             <span className="text-[11px] sm:text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">
-              Insurance
-            </span>
-            <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.2 rounded-full mt-0.5 border border-blue-200 dark:border-blue-900">
-              Soon
+              Broadband
             </span>
           </button>
 
-          {/* Tile 7: EMI / Loan */}
+          {/* Tile 8: OTT Apps */}
           <button
             type="button"
-            onClick={() => handleComingSoon('EMI & Loan Repayments')}
-            className="flex flex-col items-center text-center p-2 sm:p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all active:scale-95 group relative"
+            onClick={() => onSelectService('OTT_APPS')}
+            className="flex flex-col items-center text-center p-2 sm:p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all active:scale-95 group"
           >
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-pink-500/10 text-pink-600 dark:text-pink-400 flex items-center justify-center mb-2 shadow-xs group-hover:scale-105 transition-transform">
-              <CreditCard className="w-6 h-6 sm:w-7 sm:h-7" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-2 shadow-xs group-hover:scale-105 transition-transform">
+              <Film className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
             <span className="text-[11px] sm:text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">
-              EMI / Loan
-            </span>
-            <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.2 rounded-full mt-0.5 border border-blue-200 dark:border-blue-900">
-              Soon
-            </span>
-          </button>
-
-          {/* Tile 8: More Services */}
-          <button
-            type="button"
-            onClick={() => handleComingSoon('Additional BBPS & Retailer Services')}
-            className="flex flex-col items-center text-center p-2 sm:p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all active:scale-95 group relative"
-          >
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-2 shadow-xs group-hover:scale-105 transition-transform">
-              <Grid className="w-6 h-6 sm:w-7 sm:h-7" />
-            </div>
-            <span className="text-[11px] sm:text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">
-              More Services
-            </span>
-            <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.2 rounded-full mt-0.5 border border-blue-200 dark:border-blue-900">
-              Soon
+              OTT Vouchers
             </span>
           </button>
         </div>

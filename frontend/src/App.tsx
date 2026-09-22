@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from './services/api';
-import { User, Transaction, DashboardKPIs, CommissionMatrixItem } from './types';
+import { User, Transaction, DashboardKPIs, CommissionMatrixItem, ServiceType } from './types';
 
 // Retailer components
 import { HomeScreen } from './components/retailer/HomeScreen';
@@ -57,7 +57,7 @@ export function App() {
   const [isRefreshingRetailer, setIsRefreshingRetailer] = useState<boolean>(false);
   const [welcomeBanner, setWelcomeBanner] = useState<string>('');
   const [retailerTab, setRetailerTab] = useState<'HOME' | 'RECHARGE' | 'PASSBOOK' | 'COMMISSIONS'>('HOME');
-  const [selectedRechargeService, setSelectedRechargeService] = useState<'MOBILE' | 'DTH' | 'ELECTRICITY'>('MOBILE');
+  const [selectedRechargeService, setSelectedRechargeService] = useState<ServiceType>('MOBILE');
   const [isShopInfoOpen, setIsShopInfoOpen] = useState<boolean>(false);
   const [isSignOutConfirmOpen, setIsSignOutConfirmOpen] = useState<boolean>(false);
 

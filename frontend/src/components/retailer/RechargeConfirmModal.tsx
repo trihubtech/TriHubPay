@@ -12,7 +12,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { OperatorIcon } from '../common/OperatorIcon';
-import { Plan } from '../../types';
+import { Plan, ServiceType } from '../../types';
 
 interface RechargeConfirmModalProps {
   isOpen: boolean;
@@ -22,7 +22,7 @@ interface RechargeConfirmModalProps {
   operatorCode: string;
   operatorName: string;
   accountNumber: string;
-  serviceType: 'MOBILE' | 'DTH' | 'ELECTRICITY';
+  serviceType: ServiceType;
   faceValue: number;
   cashbackEarned: number;
   finalCostBilled: number;

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Operator } from '../../types';
+import { Operator, ServiceType } from '../../types';
 import { OperatorIcon } from '../common/OperatorIcon';
 import { formatOperatorName } from '../../utils/formatters';
 import { X, Search, Check, Zap, Sparkles, ChevronRight } from 'lucide-react';
@@ -10,7 +10,7 @@ interface OperatorSelectModalProps {
   operators: Operator[];
   selectedOperatorCode: string;
   onSelectOperator: (op: Operator) => void;
-  serviceType: 'MOBILE' | 'DTH' | 'ELECTRICITY';
+  serviceType: ServiceType;
 }
 
 export const OperatorSelectModal: React.FC<OperatorSelectModalProps> = ({
@@ -23,11 +23,21 @@ export const OperatorSelectModal: React.FC<OperatorSelectModalProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  const title = {
-    MOBILE: 'Select Mobile Prepaid Operator',
-    DTH: 'Select DTH TV Provider',
-    ELECTRICITY: 'Select Electricity Board (BBPS)'
-  }[serviceType];
+  const getModalTitle = (type: ServiceType) => {
+    switch (type) {
+      case 'MOBILE': return 'Select Mobile Prepaid Operator';
+      case 'DTH': return 'Select DTH TV Provider';
+      case 'ELECTRICITY': return 'Select Electricity Board (BBPS)';
+      case 'GOOGLE_PLAY': return 'Select Play Store Package';
+      case 'OTT_APPS': return 'Select OTT Streaming Service';
+      case 'FASTAG': return 'Select FASTag Issuer Bank';
+      case 'LPG_GAS': return 'Select LPG Gas Provider';
+      case 'BROADBAND': return 'Select Broadband Provider';
+      default: return 'Select Service Provider';
+    }
+  };
+
+  const title = getModalTitle(serviceType);
 
   const filteredOperators = useMemo(() => {
     // Only display operators belonging to the active service category (Mobile, DTH, or Electricity)

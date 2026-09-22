@@ -17,7 +17,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { api } from '../../services/api';
-import { Operator, Plan, CommissionPreview, ElectricityBillDetails } from '../../types';
+import { Operator, Plan, CommissionPreview, ElectricityBillDetails, ServiceType } from '../../types';
 import { BrowsePlansModal } from './BrowsePlansModal';
 import { PlanDetailsModal } from './PlanDetailsModal';
 import { OperatorIcon } from '../common/OperatorIcon';
@@ -28,9 +28,63 @@ import { formatOperatorName } from '../../utils/formatters';
 interface RechargeTabsProps {
   onSuccess: (txData: any, newBalance: number) => void;
   walletBalance: number;
-  initialService?: 'MOBILE' | 'DTH' | 'ELECTRICITY';
+  initialService?: ServiceType;
   onBackToHome?: () => void;
 }
+
+const getServiceTitle = (service: ServiceType) => {
+  switch (service) {
+    case 'MOBILE': return 'Mobile Prepaid Recharge';
+    case 'DTH': return 'DTH TV Recharge';
+    case 'ELECTRICITY': return 'Electricity Bill Payment';
+    case 'GOOGLE_PLAY': return 'Google Play Redeem Code';
+    case 'OTT_APPS': return 'OTT Streaming Subscription';
+    case 'FASTAG': return 'FASTag Toll Recharge';
+    case 'LPG_GAS': return 'LPG Gas Cylinder Booking';
+    case 'BROADBAND': return 'Broadband Internet Bill';
+    default: return 'Utility Payment';
+  }
+};
+
+const getAccountLabel = (service: ServiceType) => {
+  switch (service) {
+    case 'MOBILE': return 'MOBILE NUMBER (10 DIGITS)';
+    case 'DTH': return 'SMART CARD / VC NUMBER';
+    case 'ELECTRICITY': return 'CONSUMER NUMBER / CA NUMBER';
+    case 'GOOGLE_PLAY': return 'RECIPIENT MOBILE NUMBER (FOR SMS CODE)';
+    case 'OTT_APPS': return 'RECIPIENT MOBILE NUMBER';
+    case 'FASTAG': return 'VEHICLE NUMBER (e.g. TN01AB1234)';
+    case 'LPG_GAS': return 'REGISTERED MOBILE / CONSUMER NO';
+    case 'BROADBAND': return 'ACCOUNT NUMBER / USERNAME';
+    default: return 'ACCOUNT / CONSUMER NUMBER';
+  }
+};
+
+const getAccountPlaceholder = (service: ServiceType) => {
+  switch (service) {
+    case 'MOBILE': return 'e.g. 9876543210';
+    case 'DTH': return 'Enter 10 or 11 digit VC number';
+    case 'ELECTRICITY': return 'Enter electricity consumer number';
+    case 'GOOGLE_PLAY': return 'Enter 10-digit mobile number';
+    case 'OTT_APPS': return 'Enter 10-digit mobile number';
+    case 'FASTAG': return 'e.g. TN01AB1234 or FASTag Wallet ID';
+    case 'LPG_GAS': return 'Enter 10-digit mobile or LPG ID';
+    case 'BROADBAND': return 'Enter broadband account ID';
+    default: return 'Enter account number';
+  }
+};
+
+const getOperatorLabel = (service: ServiceType) => {
+  switch (service) {
+    case 'ELECTRICITY': return 'ELECTRICITY BOARD (BBPS)';
+    case 'FASTAG': return 'FASTAG ISSUER BANK';
+    case 'LPG_GAS': return 'LPG GAS PROVIDER';
+    case 'BROADBAND': return 'BROADBAND OPERATOR';
+    case 'GOOGLE_PLAY': return 'PLATFORM';
+    case 'OTT_APPS': return 'OTT PLATFORM';
+    default: return 'OPERATOR & CIRCLE';
+  }
+};
 
 export const RechargeTabs: React.FC<RechargeTabsProps> = ({ 
   onSuccess, 
@@ -38,7 +92,7 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
   initialService,
   onBackToHome 
 }) => {
-  const [activeTab, setActiveTab] = useState<'MOBILE' | 'DTH' | 'ELECTRICITY'>(initialService || 'MOBILE');
+  const [activeTab, setActiveTab] = useState<ServiceType>(initialService || 'MOBILE');
 
   useEffect(() => {
     if (initialService) {
@@ -286,22 +340,12 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
               <span className="hidden sm:inline">Home</span>
             </button>
           )}
-          <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-            {activeTab === 'MOBILE' ? (
-              <Smartphone className="w-4 h-4" />
-            ) : activeTab === 'DTH' ? (
-              <Tv className="w-4 h-4" />
-            ) : (
-              <Zap className="w-4 h-4" />
-            )}
+          <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center overflow-hidden">
+            <OperatorIcon operatorCode={activeTab} size="sm" />
           </div>
           <div>
             <h2 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
-              {activeTab === 'MOBILE'
-                ? 'Mobile Prepaid Recharge'
-                : activeTab === 'DTH'
-                ? 'DTH TV Recharge'
-                : 'Electricity Bill Payment'}
+              {getServiceTitle(activeTab)}
             </h2>
             <p className="text-[10px] text-slate-500 dark:text-slate-400">
               Instant Lapu Dispatch • Live Operator Status
@@ -331,22 +375,12 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
             {/* Account / Mobile input with in-input Operator Icon */}
             <div>
               <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
-                {activeTab === 'MOBILE' 
-                  ? 'MOBILE NUMBER (10 DIGITS)' 
-                  : activeTab === 'DTH'
-                  ? 'SMART CARD / VC NUMBER'
-                  : 'CONSUMER NUMBER / CA NUMBER'}
+                {getAccountLabel(activeTab)}
               </label>
               <div className="relative flex items-center">
                 <input
-                  type={activeTab === 'MOBILE' ? 'tel' : 'text'}
-                  placeholder={
-                    activeTab === 'MOBILE' 
-                      ? 'e.g. 9876543210' 
-                      : activeTab === 'DTH'
-                      ? 'Enter 10 or 11 digit VC number'
-                      : 'Enter electricity consumer number'
-                  }
+                  type={['MOBILE', 'GOOGLE_PLAY', 'OTT_APPS'].includes(activeTab) ? 'tel' : 'text'}
+                  placeholder={getAccountPlaceholder(activeTab)}
                   value={accountNumber}
                   onChange={(e) => handlePhoneChange(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-2xl px-4 py-3 text-slate-900 dark:text-white font-mono font-bold text-base tracking-wider focus:outline-none focus:border-brand-500 pr-12 transition-all shadow-inner"
@@ -362,7 +396,7 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                  {activeTab === 'ELECTRICITY' ? 'ELECTRICITY BOARD (BBPS)' : 'OPERATOR & CIRCLE'}
+                  {getOperatorLabel(activeTab)}
                 </label>
                 <button
                   type="button"
@@ -437,20 +471,36 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
 
           {/* Electricity Verified Bill Detail Card */}
           {activeTab === 'ELECTRICITY' && fetchedBill && (
-            <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl animate-in fade-in space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold text-emerald-700 dark:text-emerald-300">
-                <span className="flex items-center gap-1.5">
+            <div className={`p-4 rounded-2xl animate-in fade-in space-y-2 border ${
+              fetchedBill.bill_amount === 0 || fetchedBill.status === 'PAID'
+                ? 'bg-blue-500/10 border-blue-500/30'
+                : 'bg-emerald-500/10 border-emerald-500/30'
+            }`}>
+              <div className="flex items-center justify-between text-xs font-bold">
+                <span className="flex items-center gap-1.5 text-slate-800 dark:text-slate-100">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                   <span>Consumer Verified: {fetchedBill.consumer_name}</span>
                 </span>
-                <span className="text-[11px] font-mono bg-emerald-500/20 px-2 py-0.5 rounded-full text-emerald-800 dark:text-emerald-200">
+                <span className="text-[11px] font-mono bg-white dark:bg-slate-900 px-2 py-0.5 rounded-full text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800">
                   Bill #{fetchedBill.bill_number}
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-xs pt-1 text-slate-600 dark:text-slate-400">
-                <div>Due Date: <strong className="text-slate-900 dark:text-white">{fetchedBill.due_date}</strong></div>
-                <div className="text-right">Bill Date: <strong className="text-slate-900 dark:text-white">{fetchedBill.bill_date || 'N/A'}</strong></div>
-              </div>
+              {fetchedBill.bill_amount === 0 || fetchedBill.status === 'PAID' ? (
+                <div className="p-3 bg-white/80 dark:bg-slate-900/80 rounded-xl border border-blue-200 dark:border-blue-900/50 space-y-1">
+                  <div className="text-xs font-bold text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <span>No Bill Due for This Cycle</span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                    The bill for this consumer number has already been paid in full. You can enter an advance payment amount if you wish to pay ahead.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2 text-xs pt-1 text-slate-600 dark:text-slate-400">
+                  <div>Due Date: <strong className="text-slate-900 dark:text-white">{fetchedBill.due_date}</strong></div>
+                  <div className="text-right">Bill Date: <strong className="text-slate-900 dark:text-white">{fetchedBill.bill_date || 'N/A'}</strong></div>
+                </div>
+              )}
             </div>
           )}
 
@@ -476,18 +526,22 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
               </span>
               <input
                 type="number"
-                placeholder={activeTab === 'ELECTRICITY' ? 'Fetch bill or enter amount' : 'e.g. 19, 299, 349'}
+                placeholder={
+                  activeTab === 'ELECTRICITY' 
+                    ? (fetchedBill?.bill_amount === 0 ? 'Enter advance amount (e.g. 500)' : 'Fetch bill or enter amount') 
+                    : 'e.g. 19, 299, 349'
+                }
                 value={faceValue}
                 onChange={(e) => setFaceValue(e.target.value)}
-                readOnly={activeTab === 'ELECTRICITY' && Boolean(fetchedBill)}
+                readOnly={activeTab === 'ELECTRICITY' && Boolean(fetchedBill && fetchedBill.bill_amount > 0)}
                 className={`w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-2xl pl-9 pr-4 py-3 text-slate-900 dark:text-white font-mono font-bold text-xl focus:outline-none focus:border-brand-500 transition-all ${
-                  activeTab === 'ELECTRICITY' && Boolean(fetchedBill) ? 'bg-slate-100 dark:bg-slate-900 cursor-not-allowed text-emerald-600 dark:text-emerald-400' : ''
+                  activeTab === 'ELECTRICITY' && fetchedBill && fetchedBill.bill_amount > 0 ? 'bg-slate-100 dark:bg-slate-900 cursor-not-allowed text-emerald-600 dark:text-emerald-400' : ''
                 }`}
                 required
               />
             </div>
 
-            {activeTab === 'ELECTRICITY' && fetchedBill && (
+            {activeTab === 'ELECTRICITY' && fetchedBill && fetchedBill.bill_amount > 0 && (
               <p className="mt-1 text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                 <Check className="w-3 h-3" />
                 <span>Amount locked to verified BBPS electricity invoice</span>
@@ -641,10 +695,10 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
             <button
               type="button"
               onClick={handleOpenConfirmation}
-              disabled={submitting || fetchingBill || !accountNumber || !faceValue || parseFloat(faceValue) <= 0}
+              disabled={submitting || fetchingBill || !accountNumber || (activeTab !== 'ELECTRICITY' && (!faceValue || parseFloat(faceValue) <= 0))}
               className="flex-1 max-w-[200px] bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 disabled:opacity-40 text-white py-2.5 px-4 rounded-xl font-bold text-xs shadow-md shadow-blue-600/20 active:scale-98 transition-all flex items-center justify-center gap-1.5"
             >
-              <span>Confirm &amp; Pay</span>
+              <span>{activeTab === 'ELECTRICITY' && !fetchedBill ? 'Fetch Bill' : 'Confirm & Pay'}</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
