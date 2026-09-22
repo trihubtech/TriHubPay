@@ -389,6 +389,7 @@ export function App() {
                     initialService={selectedRechargeService}
                     onSuccess={handleRechargeSuccess}
                     walletBalance={currentUser.current_balance}
+                    onBackToHome={() => setRetailerTab('HOME')}
                   />
                   <LedgerTable
                     transactions={retailerTransactions.slice(0, 8)}
@@ -444,6 +445,7 @@ export function App() {
                     initialService={selectedRechargeService}
                     onSuccess={handleRechargeSuccess}
                     walletBalance={currentUser.current_balance}
+                    onBackToHome={() => setRetailerTab('HOME')}
                   />
                   {retailerTransactions.length > 0 && (
                     <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between text-xs shadow-sm">
