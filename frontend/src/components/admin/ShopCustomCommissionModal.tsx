@@ -83,8 +83,9 @@ export const ShopCustomCommissionModal: React.FC<ShopCustomCommissionModalProps>
       return;
     }
 
-    if (currentOpMeta && rate > currentOpMeta.master_api_rate) {
-      setErrorMsg(`Cannot set shop rate (${rate}%) higher than master API payout (${currentOpMeta.master_api_rate}%). Platform cannot operate at a loss!`);
+    const masterRate = currentOpMeta ? (currentOpMeta.neropay_master_rate ?? currentOpMeta.master_api_rate ?? 1.0) : 1.0;
+    if (currentOpMeta && rate > masterRate) {
+      setErrorMsg(`Cannot set shop rate (${rate}%) higher than master API payout (${masterRate}%). Platform cannot operate at a loss!`);
       return;
     }
 
@@ -195,13 +196,16 @@ export const ShopCustomCommissionModal: React.FC<ShopCustomCommissionModalProps>
               </div>
             </div>
 
-            {currentOpMeta && (
-              <div className="flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900/60 p-2 rounded-lg border border-slate-200 dark:border-slate-800/60">
-                <span>Master API Payout: <strong className="text-slate-900 dark:text-white">{currentOpMeta.master_api_rate}%</strong></span>
-                <span>Default Retailer Rate: <strong className="text-slate-900 dark:text-white">{currentOpMeta.retailer_pass_down_rate}%</strong></span>
-                <span>Your Retained Margin: <strong className="text-emerald-600 dark:text-emerald-400">{(currentOpMeta.master_api_rate - parseFloat(inputRate || '0')).toFixed(2)}%</strong></span>
-              </div>
-            )}
+            {currentOpMeta && (() => {
+              const masterRate = currentOpMeta.neropay_master_rate ?? currentOpMeta.master_api_rate ?? 1.0;
+              return (
+                <div className="flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900/60 p-2 rounded-lg border border-slate-200 dark:border-slate-800/60">
+                  <span>Upstream Rate: <strong className="text-slate-900 dark:text-white">{masterRate}%</strong></span>
+                  <span>Default Retailer Rate: <strong className="text-slate-900 dark:text-white">{currentOpMeta.retailer_pass_down_rate}%</strong></span>
+                  <span>Your Retained Margin: <strong className="text-emerald-600 dark:text-emerald-400">{(masterRate - parseFloat(inputRate || '0')).toFixed(2)}%</strong></span>
+                </div>
+              );
+            })()}
 
             <button
               type="submit"

@@ -340,7 +340,7 @@ export async function updateCommissionMatrix(req: Request, res: Response) {
       return res.status(400).json({ success: false, message: 'operator_code is required' });
     }
 
-    const neroRate = parseFloat(neropay_master_rate || '0');
+    const neroRate = parseFloat(neropay_master_rate ?? (req.body as any).master_api_rate ?? '0');
     const nobleRate = parseFloat(noble_master_rate || '0');
     const nobleActive = is_noble_active !== undefined ? Boolean(is_noble_active) : false;
     const maxMaster = nobleActive ? Math.max(neroRate, nobleRate) : neroRate;

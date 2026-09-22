@@ -339,6 +339,7 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({
         operator_code: operatorCode,
+        neropay_master_rate: masterRate,
         master_api_rate: masterRate,
         retailer_pass_down_rate: retailerRate,
         is_active: isActive

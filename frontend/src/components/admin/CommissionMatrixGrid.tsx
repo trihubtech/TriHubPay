@@ -20,8 +20,8 @@ export const CommissionMatrixGrid: React.FC<CommissionMatrixGridProps> = ({ item
 
   const startEdit = (item: CommissionMatrixItem) => {
     setEditingCode(item.operator_code);
-    setEditMasterRate(Number(item.master_api_rate));
-    setEditRetailerRate(Number(item.retailer_pass_down_rate));
+    setEditMasterRate(Number(item.neropay_master_rate ?? item.master_api_rate ?? 1.0));
+    setEditRetailerRate(Number(item.retailer_pass_down_rate ?? 0.58));
     setStatusMsg('');
     setErrorMsg('');
   };
@@ -83,18 +83,20 @@ export const CommissionMatrixGrid: React.FC<CommissionMatrixGridProps> = ({ item
             <tr>
               <th className="py-3 px-4">Operator Code & Name</th>
               <th className="py-3 px-4">Category</th>
-              <th className="py-3 px-4 text-center">Master API Payout</th>
-              <th className="py-3 px-4 text-center">Retailer Pass-Down</th>
-              <th className="py-3 px-4 text-center">Admin Net Margin</th>
+              <th className="py-3 px-4 text-center">NeroPay Upstream Rate</th>
+              <th className="py-3 px-4 text-center">Retailer Pass-Down (58%)</th>
+              <th className="py-3 px-4 text-center">Admin Net Margin (42%)</th>
               <th className="py-3 px-4 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
             {items.map((it) => {
               const isEditing = editingCode === it.operator_code;
+              const masterRate = Number(it.neropay_master_rate ?? it.master_api_rate ?? 1.0);
+              const retailerRate = Number(it.retailer_pass_down_rate ?? 0.58);
               const projectedMargin = isEditing
                 ? Number((editMasterRate - editRetailerRate).toFixed(2))
-                : Number(it.admin_net_margin);
+                : Number(it.admin_net_margin ?? (masterRate - retailerRate).toFixed(2));
 
               return (
                 <tr key={it.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-850/50 transition-colors">
@@ -116,18 +118,18 @@ export const CommissionMatrixGrid: React.FC<CommissionMatrixGridProps> = ({ item
                     </span>
                   </td>
 
-                  {/* Master Rate */}
+                  {/* Master Rate (NeroPay) */}
                   <td className="py-3.5 px-4 text-center font-mono">
                     {isEditing ? (
                       <input
                         type="number"
-                        step="0.1"
+                        step="0.01"
                         value={editMasterRate}
                         onChange={(e) => setEditMasterRate(parseFloat(e.target.value))}
                         className="w-16 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded px-2 py-1 text-center text-slate-900 dark:text-white font-semibold focus:outline-none focus:border-brand-500"
                       />
                     ) : (
-                      <span className="text-slate-700 dark:text-slate-300 font-semibold">{Number(it.master_api_rate).toFixed(2)}%</span>
+                      <span className="text-slate-700 dark:text-slate-300 font-semibold">{masterRate.toFixed(2)}%</span>
                     )}
                   </td>
 
@@ -136,20 +138,20 @@ export const CommissionMatrixGrid: React.FC<CommissionMatrixGridProps> = ({ item
                     {isEditing ? (
                       <input
                         type="number"
-                        step="0.1"
+                        step="0.01"
                         value={editRetailerRate}
                         onChange={(e) => setEditRetailerRate(parseFloat(e.target.value))}
                         className="w-16 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded px-2 py-1 text-center text-blue-600 dark:text-brand-400 font-bold focus:outline-none focus:border-brand-500"
                       />
                     ) : (
-                      <span className="text-blue-600 dark:text-brand-400 font-bold">{Number(it.retailer_pass_down_rate).toFixed(2)}%</span>
+                      <span className="text-blue-600 dark:text-brand-400 font-bold">{retailerRate.toFixed(2)}%</span>
                     )}
                   </td>
 
                   {/* Admin Net Margin */}
                   <td className="py-3.5 px-4 text-center font-mono font-bold">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${
-                      projectedMargin >= 2.0
+                      projectedMargin >= 0.4
                         ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20'
                         : 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20'
                     }`}>

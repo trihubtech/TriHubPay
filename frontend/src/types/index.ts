@@ -127,9 +127,12 @@ export interface CommissionMatrixItem {
   operator_code: string;
   operator_name: string;
   service_type: ServiceType;
-  master_api_rate: number;
+  neropay_master_rate?: number;
+  noble_master_rate?: number;
+  master_api_rate?: number;
   retailer_pass_down_rate: number;
   admin_net_margin: number;
+  is_noble_active?: boolean;
   is_active: boolean;
 }
 
