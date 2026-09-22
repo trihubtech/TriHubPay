@@ -23,7 +23,8 @@ import {
   Building2,
   User as UserIcon,
   Save,
-  CheckCircle2
+  CheckCircle2,
+  RotateCcw
 } from 'lucide-react';
 
 interface UserBalanceManagerProps {
@@ -130,6 +131,30 @@ export const UserBalanceManager: React.FC<UserBalanceManagerProps> = ({
       setEditProfileError(err.message || 'Failed to update profile. Mobile number or email is already used by another profile.');
     } finally {
       setIsSavingProfile(false);
+    }
+  };
+
+  const [isResettingBalances, setIsResettingBalances] = useState<boolean>(false);
+
+  const handleResetAllBalances = async () => {
+    const confirmed = window.confirm(
+      '⚠️ RESET ALL RETAILER BALANCES TO ₹0.00?\n\nThis will zero out all retailer cash balances in your platform so that recharges require real wallet deposits. Continue?'
+    );
+    if (!confirmed) return;
+
+    setIsResettingBalances(true);
+    try {
+      const res = await api.resetAllRetailerBalances();
+      if (res.success) {
+        setFeedbackMsg({ text: 'All retailer balances successfully reset to ₹0.00 for live launch.' });
+        onRefresh();
+      } else {
+        setFeedbackMsg({ text: res.message || 'Failed to reset balances', error: true });
+      }
+    } catch (e: any) {
+      setFeedbackMsg({ text: e.message || 'Error resetting balances', error: true });
+    } finally {
+      setIsResettingBalances(false);
     }
   };
 
@@ -259,6 +284,16 @@ export const UserBalanceManager: React.FC<UserBalanceManagerProps> = ({
         </div>
 
         <div className="flex items-center gap-2.5 w-full sm:w-auto">
+          <button
+            onClick={handleResetAllBalances}
+            disabled={isResettingBalances}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 dark:text-rose-300 font-bold text-xs border border-rose-200 dark:border-rose-800 transition-all shrink-0"
+            title="Reset all test retailer balances to ₹0.00 for live launch"
+          >
+            {isResettingBalances ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
+            <span>Reset Balances to ₹0</span>
+          </button>
+
           <button
             onClick={onOpenOnboardShop}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-md shadow-brand-600/20 transition-all shrink-0"

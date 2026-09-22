@@ -373,6 +373,16 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
       }];
     }
   }
+  // 4a. UPDATE users SET current_balance = 0... WHERE role = 'RETAILER'
+  else if (/UPDATE users SET current_balance = 0.*?WHERE role = 'RETAILER'/i.test(cleanSql)) {
+    for (const u of memoryStore.users) {
+      if (u.role === 'RETAILER') {
+        u.current_balance = '0.0000';
+      }
+    }
+    savePersistentStore();
+    rows = [];
+  }
   // 4. UPDATE users SET current_balance = $1 WHERE id = $2
   else if (/UPDATE users SET current_balance = \$1.* WHERE id = \$2/i.test(cleanSql)) {
     const user = memoryStore.users.find(u => u.id === params[1]);

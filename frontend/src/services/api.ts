@@ -308,6 +308,12 @@ export const api = {
     });
   },
 
+  async resetAllRetailerBalances() {
+    return request<{ success: boolean; message: string }>('/admin/users/reset-all-balances', {
+      method: 'POST'
+    });
+  },
+
   async getUserLedger(userId: string) {
     return request<{ success: boolean; data: LedgerEntry[] }>(`/admin/users/${userId}/ledger`);
   },

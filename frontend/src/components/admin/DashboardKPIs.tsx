@@ -105,7 +105,10 @@ export const DashboardKPIs: React.FC<DashboardKPIsProps> = ({ kpis, onRefresh })
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center justify-between">
             <span>Wallet liability: ₹{kpis.retailer_float_liability.toFixed(0)}</span>
-            <span className="font-semibold text-slate-700 dark:text-slate-300">A1+Noble Pool</span>
+            <span className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              NeroPay Live
+            </span>
           </div>
         </div>
       </div>
@@ -119,7 +122,7 @@ export const DashboardKPIs: React.FC<DashboardKPIsProps> = ({ kpis, onRefresh })
           <div>
             <div className="text-xs font-bold text-slate-800 dark:text-slate-300">Two-Tier Dynamic Route Distribution</div>
             <div className="text-xs text-slate-500 mt-0.5">
-              Primary A1Topup (8s Timeout) ➔ Automated Failover to Noble Web Studio / E2E
+              Primary NeroPay (8s Timeout) ➔ Automated Dynamic Failover to Noble Web Studio
             </div>
           </div>
         </div>
@@ -127,7 +130,7 @@ export const DashboardKPIs: React.FC<DashboardKPIsProps> = ({ kpis, onRefresh })
         <div className="flex items-center gap-3 text-xs">
           <div className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-blue-500 dark:bg-blue-400"></span>
-            <span className="text-slate-600 dark:text-slate-300 font-medium">A1Topup:</span>
+            <span className="text-slate-600 dark:text-slate-300 font-medium">NeroPay:</span>
             <span className="font-bold text-slate-900 dark:text-white font-mono">{kpis.primary_a1_count}</span>
           </div>
           <div className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center gap-2">

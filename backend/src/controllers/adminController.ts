@@ -2,10 +2,11 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { query, withTransaction } from '../db';
+import { NeroPayClient } from '../services/upstream/neropay';
 
 /**
  * High-Level Operations Dashboard KPIs:
- * Network Volume, Net Admin Profit (from 5% margin spread), Upstream Success Rates, and Master Wallet Monitor
+ * Network Volume, Net Admin Profit (from margin spread), Upstream Success Rates, and Master Wallet Monitor
  */
 export async function getDashboardKPIs(req: Request, res: Response) {
   try {
@@ -19,8 +20,8 @@ export async function getDashboardKPIs(req: Request, res: Response) {
         COUNT(CASE WHEN status = 'SUCCESS' THEN 1 END) as success_count,
         COUNT(CASE WHEN status = 'FAILED' THEN 1 END) as failed_count,
         COUNT(CASE WHEN status = 'PENDING' THEN 1 END) as pending_count,
-        COUNT(CASE WHEN upstream_api_used = 'NOBLE_WEB' THEN 1 END) as failover_channel_count,
-        COUNT(CASE WHEN upstream_api_used = 'A1TOPUP' THEN 1 END) as primary_channel_count
+        COUNT(CASE WHEN upstream_api_used = 'NOBLE' OR upstream_api_used = 'NOBLE_WEB' THEN 1 END) as failover_channel_count,
+        COUNT(CASE WHEN upstream_api_used = 'NEROPAY' OR upstream_api_used = 'A1TOPUP' THEN 1 END) as primary_channel_count
       FROM transactions;
     `);
 
@@ -33,12 +34,23 @@ export async function getDashboardKPIs(req: Request, res: Response) {
       FROM users;
     `);
 
-    // 3. Master wallet alert parameters
-    const settingsRes = await query("SELECT value FROM system_settings WHERE key = 'master_wallet_metrics' LIMIT 1");
-    const masterMetrics = settingsRes.rows[0]?.value || {
-      cached_balance: 184500.0,
-      low_balance_threshold: 25000.0
-    };
+    // 3. Live Master Distributor Wallet Balance (Direct from NeroPay Upstream)
+    let liveMasterBalance = 100.0;
+    const lowBalanceThreshold = parseFloat(process.env.MASTER_WALLET_LOW_THRESHOLD || '20.0');
+
+    try {
+      const neroClient = new NeroPayClient();
+      const balRes = await neroClient.checkBalance();
+      if (balRes && typeof balRes.main === 'number' && !isNaN(balRes.main)) {
+        liveMasterBalance = balRes.main;
+      }
+    } catch (e: any) {
+      console.warn('[ADMIN OVERVIEW] Could not query live NeroPay balance:', e.message);
+      const settingsRes = await query("SELECT value FROM system_settings WHERE key = 'master_wallet_metrics' LIMIT 1");
+      if (settingsRes.rows.length > 0 && settingsRes.rows[0].value?.cached_balance !== undefined) {
+        liveMasterBalance = parseFloat(settingsRes.rows[0].value.cached_balance) || 100.0;
+      }
+    }
 
     // 4. Failover settings
     const failoverRes = await query("SELECT value FROM system_settings WHERE key = 'failover_mode' LIMIT 1");
@@ -70,9 +82,9 @@ export async function getDashboardKPIs(req: Request, res: Response) {
         active_retailers: parseInt(userStats.rows[0].active_retailers, 10),
         retailer_float_liability: parseFloat(userStats.rows[0].total_retailer_wallet_float),
         master_wallet: {
-          balance: parseFloat(masterMetrics.cached_balance),
-          threshold: parseFloat(masterMetrics.low_balance_threshold),
-          is_low_balance: parseFloat(masterMetrics.cached_balance) < parseFloat(masterMetrics.low_balance_threshold)
+          balance: liveMasterBalance,
+          threshold: lowBalanceThreshold,
+          is_low_balance: liveMasterBalance < lowBalanceThreshold
         },
         failover_mode: failoverMode
       }
@@ -749,6 +761,22 @@ export async function rejectDeposit(req: Request, res: Response) {
     return res.json({
       success: true,
       message: `Deposit request marked as rejected.`
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+/**
+ * Reset all retailer cash balances to ₹0.00
+ * Use case: Transition from demo/testing to production live launch with NeroPay
+ */
+export async function resetAllRetailerBalances(req: Request, res: Response) {
+  try {
+    await query("UPDATE users SET current_balance = 0.0000 WHERE role = 'RETAILER'");
+    return res.json({
+      success: true,
+      message: 'All retailer balances have been reset to ₹0.00 for live launch.'
     });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
