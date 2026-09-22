@@ -8,7 +8,7 @@ const NEROPAY_OPERATOR_CODES: Record<string, string> = {
   // Mobile Prepaid Operators
   'AIRTEL': 'AT',
   'BSNL': 'BSNL',
-  'JIO': 'Jio',
+  'JIO': 'JIO',
   'VI': 'VI',
 
   // DTH Providers
@@ -84,87 +84,121 @@ export class NeroPayClient {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
 
-    try {
-      const opCode = NEROPAY_OPERATOR_CODES[payload.operatorCode] || payload.operatorCode;
-      const targetAmount = Math.round(payload.faceValue);
-
-      // Construct official NeroPay GET query parameters
-      const queryParams = new URLSearchParams({
-        token: this.token,
-        customer_id: String(payload.targetAccountNumber),
-        operatorcode: opCode,
-        amount: String(targetAmount),
-        refid: payload.internalTxId
-      });
-
-      const requestUrl = `${this.apiUrl}?${queryParams.toString()}`;
-      console.log(`[NEROPAY PRODUCTION REQUEST] Dispatching GET to NeroPay for ref: ${payload.internalTxId}`);
-
-      const response = await fetch(requestUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'TriHubPay-B2B-Core/2.0'
-        },
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`NeroPay HTTP ${response.status}: ${errorText}`);
-      }
-
-      const json = await response.json() as any;
-      console.log(`[NEROPAY PRODUCTION RESPONSE] Ref: ${payload.internalTxId} | Result:`, JSON.stringify(json));
-
-      const statusStr = String(json.status || '').toUpperCase();
-      const isSuccess = statusStr === 'SUCCESS' || json.code === '00';
-      const isPending = statusStr === 'PENDING' || json.code === '01';
-
-      // Digital voucher parsing (for Google Play, OTT, etc.)
-      let voucherCode: string | undefined = undefined;
-      let voucherPin: string | undefined = undefined;
-
-      if (json.voucher || json.pin || json.operatorid) {
-        const textToScan = `${json.operatorid || ''} ${json.message || ''}`;
-        const codeMatch = textToScan.match(/code[:\s]+([A-Z0-9-]+)/i);
-        const pinMatch = textToScan.match(/pin[:\s]+([0-9]+)/i);
-
-        voucherCode = json.voucher_code || json.voucher || (codeMatch ? codeMatch[1] : undefined);
-        voucherPin = json.voucher_pin || json.pin || (pinMatch ? pinMatch[1] : undefined);
-      }
-
-      if (isSuccess) {
-        return {
-          status: 'SUCCESS',
-          upstreamRef: json.txnid || json.operatorid || `NERO_${Date.now()}`,
-          message: json.message || 'Transaction completed successfully via NeroPay',
-          rawResponse: json,
-          voucherCode,
-          voucherPin
-        };
-      } else if (isPending) {
-        return {
-          status: 'PENDING',
-          upstreamRef: json.txnid || `NERO_P_${Date.now()}`,
-          message: json.message || 'Transaction under process at operator (NeroPay PENDING)',
-          rawResponse: json,
-          voucherCode,
-          voucherPin
-        };
-      } else {
-        // Failed / Refunded upstream -> will trigger failover to fallback gateway
-        throw new Error(`NeroPay Rejected: ${json.message || statusStr}`);
-      }
-    } catch (err: any) {
-      clearTimeout(timeoutId);
-      if (err.name === 'AbortError') {
-        throw new Error(`NEROPAY_TIMEOUT: Request timed out after ${this.timeoutMs}ms strict threshold`);
-      }
-      throw err;
+    const targetAmount = Math.round(payload.faceValue);
+    const primaryOpCode = NEROPAY_OPERATOR_CODES[payload.operatorCode] || payload.operatorCode;
+    
+    // Candidates to test in order:
+    // 1. /apiservice/utility_payments with JIO
+    // 2. /apiservice/recharge with JIO
+    // 3. /apiservice/utility_payments with Jio
+    // 4. /apiservice/recharge with Jio
+    const attempts = [
+      { url: `${this.baseUrl}/apiservice/utility_payments`, op: primaryOpCode },
+      { url: `${this.baseUrl}/apiservice/recharge`, op: primaryOpCode }
+    ];
+    if (primaryOpCode === 'JIO') {
+      attempts.push({ url: `${this.baseUrl}/apiservice/utility_payments`, op: 'Jio' });
+      attempts.push({ url: `${this.baseUrl}/apiservice/recharge`, op: 'Jio' });
     }
+
+    let lastError: Error | null = null;
+
+    for (let i = 0; i < attempts.length; i++) {
+      const { url: targetUrl, op: opCode } = attempts[i];
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
+
+      try {
+        const queryParams = new URLSearchParams({
+          token: this.token,
+          customer_id: String(payload.targetAccountNumber),
+          operatorcode: opCode,
+          amount: String(targetAmount),
+          refid: payload.internalTxId
+        });
+
+        const requestUrl = `${targetUrl}?${queryParams.toString()}`;
+        console.log(`[NEROPAY PRODUCTION REQUEST #${i + 1}] Dispatching GET to ${targetUrl} (op: ${opCode}) for ref: ${payload.internalTxId}`);
+
+        const response = await fetch(requestUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'TriHubPay-B2B-Core/2.0'
+          },
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`NeroPay HTTP ${response.status}: ${errorText}`);
+        }
+
+        const json = await response.json() as any;
+        console.log(`[NEROPAY PRODUCTION RESPONSE #${i + 1}] Ref: ${payload.internalTxId} | Result:`, JSON.stringify(json));
+
+        const statusStr = String(json.status || '').toUpperCase();
+        const msgStr = String(json.message || '');
+        const isSuccess = statusStr === 'SUCCESS' || json.code === '00';
+        const isPending = statusStr === 'PENDING' || json.code === '01';
+
+        // If this endpoint returned "NO API ACTIVE ON THIS OPERATOR", try the next candidate
+        if (msgStr.toLowerCase().includes('no api active') && i < attempts.length - 1) {
+          console.warn(`[NEROPAY RETRY] ${targetUrl} with op ${opCode} returned "${msgStr}", trying next endpoint...`);
+          continue;
+        }
+
+        // Digital voucher parsing (for Google Play, OTT, etc.)
+        let voucherCode: string | undefined = undefined;
+        let voucherPin: string | undefined = undefined;
+
+        if (json.voucher || json.pin || json.operatorid) {
+          const textToScan = `${json.operatorid || ''} ${json.message || ''}`;
+          const codeMatch = textToScan.match(/code[:\s]+([A-Z0-9-]+)/i);
+          const pinMatch = textToScan.match(/pin[:\s]+([0-9]+)/i);
+
+          voucherCode = json.voucher_code || json.voucher || (codeMatch ? codeMatch[1] : undefined);
+          voucherPin = json.voucher_pin || json.pin || (pinMatch ? pinMatch[1] : undefined);
+        }
+
+        if (isSuccess) {
+          return {
+            status: 'SUCCESS',
+            upstreamRef: json.txnid || json.operatorid || `NERO_${Date.now()}`,
+            message: json.message || 'Transaction completed successfully via NeroPay',
+            rawResponse: json,
+            voucherCode,
+            voucherPin
+          };
+        } else if (isPending) {
+          return {
+            status: 'PENDING',
+            upstreamRef: json.txnid || `NERO_P_${Date.now()}`,
+            message: json.message || 'Transaction under process at operator (NeroPay PENDING)',
+            rawResponse: json,
+            voucherCode,
+            voucherPin
+          };
+        } else {
+          throw new Error(`NeroPay Rejected: ${json.message || statusStr}`);
+        }
+      } catch (err: any) {
+        clearTimeout(timeoutId);
+        if (err.name === 'AbortError') {
+          throw new Error(`NEROPAY_TIMEOUT: Request timed out after ${this.timeoutMs}ms strict threshold`);
+        }
+        lastError = err;
+        // If not the last attempt and error mentions "no api active", continue
+        if (err.message && err.message.toLowerCase().includes('no api active') && i < attempts.length - 1) {
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    throw lastError || new Error('NeroPay dispatch failed');
   }
 
   /**
