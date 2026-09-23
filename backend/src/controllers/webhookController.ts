@@ -78,10 +78,11 @@ export async function handleUpstreamWebhook(req: Request, res: Response) {
         await client.query(
           `INSERT INTO wallet_ledger (
             user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
-          ) VALUES ($1, $2, 'CREDIT', $3, $4, $5, $6)`,
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
           [
             tx.retailer_id,
             billedAmount,
+            'CREDIT',
             curBal,
             newBal,
             clientRefId,
@@ -194,10 +195,11 @@ export async function handleNeroPayWebhook(req: Request, res: Response) {
         await client.query(
           `INSERT INTO wallet_ledger (
             user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
-          ) VALUES ($1, $2, 'CREDIT', $3, $4, $5, $6)`,
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
           [
             tx.retailer_id,
             billedAmount,
+            'CREDIT',
             curBal,
             newBal,
             tx.internal_tx_id,

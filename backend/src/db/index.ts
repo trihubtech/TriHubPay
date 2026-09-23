@@ -137,7 +137,34 @@ function loadPersistentStore() {
         const otherUsers = parsed.users.filter((u: any) => u.role !== 'ADMIN');
         memoryStore.users = [memoryStore.users[0], ...otherUsers];
       }
-      if (parsed.wallet_ledger) memoryStore.wallet_ledger = parsed.wallet_ledger;
+      if (parsed.wallet_ledger && Array.isArray(parsed.wallet_ledger)) {
+        memoryStore.wallet_ledger = parsed.wallet_ledger.map((l: any) => {
+          let txType = l.transaction_type;
+          let balBefore = l.balance_before;
+          let balAfter = l.balance_after;
+          let refId = l.reference_id;
+          let desc = l.description;
+
+          // If transaction_type is a number (corrupted by older parameter index shift)
+          if (!isNaN(Number(txType)) && (isNaN(Number(balAfter)) || String(balAfter).startsWith('TXN_'))) {
+            const isDebit = String(l.description || l.reference_id || '').toLowerCase().includes('order');
+            txType = isDebit ? 'DEBIT' : 'CREDIT';
+            balBefore = l.transaction_type;
+            balAfter = l.balance_before;
+            refId = l.balance_after;
+            desc = l.reference_id || 'Wallet Balance Movement';
+          }
+
+          return {
+            ...l,
+            transaction_type: txType,
+            balance_before: String(balBefore || '0.0000'),
+            balance_after: String(balAfter || '0.0000'),
+            reference_id: String(refId || ''),
+            description: String(desc || 'Wallet Balance Movement')
+          };
+        });
+      }
       if (parsed.transactions) memoryStore.transactions = parsed.transactions;
       if (parsed.wallet_topups) memoryStore.wallet_topups = parsed.wallet_topups;
       if (parsed.user_commissions) memoryStore.user_commissions = parsed.user_commissions;
@@ -573,15 +600,47 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
   }
   // 13. INSERT INTO wallet_ledger
   else if (/INSERT INTO wallet_ledger/i.test(cleanSql)) {
+    let userId = params[0];
+    let amount = String(params[1]);
+    let txType = 'CREDIT';
+    let balBefore = '0.0000';
+    let balAfter = '0.0000';
+    let refId = '';
+    let desc = '';
+
+    if (params.length >= 7) {
+      txType = String(params[2]);
+      balBefore = String(params[3]);
+      balAfter = String(params[4]);
+      refId = String(params[5] || '');
+      desc = String(params[6] || '');
+    } else if (params.length === 6) {
+      // Form: VALUES ($1, $2, 'DEBIT'/'CREDIT', $3, $4, $5, $6)
+      const isDebit = /'DEBIT'/i.test(cleanSql);
+      txType = isDebit ? 'DEBIT' : 'CREDIT';
+      balBefore = String(params[2]);
+      balAfter = String(params[3]);
+      refId = String(params[4] || '');
+      desc = String(params[5] || '');
+    } else if (params.length === 5) {
+      // Form: VALUES ($1, $2, 'DEBIT', $3, 0.0000, $4, $5)
+      const isDebit = /'DEBIT'/i.test(cleanSql);
+      txType = isDebit ? 'DEBIT' : 'CREDIT';
+      balBefore = String(params[2]);
+      balAfter = '0.0000';
+      refId = String(params[3] || '');
+      desc = String(params[4] || '');
+    }
+
     memoryStore.wallet_ledger.unshift({
       id: `led-${Date.now()}`,
-      user_id: params[0],
-      amount: String(params[1]),
-      transaction_type: params[2],
-      balance_before: String(params[3]),
-      balance_after: String(params[4]),
-      reference_id: params[5],
-      description: params[6],
+      user_id: userId,
+      amount,
+      transaction_type: txType,
+      balance_before: balBefore,
+      balance_after: balAfter,
+      reference_id: refId,
+      description: desc,
       created_at: new Date().toISOString()
     });
     savePersistentStore();

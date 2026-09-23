@@ -259,10 +259,126 @@ export const PendingDepositsTable: React.FC<PendingDepositsTableProps> = ({ onBa
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850/50 text-slate-500 dark:text-slate-400 font-semibold">
+        <>
+          {/* ─── 1. MOBILE RESPONSIVE CARDS (No horizontal scroll) ─── */}
+          <div className="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800 max-h-[520px] overflow-y-auto">
+        {visibleDeposits.map((d) => {
+          const isPending = d.status === 'PENDING' || d.status === 'PENDING_APPROVAL';
+          const isApproved = d.status === 'COMPLETED';
+          const isRejected = d.status === 'REJECTED';
+
+          return (
+            <div key={d.id} className="p-3.5 hover:bg-slate-50/50 dark:hover:bg-slate-850/50 transition-colors space-y-2.5">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="font-bold text-sm text-slate-900 dark:text-white">
+                    {d.organization_name}
+                  </div>
+                  <div className="text-[11px] text-slate-500 font-mono">
+                    {d.owner_name} • {d.phone}
+                  </div>
+                </div>
+
+                <div className="text-right shrink-0">
+                  <div className="text-base font-black font-mono text-emerald-600 dark:text-emerald-400">
+                    ₹{Number(d.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-mono">
+                    Bal: ₹{Number(d.current_wallet_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </div>
+                </div>
+              </div>
+
+              {/* UTR & Status Row */}
+              <div className="flex items-center justify-between gap-2 bg-slate-50 dark:bg-slate-950/60 p-2 rounded-xl border border-slate-100 dark:border-slate-850">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-[9px] uppercase font-bold text-slate-400">UTR:</span>
+                  <span className="font-mono font-bold text-xs text-slate-800 dark:text-slate-200 truncate">
+                    {d.utr_number || 'N/A'}
+                  </span>
+                  {d.utr_number && (
+                    <button
+                      onClick={() => copyToClipboard(d.utr_number, d.id)}
+                      className="text-slate-400 hover:text-slate-600 p-0.5"
+                      title="Copy UTR"
+                    >
+                      <Copy className="w-3 h-3" />
+                    </button>
+                  )}
+                  {copiedId === d.id && (
+                    <span className="text-[9px] text-emerald-600 font-bold">Copied!</span>
+                  )}
+                </div>
+
+                <div>
+                  {isApproved && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                      <CheckCircle2 className="w-3 h-3" />
+                      <span>Approved</span>
+                    </span>
+                  )}
+                  {isPending && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                      <Clock className="w-3 h-3 animate-pulse" />
+                      <span>Pending</span>
+                    </span>
+                  )}
+                  {isRejected && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                      <XCircle className="w-3 h-3" />
+                      <span>Rejected</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Rejection Note if rejected */}
+              {isRejected && (
+                <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 text-[11px] text-rose-700 dark:text-rose-300 flex items-start gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold">Reason: </span>
+                    <span>{d.admin_remarks || 'Bank transfer not received. Please verify UTR.'}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Timestamp and Action Buttons */}
+              <div className="flex items-center justify-between gap-2 pt-0.5">
+                <span className="text-[10px] text-slate-400 font-mono">
+                  {new Date(d.created_at).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}
+                </span>
+
+                {isPending && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleOpenApproveModal(d)}
+                      disabled={actionLoadingId === d.id}
+                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 shadow-sm"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Approve</span>
+                    </button>
+                    <button
+                      onClick={() => handleOpenRejectModal(d)}
+                      disabled={actionLoadingId === d.id}
+                      className="px-2.5 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 font-bold text-xs"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ─── 2. DESKTOP TABLE VIEW ─── */}
+      <div className="hidden sm:block overflow-x-auto">
+        <table className="w-full text-left text-xs">
+          <thead>
+            <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850/50 text-slate-500 dark:text-slate-400 font-semibold">
                 <th className="py-3 px-4">RETAILER / SHOP</th>
                 <th className="py-3 px-4">DEPOSIT AMOUNT</th>
                 <th className="py-3 px-4">UTR / REF NUMBER</th>
@@ -400,6 +516,7 @@ export const PendingDepositsTable: React.FC<PendingDepositsTableProps> = ({ onBa
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       {/* Reject Modal */}

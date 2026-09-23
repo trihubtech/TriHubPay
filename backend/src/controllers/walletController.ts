@@ -190,10 +190,11 @@ export async function confirmUpiTopup(req: Request, res: Response) {
       await client.query(
         `INSERT INTO wallet_ledger (
           user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
-        ) VALUES ($1, $2, 'CREDIT', $3, $4, $5, $6)`,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
         [
           userId,
           amount,
+          'CREDIT',
           curBal,
           updatedBalance,
           txn_ref,

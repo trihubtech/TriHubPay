@@ -90,7 +90,8 @@ export function getActiveAuthToken(): string | null {
     (window.location.pathname.startsWith('/admin') || window.location.hash === '#admin');
   
   if (isAdminRoute) {
-    return localStorage.getItem('trihub_admin_token') || localStorage.getItem('trihub_token');
+    // Strictly isolate admin token. NEVER fall back to retailer token!
+    return localStorage.getItem('trihub_admin_token');
   }
   return localStorage.getItem('trihub_retailer_token') || localStorage.getItem('trihub_token');
 }

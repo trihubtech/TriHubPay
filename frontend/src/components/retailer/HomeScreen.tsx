@@ -5,11 +5,6 @@ import {
   Smartphone, 
   Tv, 
   Zap, 
-  Car, 
-  Play, 
-  ShieldCheck, 
-  CreditCard, 
-  Grid, 
   ChevronRight, 
   Clock, 
   AlertCircle, 
@@ -18,14 +13,12 @@ import {
   Share2, 
   Check, 
   RefreshCw,
-  Percent,
-  Wifi,
-  Flame,
-  Film
+  Percent
 } from 'lucide-react';
 import { Transaction, RetailerCommissionRate, User, ServiceType } from '../../types';
 import { api } from '../../services/api';
 import { OperatorIcon } from '../common/OperatorIcon';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface HomeScreenProps {
   currentUser: User;
@@ -46,6 +39,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onRefreshData,
   isRefreshing = false
 }) => {
+  const { t } = useLanguage();
   const [rates, setRates] = useState<RetailerCommissionRate[]>([]);
   const [comingSoonToast, setComingSoonToast] = useState<string | null>(null);
   const [copiedInvite, setCopiedInvite] = useState<boolean>(false);
@@ -107,18 +101,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     };
   }, [transactions]);
 
-  const handleComingSoon = (serviceName: string) => {
-    setComingSoonToast(`${serviceName} is coming soon in the next update!`);
-    setTimeout(() => {
-      setComingSoonToast(null);
-    }, 2800);
-  };
-
   const handleShareInvite = async () => {
     const inviteUrl = window.location.origin;
     const shareData = {
-      title: 'Join TriHubPay B2B Platform',
-      text: '🏪 Join me on TriHubPay — Instant mobile, DTH & utility recharges with highest commissions and instant dispatch! Sign up here:',
+      title: 'Join TriHubPay Platform',
+      text: '🏪 Join me on TriHubPay — Instant mobile & DTH recharges with highest commissions and instant dispatch! Sign up here:',
       url: inviteUrl
     };
 
@@ -133,7 +120,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       }
     }
 
-    // Fallback if Web Share API is not supported (e.g. desktop browser)
     const fullText = `${shareData.text} ${shareData.url}`;
     if (navigator.clipboard) {
       await navigator.clipboard.writeText(fullText);
@@ -156,7 +142,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   ];
 
   return (
-    <div className="space-y-4 pb-2 animate-in fade-in duration-200">
+    <div className="space-y-3 sm:space-y-4 pb-1 animate-in fade-in duration-200">
       {/* Coming Soon Toast Notification */}
       {comingSoonToast && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white dark:bg-white dark:text-slate-900 px-4 py-2 rounded-2xl shadow-2xl text-xs font-bold flex items-center gap-2 animate-bounce">
@@ -165,49 +151,45 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         </div>
       )}
 
-      {/* ─── 1. Primary Wallet Balance Card (Gold Standard Gradient) ─── */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-700 via-teal-700 to-emerald-600 p-5 sm:p-6 text-white shadow-xl shadow-blue-900/10">
-        {/* Subtle Decorative Background Circles */}
+      {/* ─── 1. Primary Wallet Balance Card (Compact & Proportionate) ─── */}
+      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-r from-blue-700 via-teal-700 to-emerald-600 p-3.5 sm:p-5 text-white shadow-lg shadow-blue-900/10">
         <div className="absolute -top-12 -right-12 w-44 h-44 rounded-full bg-white/10 blur-2xl pointer-events-none" />
         <div className="absolute -bottom-12 -left-12 w-44 h-44 rounded-full bg-emerald-400/20 blur-2xl pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
           {/* Left: Wallet Info */}
-          <div className="flex items-center gap-3.5 sm:gap-4">
-            <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center shrink-0 shadow-inner">
-              <Wallet className="w-7 h-7 text-white" />
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1 w-full sm:w-auto">
+            <div className="w-10 h-10 sm:w-13 sm:h-13 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center shrink-0 shadow-inner">
+              <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
 
-            <div>
-              <div className="flex items-center gap-2 text-white/80 text-xs font-semibold">
-                <span>Wallet Balance</span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 text-white/80 text-xs font-semibold">
+                <span className="truncate">{t('walletBalance')}</span>
                 {onRefreshData && (
                   <button
                     onClick={onRefreshData}
                     disabled={isRefreshing}
                     title="Refresh Balance"
-                    className="p-1 hover:bg-white/10 rounded-full transition-colors"
+                    className="p-0.5 hover:bg-white/10 rounded-full transition-colors shrink-0"
                   >
-                    <RefreshCw className={`w-3.5 h-3.5 text-white/80 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    <RefreshCw className={`w-3 h-3 text-white/80 ${isRefreshing ? 'animate-spin' : ''}`} />
                   </button>
                 )}
                 <ChevronRight 
-                  className="w-4 h-4 text-white/60 cursor-pointer hover:text-white" 
+                  className="w-3.5 h-3.5 text-white/60 cursor-pointer hover:text-white shrink-0" 
                   onClick={() => onNavigateToTab('PASSBOOK')} 
                 />
               </div>
 
-              <div className="text-2xl sm:text-3xl font-black tracking-tight font-mono text-white mt-0.5">
+              <div className="text-xl sm:text-3xl font-black tracking-tight font-mono text-white mt-0.5 truncate">
                 ₹{Number(currentUser?.current_balance ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
 
-              <div className="mt-1.5 flex items-center gap-1.5">
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/20 backdrop-blur-md text-emerald-100 border border-white/25">
-                  <Check className="w-3 h-3 text-emerald-300" />
-                  <span>Wallet Active</span>
-                </span>
-                <span className="text-[10px] text-white/70 font-medium hidden sm:inline">
-                  • 0.8s Lapu / BBPS Dispatch
+              <div className="mt-1 flex items-center gap-1.5">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-white/20 backdrop-blur-md text-emerald-100 border border-white/25">
+                  <Check className="w-2.5 h-2.5 text-emerald-300" />
+                  <span>{t('walletActive')}</span>
                 </span>
               </div>
             </div>
@@ -217,128 +199,127 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <button
             type="button"
             onClick={onOpenTopup}
-            className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-white text-blue-700 hover:bg-slate-50 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg hover:shadow-xl active:scale-95 transition-all shrink-0"
+            className="w-full sm:w-auto px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl sm:rounded-2xl bg-white text-blue-700 hover:bg-slate-50 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-95 transition-all shrink-0"
           >
-            <div className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center">
-              <Plus className="w-3.5 h-3.5 stroke-[3]" />
+            <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0">
+              <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[3]" />
             </div>
-            <span>Add Money (UPI)</span>
-            <span className="text-emerald-600 font-extrabold ml-0.5">▶</span>
+            <span>{t('addCash')}</span>
+            <span className="text-emerald-600 font-extrabold ml-0.5 text-xs">▶</span>
           </button>
         </div>
       </div>
 
-      {/* ─── 2. 4 Quick Stat Cards ─── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
+      {/* ─── 2. 4 Quick Stat Cards (Compact Height) ─── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
         {/* Stat 1: Today's Recharge */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 sm:p-4 shadow-xs hover:border-emerald-300 dark:hover:border-emerald-700/50 transition-all flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-              Today's Recharge
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-xs transition-all flex flex-col justify-between min-w-0 overflow-hidden">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 truncate">
+              {t('todayRecharge')}
             </span>
-            <div className="w-8 h-8 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-              <Smartphone className="w-4 h-4" />
+            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <Smartphone className="w-3 h-3 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div>
-            <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono">
+          <div className="min-w-0">
+            <div className="text-base sm:text-2xl font-black text-slate-900 dark:text-white font-mono truncate">
               {todayStats.rechargeCount}
             </div>
-            <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+            <div className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5 truncate">
               ₹ {Number(todayStats?.rechargeVolume ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
           </div>
         </div>
 
         {/* Stat 2: Today's Commission */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 sm:p-4 shadow-xs hover:border-purple-300 dark:hover:border-purple-700/50 transition-all flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-              Today's Commission
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-xs transition-all flex flex-col justify-between min-w-0 overflow-hidden">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 truncate">
+              {t('todayCommission')}
             </span>
-            <div className="w-8 h-8 rounded-full bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
-              <Gift className="w-4 h-4" />
+            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+              <Gift className="w-3 h-3 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div>
-            <div className="text-xl sm:text-2xl font-black text-purple-600 dark:text-purple-400 font-mono">
+          <div className="min-w-0">
+            <div className="text-base sm:text-2xl font-black text-purple-600 dark:text-purple-400 font-mono truncate">
               ₹ {Number(todayStats?.totalCommission ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
-            <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">
-              Net Profit Credited
+            <div className="text-[9px] sm:text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5 truncate">
+              {t('netProfitCredited')}
             </div>
           </div>
         </div>
 
         {/* Stat 3: Pending Recharge */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 sm:p-4 shadow-xs hover:border-amber-300 dark:hover:border-amber-700/50 transition-all flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-              Pending Recharge
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-xs transition-all flex flex-col justify-between min-w-0 overflow-hidden">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 truncate">
+              {t('pendingRecharge')}
             </span>
-            <div className="w-8 h-8 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-              <Clock className="w-4 h-4" />
+            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div>
-            <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono">
+          <div className="min-w-0">
+            <div className="text-base sm:text-2xl font-black text-slate-900 dark:text-white font-mono truncate">
               {todayStats.pendingCount}
             </div>
-            <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+            <div className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5 truncate">
               ₹ {Number(todayStats?.pendingAmount ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
           </div>
         </div>
 
         {/* Stat 4: Failed Recharge */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 sm:p-4 shadow-xs hover:border-rose-300 dark:hover:border-rose-700/50 transition-all flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-              Failed Recharge
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-xs transition-all flex flex-col justify-between min-w-0 overflow-hidden">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 truncate">
+              {t('failedRecharge')}
             </span>
-            <div className="w-8 h-8 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
-              <AlertCircle className="w-4 h-4" />
+            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+              <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div>
-            <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono">
+          <div className="min-w-0">
+            <div className="text-base sm:text-2xl font-black text-slate-900 dark:text-white font-mono truncate">
               {todayStats.failedCount}
             </div>
-            <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+            <div className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5 truncate">
               ₹ {Number(todayStats?.failedAmount ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
           </div>
         </div>
       </div>
 
-      {/* ─── 3. All Services Grid (PhonePe & Gold Standard Reference) ─── */}
       {/* ─── 3. Active Live Services Grid (Mobile & DTH) ─── */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 sm:p-5 shadow-xs">
-        <div className="flex items-center justify-between mb-3.5">
-          <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
-            Recharge Services
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl p-3 sm:p-4 shadow-xs overflow-hidden">
+        <div className="flex items-center justify-between mb-2.5">
+          <h2 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
+            {t('rechargeServices')}
           </h2>
-          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-            ● Live & Instant
+          <span className="text-[9px] sm:text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full shrink-0">
+            ● {t('liveInstant')}
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
           {/* Tile 1: Mobile Recharge */}
           <button
             type="button"
             onClick={() => onSelectService('MOBILE')}
-            className="flex items-center gap-3.5 p-3.5 sm:p-4 rounded-2xl bg-rose-500/5 hover:bg-rose-500/10 border border-rose-500/15 transition-all active:scale-95 group text-left"
+            className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-rose-500/5 hover:bg-rose-500/10 border border-rose-500/15 transition-all active:scale-95 group text-left min-w-0"
           >
-            <div className="w-12 h-12 rounded-2xl bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
-              <Smartphone className="w-6 h-6" />
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+              <Smartphone className="w-4.5 h-4.5 sm:w-5.5 sm:h-5.5" />
             </div>
-            <div>
-              <div className="text-sm font-extrabold text-slate-900 dark:text-white leading-tight">
-                Mobile Recharge
+            <div className="min-w-0 flex-1 overflow-hidden">
+              <div className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white leading-tight truncate">
+                {t('mobileRecharge')}
               </div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                Jio, Airtel, Vi, BSNL Prepaid
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                Jio, Airtel, Vi, BSNL
               </div>
             </div>
           </button>
@@ -347,17 +328,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <button
             type="button"
             onClick={() => onSelectService('DTH')}
-            className="flex items-center gap-3.5 p-3.5 sm:p-4 rounded-2xl bg-purple-500/5 hover:bg-purple-500/10 border border-purple-500/15 transition-all active:scale-95 group text-left"
+            className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-purple-500/5 hover:bg-purple-500/10 border border-purple-500/15 transition-all active:scale-95 group text-left min-w-0"
           >
-            <div className="w-12 h-12 rounded-2xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
-              <Tv className="w-6 h-6" />
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+              <Tv className="w-4.5 h-4.5 sm:w-5.5 sm:h-5.5" />
             </div>
-            <div>
-              <div className="text-sm font-extrabold text-slate-900 dark:text-white leading-tight">
-                DTH Television
+            <div className="min-w-0 flex-1 overflow-hidden">
+              <div className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white leading-tight truncate">
+                {t('dthTv')}
               </div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                Tata Play, Sun Direct, Airtel, Dish TV
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                Tata Play, Sun, Dish
               </div>
             </div>
           </button>
@@ -365,46 +346,43 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       </div>
 
       {/* ─── 4. Share TriHubPay App Banner ─── */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-800 p-4 sm:p-5 text-white shadow-md">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="text-[11px] font-bold text-blue-300 uppercase tracking-wider">
-              Share TriHubPay App
+      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-800 p-3 sm:p-4 text-white shadow-md">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3">
+          <div className="space-y-0.5 min-w-0 flex-1">
+            <div className="text-[10px] font-bold text-blue-300 uppercase tracking-wider">
+              {t('shareApp')}
             </div>
-            <div className="text-lg sm:text-xl font-extrabold text-white">
-              Fastest Mobile & DTH Recharge Portal
+            <div className="text-xs sm:text-base font-extrabold text-white truncate">
+              {t('shareSubtitle')}
             </div>
-            <p className="text-xs text-blue-100 max-w-sm">
-              Share TriHubPay with fellow shopkeepers, retailers, and business partners.
-            </p>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
             <button
               type="button"
               onClick={() => {
                 const url = window.location.origin;
-                const text = encodeURIComponent(`🏪 Join TriHubPay — Instant mobile & DTH recharge portal with high retailer commissions! Sign up here: ${url}`);
+                const text = encodeURIComponent(`🏪 Join TriHubPay — Instant mobile & DTH recharge with high commissions! Sign up here: ${url}`);
                 window.open(`https://wa.me/?text=${text}`, '_blank');
               }}
-              className="px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+              className="flex-1 sm:flex-initial px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all"
             >
               <span>WhatsApp</span>
             </button>
             <button
               type="button"
               onClick={handleShareInvite}
-              className="px-4 py-2.5 rounded-xl bg-white text-blue-900 hover:bg-blue-50 font-bold text-xs flex items-center gap-2 shadow-md active:scale-95 transition-all"
+              className="flex-1 sm:flex-initial px-3 py-1.5 rounded-xl bg-white text-blue-900 hover:bg-blue-50 font-bold text-xs flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all"
             >
               {copiedInvite ? (
                 <>
                   <Check className="w-3.5 h-3.5 text-emerald-600" />
-                  <span className="text-emerald-700">Link Copied!</span>
+                  <span className="text-emerald-700">Copied!</span>
                 </>
               ) : (
                 <>
                   <Share2 className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Share / Copy</span>
+                  <span>Share</span>
                 </>
               )}
             </button>
@@ -413,14 +391,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       </div>
 
       {/* ─── 5. % Operator & Circle Commission Strip (Horizontal Scroll) ─── */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 sm:p-5 shadow-xs">
-        <div className="flex items-center justify-between mb-3">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl p-3 sm:p-4 shadow-xs overflow-hidden">
+        <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <Percent className="w-3.5 h-3.5" />
+            <div className="w-5 h-5 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <Percent className="w-3 h-3" />
             </div>
             <h2 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
-              Operator & Circle Commission
+              {t('commission')}
             </h2>
           </div>
 
@@ -435,7 +413,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         </div>
 
         {/* Horizontal scroll cards */}
-        <div className="flex items-center gap-2.5 overflow-x-auto no-scrollbar scrollbar-none touch-scroll py-1 -mx-1 px-1">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar scrollbar-none touch-scroll py-1 -mx-0.5 px-0.5">
           {showcaseOperators.map((item) => {
             const matchedRate = rates.find(r => r.operator_code === item.code);
             const rawRate = matchedRate ? (matchedRate.commission_rate ?? (matchedRate as any).retailer_pass_down_rate) : undefined;
@@ -446,37 +424,20 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 key={item.code}
                 type="button"
                 onClick={() => onNavigateToTab('COMMISSIONS')}
-                className="flex flex-col items-center justify-center p-3 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-600 bg-slate-50/70 dark:bg-slate-950/60 hover:bg-white dark:hover:bg-slate-900 transition-all shrink-0 w-24 sm:w-28 active:scale-95"
+                className="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-600 bg-slate-50/70 dark:bg-slate-950/60 hover:bg-white dark:hover:bg-slate-900 transition-all shrink-0 min-w-[76px] sm:min-w-[90px] active:scale-95"
               >
-                <div className="mb-2">
-                  <OperatorIcon operatorCode={item.code} size="md" />
+                <div className="mb-1">
+                  <OperatorIcon operatorCode={item.code} size="sm" />
                 </div>
                 <div className="text-xs font-black text-slate-900 dark:text-white font-mono">
                   {Number(rateVal).toFixed(2)}%
                 </div>
-                <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">
+                <div className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">
                   Margin
                 </div>
               </button>
             );
           })}
-
-          {/* View More Card */}
-          <button
-            type="button"
-            onClick={() => onNavigateToTab('COMMISSIONS')}
-            className="flex flex-col items-center justify-center p-3 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 bg-slate-50/50 dark:bg-slate-950/40 hover:bg-white dark:hover:bg-slate-900 transition-all shrink-0 w-24 sm:w-28 active:scale-95"
-          >
-            <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center mb-2 text-slate-600 dark:text-slate-400 font-bold text-sm">
-              ···
-            </div>
-            <div className="text-xs font-bold text-blue-600 dark:text-blue-400">
-              View All
-            </div>
-            <div className="text-[10px] text-slate-400 font-medium mt-0.5">
-              12+ Rates
-            </div>
-          </button>
         </div>
       </div>
     </div>

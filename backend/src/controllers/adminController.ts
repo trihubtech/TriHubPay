@@ -731,10 +731,11 @@ export async function approveDeposit(req: Request, res: Response) {
         await client.query(
           `INSERT INTO wallet_ledger (
             user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
-          ) VALUES ($1, $2, 'CREDIT', $3, $4, $5, $6)`,
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
           [
             adminUser.id,
             amount,
+            'CREDIT',
             adminCurBal,
             adminNewBal,
             `ADM_${topup.txn_ref}`,
@@ -747,10 +748,11 @@ export async function approveDeposit(req: Request, res: Response) {
       await client.query(
         `INSERT INTO wallet_ledger (
           user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
-        ) VALUES ($1, $2, 'CREDIT', $3, $4, $5, $6)`,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
         [
           user.id,
           amount,
+          'CREDIT',
           curBal,
           updatedBalance,
           topup.txn_ref,
@@ -825,11 +827,13 @@ export async function resetAllRetailerBalances(req: Request, res: Response) {
         await client.query(
           `INSERT INTO wallet_ledger (
             user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
-          ) VALUES ($1, $2, 'DEBIT', $3, 0.0000, $4, $5)`,
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
           [
             u.id,
             curBal,
+            'DEBIT',
             curBal,
+            0.0000,
             refId,
             `Admin Reset All Balances to ₹0.00 by ${adminEmail}`
           ]
@@ -879,11 +883,13 @@ export async function resetSingleRetailerBalance(req: Request, res: Response) {
         await client.query(
           `INSERT INTO wallet_ledger (
             user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
-          ) VALUES ($1, $2, 'DEBIT', $3, 0.0000, $4, $5)`,
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
           [
             user_id,
             curBal,
+            'DEBIT',
             curBal,
+            0.0000,
             refId,
             `Admin Reset Balance to ₹0.00 by ${adminEmail}: Manual zero balance reset`
           ]

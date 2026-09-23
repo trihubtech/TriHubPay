@@ -100,10 +100,11 @@ export async function executeRecharge(req: Request, res: Response) {
       await client.query(
         `INSERT INTO wallet_ledger (
           user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
-        ) VALUES ($1, $2, 'DEBIT', $3, $4, $5, $6)`,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
         [
           retailerId,
           billedCost,
+          'DEBIT',
           balanceBefore,
           balanceAfter,
           internalTxId,
@@ -232,10 +233,11 @@ export async function executeRecharge(req: Request, res: Response) {
         await rollbackClient.query(
           `INSERT INTO wallet_ledger (
             user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
-          ) VALUES ($1, $2, 'CREDIT', $3, $4, $5, $6)`,
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
           [
             retailerId,
             billedCost,
+            'CREDIT',
             curBal,
             refundedBalance,
             internalTxId,
@@ -397,7 +399,7 @@ export async function getRetailerCommissionRates(req: Request, res: Response) {
       FROM commission_matrix cm
       LEFT JOIN user_commissions uc 
         ON uc.operator_code = cm.operator_code AND uc.user_id = $1
-      WHERE cm.is_active = true
+      WHERE cm.is_active = true AND cm.service_type IN ('MOBILE', 'DTH')
       ORDER BY cm.service_type, cm.operator_name ASC;
     `, [retailerId]);
 
@@ -407,11 +409,12 @@ export async function getRetailerCommissionRates(req: Request, res: Response) {
         // Individual custom override for this shopkeeper (e.g. 0.3%)
         rate = parseFloat(String(row.custom_pass_down_rate));
       } else {
-        // Default 50% split (e.g. 0.50% for Jio, 1.75% for Vi)
+        // Default 50% split of NeroPay wholesale rate (e.g. 0.50% for Jio, 1.75% for Vi)
         const master = parseFloat(String(row.neropay_master_rate ?? 1.0));
         const true50Rate = Number((master * 0.50).toFixed(2));
         const configuredRate = parseFloat(String(row.retailer_pass_down_rate ?? 0));
-        rate = (configuredRate > 0 && configuredRate <= master) ? configuredRate : true50Rate;
+        // Retailer rate must never equal or exceed master upstream rate
+        rate = (configuredRate > 0 && configuredRate < master) ? configuredRate : true50Rate;
       }
 
       return {

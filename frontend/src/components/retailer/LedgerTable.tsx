@@ -1,6 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Transaction, DepositRequest, LedgerEntry } from '../../types';
-import { Receipt, CheckCircle, Clock, XCircle, RotateCcw, History, RefreshCw, AlertCircle, CheckCircle2, Loader2, ArrowUpRight, ArrowDownLeft, Wallet } from 'lucide-react';
+import { 
+  Receipt, 
+  CheckCircle, 
+  Clock, 
+  XCircle, 
+  RotateCcw, 
+  History, 
+  RefreshCw, 
+  AlertCircle, 
+  CheckCircle2, 
+  Loader2, 
+  ArrowUpRight, 
+  ArrowDownLeft, 
+  Wallet,
+  Copy,
+  Check,
+  MessageCircle
+} from 'lucide-react';
 import { OperatorIcon } from '../common/OperatorIcon';
 import { api } from '../../services/api';
 
@@ -15,6 +32,13 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({ transactions, onViewRe
   const [loadingDeposits, setLoadingDeposits] = useState<boolean>(false);
   const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([]);
   const [loadingLedger, setLoadingLedger] = useState<boolean>(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const copyToClipboard = (text: string, id: string) => {
+    navigator.clipboard?.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
   const fetchDeposits = async () => {
     setLoadingDeposits(true);
@@ -56,28 +80,28 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({ transactions, onViewRe
     switch (status) {
       case 'SUCCESS':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
             <CheckCircle className="w-3 h-3" />
             <span>Success</span>
           </span>
         );
       case 'PENDING':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
             <Clock className="w-3 h-3" />
             <span>Pending</span>
           </span>
         );
       case 'REFUNDED':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 shrink-0">
             <RotateCcw className="w-3 h-3" />
             <span>Refunded</span>
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 shrink-0">
             <XCircle className="w-3 h-3" />
             <span>Failed</span>
           </span>
@@ -85,14 +109,27 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({ transactions, onViewRe
     }
   };
 
+  const handleRemindAdmin = (dep: DepositRequest) => {
+    const adminPhone = '916374569225';
+    const msg = `*TriHubPay Deposit Approval Reminder*\n\n` +
+      `Amount: ₹${dep.amount}\n` +
+      `Txn Ref: ${dep.txn_ref}\n` +
+      `UTR / Bank Ref: ${dep.utr_number || 'N/A'}\n` +
+      `Date: ${new Date(dep.created_at).toLocaleString('en-IN')}\n\n` +
+      `Please approve my wallet load request. Thank you!`;
+    window.open(`https://wa.me/${adminPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm dark:shadow-xl">
-      {/* Tab Switcher Header */}
-      <div className="px-5 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 bg-slate-50/70 dark:bg-slate-850/70">
-        <div className="flex items-center gap-2">
+      {/* ─── Responsive Tab Switcher Header ─── */}
+      <div className="px-3 sm:px-5 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/60 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar scrollbar-none">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Tab 1: Recharges */}
           <button
+            type="button"
             onClick={() => setActiveTab('RECHARGES')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
               activeTab === 'RECHARGES'
                 ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-sm border border-slate-200 dark:border-slate-700'
                 : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
@@ -100,14 +137,16 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({ transactions, onViewRe
           >
             <Receipt className="w-3.5 h-3.5 text-brand-500" />
             <span>Recharge Passbook</span>
-            <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-mono">
+            <span className="ml-0.5 text-[10px] px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-mono">
               {transactions.length}
             </span>
           </button>
 
+          {/* Tab 2: Wallet Ledger */}
           <button
+            type="button"
             onClick={() => setActiveTab('LEDGER')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
               activeTab === 'LEDGER'
                 ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-sm border border-slate-200 dark:border-slate-700'
                 : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
@@ -116,15 +155,17 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({ transactions, onViewRe
             <Wallet className="w-3.5 h-3.5 text-blue-500" />
             <span>Wallet Ledger</span>
             {ledgerEntries.length > 0 && (
-              <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-mono">
+              <span className="ml-0.5 text-[10px] px-1.5 py-0.2 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-mono">
                 {ledgerEntries.length}
               </span>
             )}
           </button>
 
+          {/* Tab 3: Deposit Requests */}
           <button
+            type="button"
             onClick={() => setActiveTab('DEPOSITS')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
               activeTab === 'DEPOSITS'
                 ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-sm border border-slate-200 dark:border-slate-700'
                 : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
@@ -133,18 +174,20 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({ transactions, onViewRe
             <History className="w-3.5 h-3.5 text-emerald-500" />
             <span>Deposit Requests</span>
             {deposits.length > 0 && (
-              <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono">
+              <span className="ml-0.5 text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono">
                 {deposits.length}
               </span>
             )}
           </button>
         </div>
 
+        {/* Refresh Action */}
         {(activeTab === 'DEPOSITS' || activeTab === 'LEDGER') && (
           <button
+            type="button"
             onClick={activeTab === 'DEPOSITS' ? fetchDeposits : fetchLedger}
             disabled={loadingDeposits || loadingLedger}
-            className="flex items-center gap-1 text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline p-1"
+            className="flex items-center gap-1 text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline p-1 shrink-0"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loadingDeposits || loadingLedger ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Refresh</span>
@@ -152,12 +195,13 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({ transactions, onViewRe
         )}
       </div>
 
+      {/* ─── TAB CONTENT ─── */}
       {activeTab === 'DEPOSITS' ? (
-        /* Tab 2: Deposit Requests & Approval/Rejection Details */
-        <div className="max-h-[480px] overflow-y-auto">
+        /* ═════════ TAB: DEPOSIT REQUESTS ═════════ */
+        <div className="max-h-[520px] overflow-y-auto">
           {loadingDeposits ? (
             <div className="p-8 text-center text-slate-400 text-xs flex items-center justify-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin text-brand-500" />
               <span>Loading deposit status...</span>
             </div>
           ) : deposits.length === 0 ? (
@@ -165,7 +209,7 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({ transactions, onViewRe
               <History className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto" />
               <p className="text-xs font-bold text-slate-600 dark:text-slate-400">No deposit requests submitted yet</p>
               <p className="text-[11px] text-slate-400">
-                Top-up your wallet using UPI QR and track your bank verification status here.
+                Top-up your wallet using UPI QR and track your verification status here.
               </p>
             </div>
           ) : (
@@ -176,14 +220,14 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({ transactions, onViewRe
                 const isPending = dep.status === 'PENDING' || dep.status === 'PENDING_APPROVAL';
 
                 return (
-                  <div key={dep.id} className="p-4 hover:bg-slate-50/50 dark:hover:bg-slate-850/50 transition-colors space-y-2">
-                    <div className="flex items-start justify-between gap-4">
+                  <div key={dep.id} className="p-3.5 sm:p-4 hover:bg-slate-50/50 dark:hover:bg-slate-850/50 transition-colors space-y-2">
+                    <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-base font-black font-mono text-slate-900 dark:text-white">
                             ₹{Number(dep.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </span>
-                          <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                          <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                             UTR: {dep.utr_number || 'N/A'}
                           </span>
                         </div>
@@ -192,18 +236,29 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({ transactions, onViewRe
                         </div>
                       </div>
 
-                      <div>
+                      <div className="shrink-0 flex items-center gap-2">
                         {isApproved && (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                             <CheckCircle2 className="w-3.5 h-3.5" />
-                            <span>Approved & Credited</span>
+                            <span>Approved</span>
                           </span>
                         )}
                         {isPending && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                            <Clock className="w-3.5 h-3.5 animate-pulse" />
-                            <span>Pending Verification</span>
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                              <Clock className="w-3.5 h-3.5 animate-pulse" />
+                              <span>Pending</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemindAdmin(dep)}
+                              className="px-2 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[10px] font-bold flex items-center gap-1 transition-colors"
+                              title="Remind Admin on WhatsApp"
+                            >
+                              <MessageCircle className="w-3 h-3" />
+                              <span className="hidden sm:inline">WhatsApp</span>
+                            </button>
+                          </div>
                         )}
                         {isRejected && (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
@@ -223,7 +278,7 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({ transactions, onViewRe
                             Rejection Reason:
                           </span>
                           <span className="text-[11px] leading-tight block mt-0.5">
-                            {dep.admin_remarks || 'Bank transfer not received, Please Pay'}
+                            {dep.admin_remarks || 'Bank transfer not received. Please verify UTR.'}
                           </span>
                         </div>
                       </div>
@@ -236,14 +291,6 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({ transactions, onViewRe
                         <span>{dep.admin_remarks || 'Deposit Approved & Credited to Wallet'}</span>
                       </div>
                     )}
-
-                    {/* Pending Note */}
-                    {isPending && (
-                      <div className="text-[11px] text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        <span>Awaiting bank credit confirmation from Admin</span>
-                      </div>
-                    )}
                   </div>
                 );
               })}
@@ -251,11 +298,11 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({ transactions, onViewRe
           )}
         </div>
       ) : activeTab === 'LEDGER' ? (
-        /* Tab 2: Detailed Wallet Ledger (Credits, Debits, Adjustments, Balance Before/After) */
-        <div className="max-h-[480px] overflow-y-auto">
+        /* ═════════ TAB: WALLET LEDGER (NO NaN, ACCURATE BADGES) ═════════ */
+        <div className="max-h-[520px] overflow-y-auto">
           {loadingLedger ? (
             <div className="p-8 text-center text-slate-400 text-xs flex items-center justify-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin text-brand-500" />
               <span>Loading ledger history...</span>
             </div>
           ) : ledgerEntries.length === 0 ? (
@@ -268,39 +315,70 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({ transactions, onViewRe
             </div>
           ) : (
             <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
-              {ledgerEntries.map((entry) => {
-                const isCredit = entry.transaction_type === 'CREDIT';
-                const amtNum = Math.abs(parseFloat(String(entry.amount || 0)));
-                const beforeNum = parseFloat(String(entry.balance_before || 0));
-                const afterNum = parseFloat(String(entry.balance_after || 0));
+              {ledgerEntries.map((entry, idx) => {
+                // Defensive amount parser
+                const rawAmt = parseFloat(String(entry.amount || 0));
+                const amtNum = isNaN(rawAmt) ? 0 : Math.abs(rawAmt);
+
+                // Defensive transaction type parser (guard against legacy corrupted records)
+                let isCredit = entry.transaction_type === 'CREDIT';
+                if (entry.transaction_type !== 'CREDIT' && entry.transaction_type !== 'DEBIT') {
+                  const descLower = String(entry.description || '').toLowerCase();
+                  isCredit = !descLower.includes('order') && (descLower.includes('credit') || descLower.includes('refund') || descLower.includes('topup') || descLower.includes('deposit'));
+                }
+                const displayType = isCredit ? 'CREDIT' : 'DEBIT';
+
+                // Defensive balance parser (guarantees NO NaN ever renders!)
+                const beforeRaw = parseFloat(String(entry.balance_before || 0));
+                const beforeNum = isNaN(beforeRaw) ? 0 : beforeRaw;
+
+                let afterRaw = parseFloat(String(entry.balance_after || 0));
+                let afterNum = isNaN(afterRaw) 
+                  ? (isCredit ? beforeNum + amtNum : Math.max(0, beforeNum - amtNum))
+                  : afterRaw;
+
+                const displayRef = entry.reference_id && !entry.reference_id.startsWith('Order ') ? entry.reference_id : null;
+                const entryId = entry.id || `led-${idx}`;
 
                 return (
-                  <div key={entry.id || entry.reference_id} className="p-4 hover:bg-slate-50/50 dark:hover:bg-slate-850/50 transition-colors space-y-2">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-2">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase ${
+                  <div key={entryId} className="p-3.5 sm:p-4 hover:bg-slate-50/50 dark:hover:bg-slate-850/50 transition-colors space-y-1.5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
                             isCredit 
                               ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' 
                               : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
                           }`}>
                             {isCredit ? <ArrowDownLeft className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
-                            <span>{entry.transaction_type}</span>
+                            <span>{displayType}</span>
                           </span>
-                          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                          <span className="text-[11px] text-slate-400 font-mono">
                             {new Date(entry.created_at).toLocaleString('en-IN')}
                           </span>
                         </div>
-                        <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1">
+
+                        <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 break-words leading-relaxed">
                           {entry.description || 'Wallet Balance Movement'}
                         </div>
-                        {entry.reference_id && (
-                          <div className="text-[10px] text-slate-400 font-mono">
-                            Ref: {entry.reference_id}
+
+                        {displayRef && (
+                          <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-mono">
+                            <span>Ref:</span>
+                            <span className="truncate max-w-[200px] sm:max-w-none">{displayRef}</span>
+                            <button
+                              type="button"
+                              onClick={() => copyToClipboard(displayRef, entryId)}
+                              className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-0.5"
+                              title="Copy Reference"
+                            >
+                              {copiedId === entryId ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                            </button>
                           </div>
                         )}
                       </div>
 
+                      {/* Right Amount & Balance */}
                       <div className="text-right shrink-0 space-y-0.5">
                         <div className={`text-base font-black font-mono ${
                           isCredit ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'
@@ -308,7 +386,7 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({ transactions, onViewRe
                           {isCredit ? '+' : '-'}₹{amtNum.toFixed(2)}
                         </div>
                         <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                          Bal: ₹{beforeNum.toFixed(2)} ➔ <span className="font-bold text-slate-700 dark:text-slate-200">₹{afterNum.toFixed(2)}</span>
+                          Bal: ₹{beforeNum.toFixed(2)} ➔ <span className="font-bold text-slate-800 dark:text-slate-100">₹{afterNum.toFixed(2)}</span>
                         </div>
                       </div>
                     </div>
@@ -319,6 +397,7 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({ transactions, onViewRe
           )}
         </div>
       ) : transactions.length === 0 ? (
+        /* ═════════ TAB: PASSBOOK (EMPTY STATE) ═════════ */
         <div className="p-8 text-center text-slate-500 dark:text-slate-400">
           <Receipt className="w-10 h-10 mx-auto text-slate-400 dark:text-slate-600 mb-2" />
           <p className="text-sm font-medium">No recharges executed yet.</p>
@@ -327,53 +406,72 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({ transactions, onViewRe
           </p>
         </div>
       ) : (
-        /* Tab 1: Recharge Transactions */
-
-      <div className="divide-y divide-slate-200 dark:divide-slate-800/60 max-h-[480px] overflow-y-auto">
-        {transactions.map((tx) => (
-          <div key={tx.id || tx.internal_tx_id} className="p-4 hover:bg-slate-50 dark:hover:bg-slate-850/50 transition-colors flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 min-w-0">
-              <OperatorIcon operatorCode={tx.operator_code} size="md" />
-              <div className="space-y-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-slate-900 dark:text-white text-sm truncate font-mono">
-                    {tx.target_account_number}
-                  </span>
-                  <span className="text-[10px] uppercase font-extrabold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono">
-                    {tx.operator_code}
-                  </span>
-                  {getStatusBadge(tx.status)}
-                </div>
-
-                <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                  <span>{new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                  <span>•</span>
-                  <span className="truncate max-w-[120px] sm:max-w-[200px]">{tx.internal_tx_id}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="text-right shrink-0 flex items-center gap-3">
-              <div>
-                <div className="text-sm font-bold text-slate-900 dark:text-white font-mono">
-                  ₹{Number(tx.face_value).toFixed(2)}
-                </div>
-                <div className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                  +₹{Number(tx.retailer_commission).toFixed(2)} Cash
-                </div>
-              </div>
-
-              <button
-                onClick={() => onViewReceipt(tx)}
-                className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors border border-slate-200 dark:border-slate-700"
-                title="View & Print Receipt / Share on WhatsApp"
+        /* ═════════ TAB: RECHARGE TRANSACTIONS (CLEAN MOBILE CARDS) ═════════ */
+        <div className="divide-y divide-slate-100 dark:divide-slate-800/60 max-h-[520px] overflow-y-auto">
+          {transactions.map((tx) => {
+            const txId = tx.id || tx.internal_tx_id;
+            return (
+              <div 
+                key={txId} 
+                className="p-3.5 sm:p-4 hover:bg-slate-50/60 dark:hover:bg-slate-850/60 transition-colors flex items-center justify-between gap-3"
               >
-                <Receipt className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <OperatorIcon operatorCode={tx.operator_code} size="md" />
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {/* Full Target Mobile / Account Number */}
+                      <span className="font-bold text-slate-900 dark:text-white text-sm font-mono tracking-tight">
+                        {tx.target_account_number}
+                      </span>
+                      <span className="text-[10px] uppercase font-extrabold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono">
+                        {tx.operator_code}
+                      </span>
+                      {getStatusBadge(tx.status)}
+                    </div>
+
+                    {/* Full Timestamp & Copyable Transaction ID */}
+                    <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
+                      <span>{new Date(tx.created_at).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                      <span>•</span>
+                      <div className="flex items-center gap-1 font-mono text-[11px] text-slate-400">
+                        <span className="truncate max-w-[140px] sm:max-w-none">{tx.internal_tx_id}</span>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(tx.internal_tx_id, tx.internal_tx_id)}
+                          className="hover:text-slate-700 dark:hover:text-slate-200 p-0.5"
+                          title="Copy Transaction ID"
+                        >
+                          {copiedId === tx.internal_tx_id ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Amount & Receipt Button */}
+                <div className="text-right shrink-0 flex items-center gap-2.5">
+                  <div>
+                    <div className="text-sm font-black text-slate-900 dark:text-white font-mono">
+                      ₹{Number(tx.face_value).toFixed(2)}
+                    </div>
+                    <div className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                      +₹{Number(tx.retailer_commission).toFixed(2)} Cash
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => onViewReceipt(tx)}
+                    className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors border border-slate-200 dark:border-slate-700"
+                    title="View & Print Receipt"
+                  >
+                    <Receipt className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );

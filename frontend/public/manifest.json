@@ -1,7 +1,7 @@
 {
   "short_name": "TriHubPay",
-  "name": "TriHubPay",
-  "description": "Digital Recharge & Bill Payment Platform by TriHubPay",
+  "name": "TriHubPay - Recharge & Bill Payments",
+  "description": "Digital Recharge & Bill Payment Platform by TriHub Technologies",
   "id": "/?source=pwa",
   "start_url": "/?source=pwa",
   "scope": "/",
@@ -9,9 +9,32 @@
   "display_override": ["standalone", "minimal-ui", "browser"],
   "orientation": "portrait",
   "background_color": "#ffffff",
-  "theme_color": "#2563eb",
-  "categories": ["finance", "utilities", "business"],
+  "theme_color": "#059669",
+  "categories": ["finance", "utilities"],
   "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "Mobile Recharge",
+      "short_name": "Recharge",
+      "description": "Prepaid Mobile & DTH Recharge",
+      "url": "/?tab=recharge",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Passbook & Ledger",
+      "short_name": "Passbook",
+      "description": "Transaction History and Wallet Balance",
+      "url": "/?tab=passbook",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Admin Portal",
+      "short_name": "Admin",
+      "description": "TriHubPay Admin Control Center",
+      "url": "/admin",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
   "icons": [
     {
       "src": "/icon-192.png",
@@ -36,12 +59,6 @@
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "maskable"
-    },
-    {
-      "src": "/logo.png",
-      "type": "image/png",
-      "sizes": "512x512",
-      "purpose": "any"
     }
   ]
 }

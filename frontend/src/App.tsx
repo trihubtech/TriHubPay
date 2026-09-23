@@ -43,8 +43,10 @@ import {
   Store,
   Percent
 } from 'lucide-react';
+import { useLanguage } from './context/LanguageContext';
 
 export function App() {
+  const { t } = useLanguage();
   // Current Authenticated User (null if logged out)
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
@@ -78,15 +80,29 @@ export function App() {
       api.getMe()
         .then((res) => {
           if (res.success) {
-            // Handle session role matching route
+            // Strictly enforce role-route isolation
             if (isAdminRoute && res.data.role !== 'ADMIN') {
-              setCurrentUser(res.data);
-              loadRetailerData();
+              // Retailer token attempting to browse /admin: do NOT log in as retailer!
+              setCurrentUser(null);
             } else if (!isAdminRoute && res.data.role === 'ADMIN') {
+              // Admin browsing /: check if retailer token exists
               const retailerToken = localStorage.getItem('trihub_retailer_token');
               if (retailerToken) {
-                localStorage.setItem('trihub_token', retailerToken);
-                window.location.reload();
+                // Attempt to load retailer account
+                api.getMe()
+                  .then(rRes => {
+                    if (rRes.success && rRes.data.role === 'RETAILER') {
+                      setCurrentUser(rRes.data);
+                      loadRetailerData();
+                    } else {
+                      setCurrentUser(res.data);
+                      loadAdminData();
+                    }
+                  })
+                  .catch(() => {
+                    setCurrentUser(res.data);
+                    loadAdminData();
+                  });
                 return;
               }
               setCurrentUser(res.data);
@@ -103,15 +119,18 @@ export function App() {
             if (isAdminRoute) localStorage.removeItem('trihub_admin_token');
             else localStorage.removeItem('trihub_retailer_token');
             localStorage.removeItem('trihub_token');
+            setCurrentUser(null);
           }
         })
         .catch(() => {
           if (isAdminRoute) localStorage.removeItem('trihub_admin_token');
           else localStorage.removeItem('trihub_retailer_token');
           localStorage.removeItem('trihub_token');
+          setCurrentUser(null);
         })
         .finally(() => setIsInitializing(false));
     } else {
+      setCurrentUser(null);
       setIsInitializing(false);
     }
   }, []);
@@ -231,13 +250,13 @@ export function App() {
   const isAdmin = currentUser.role === 'ADMIN';
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col selection:bg-brand-500 selection:text-white pb-12">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col selection:bg-brand-500 selection:text-white">
       {/* Global App Choice / Install Prompt Modal */}
       <AppInstallPrompt />
 
       {/* Top Corporate Navigation Bar */}
-      <header className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-2.5 sticky top-0 z-40 shadow-sm">
-        <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
+      <header className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-3 sm:px-4 py-2 sm:py-2.5 sticky top-0 z-40 shadow-sm">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-2 sm:gap-3">
           {/* Official TriHubPay Logo */}
           <TriHubLogo
             size="sm"
@@ -263,18 +282,18 @@ export function App() {
           )}
 
           {/* User Profile Badge, Theme Toggle & Logout */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             <button
               type="button"
               onClick={() => setIsShopInfoOpen(true)}
-              className="text-right px-2 py-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer group flex flex-col items-end"
+              className="text-right px-1.5 sm:px-2 py-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer group flex flex-col items-end max-w-[100px] sm:max-w-[160px] min-w-0"
               title="Click to view and edit profile"
             >
-              <div className="font-bold text-slate-900 dark:text-white text-xs leading-tight group-hover:text-brand-600 dark:group-hover:text-brand-400">
+              <div className="font-bold text-slate-900 dark:text-white text-xs leading-tight group-hover:text-brand-600 dark:group-hover:text-brand-400 truncate w-full">
                 {currentUser.organization_name}
               </div>
-              <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                {isRetailer ? (currentUser.owner_name || 'Retailer Partner') : 'Master Platform Admin'}
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate w-full">
+                {isRetailer ? (currentUser.owner_name || t('profile')) : 'Master Platform Admin'}
               </div>
             </button>
 
@@ -308,7 +327,7 @@ export function App() {
 
       {/* RETAILER VIEW: SHOP OWNER SEES ONLY THIS! ZERO ADMIN CONTROLS */}
       {isRetailer && (
-        <main className="flex-1 pb-20 sm:pb-6">
+        <main className="flex-1 w-full max-w-full pb-20 sm:pb-6 overflow-x-hidden">
           {/* PWA 1-Click Install Banner for Mobile Phones */}
           <PwaInstallBanner />
 
@@ -323,11 +342,11 @@ export function App() {
             />
           )}
 
-          <div className="max-w-4xl mx-auto px-4 pt-4 pb-6 space-y-4">
+          <div className="max-w-4xl mx-auto px-3 sm:px-4 pt-2.5 sm:pt-4 pb-6 space-y-3 sm:space-y-4">
 
             {/* Zero balance deposit reminder */}
             {currentUser.current_balance === 0 && (
-              <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-brand-500/30 shadow-sm dark:shadow-none flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-brand-500/30 shadow-sm dark:shadow-none flex flex-col sm:flex-row items-center justify-between gap-3">
                 <div>
                   <div className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-brand-500 animate-ping"></span>
@@ -359,7 +378,7 @@ export function App() {
                   }`}
                 >
                   <Home className="w-3.5 h-3.5" />
-                  Home
+                  {t('home')}
                 </button>
                 <button
                   type="button"
@@ -371,7 +390,7 @@ export function App() {
                   }`}
                 >
                   <Zap className="w-3.5 h-3.5" />
-                  Recharge &amp; Bill Pay
+                  {t('recharge')}
                 </button>
                 <button
                   type="button"
@@ -383,7 +402,7 @@ export function App() {
                   }`}
                 >
                   <Layers className="w-3.5 h-3.5" />
-                  Passbook &amp; Ledger
+                  {t('passbook')}
                 </button>
                 <button
                   type="button"
@@ -395,12 +414,12 @@ export function App() {
                   }`}
                 >
                   <Percent className="w-3.5 h-3.5 text-emerald-400" />
-                  My Commission Rates
+                  {t('commission')}
                 </button>
               </div>
 
               <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                {retailerTab === 'HOME' && 'Retailer Partner Portal • Fast & Reliable'}
+                {retailerTab === 'HOME' && 'TriHubPay Portal • Fast & Reliable'}
                 {retailerTab === 'RECHARGE' && 'Instant 0.8s Lapu / BBPS Dispatch'}
                 {retailerTab === 'PASSBOOK' && `${retailerTransactions.length} Total Transactions`}
                 {retailerTab === 'COMMISSIONS' && 'Your Allocated Commission Margins'}
@@ -552,7 +571,7 @@ export function App() {
 
       {/* ADMIN CONTROL PANEL: VISIBLE ONLY TO ADMIN */}
       {isAdmin && (
-        <main className="max-w-6xl mx-auto px-4 py-6 space-y-6 flex-1 w-full">
+        <main className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6 flex-1 w-full max-w-full overflow-x-hidden">
           {/* Admin Navigation Sub-Tabs */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
             <div className="flex items-center gap-1.5 overflow-x-auto">

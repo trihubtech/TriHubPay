@@ -26,15 +26,15 @@ export const WalletStrip: React.FC<WalletStripProps> = ({
           <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-blue-600/10 to-emerald-500/10 border border-blue-500/20 flex items-center justify-center p-1.5 shrink-0 shadow-sm">
             <img src="/logo.png?v=2" alt="TriHub" className="w-full h-full object-contain" />
           </div>
-          <div>
-            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-2">
-              <span className="font-semibold text-slate-800 dark:text-slate-200">{shopName || 'My Account'}</span>
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+          <div className="min-w-0 flex-1">
+            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1.5 flex-wrap">
+              <span className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[120px] sm:max-w-xs">{shopName || 'My Account'}</span>
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
                 Wallet Cash
               </span>
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight font-mono">
+              <span className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight font-mono truncate">
                 ₹{balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
               <button

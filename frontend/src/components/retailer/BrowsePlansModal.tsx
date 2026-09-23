@@ -157,21 +157,21 @@ export const BrowsePlansModal: React.FC<BrowsePlansModalProps> = ({
                       </div>
                     )}
 
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center justify-between gap-2.5">
                       {/* Left: Big Price, Validity, Data */}
-                      <div className="space-y-2 flex-1">
-                        <div className="flex items-baseline gap-4 sm:gap-6 flex-wrap">
+                      <div className="space-y-2 min-w-0 flex-1">
+                        <div className="flex items-baseline gap-2.5 sm:gap-5 flex-wrap">
                           <span className="font-black text-slate-900 dark:text-white text-xl sm:text-2xl font-mono">
                             ₹{p.amount}
                           </span>
 
-                          <div className="flex items-center gap-3 text-xs">
+                          <div className="flex items-center gap-2 sm:gap-2.5 text-xs">
                             <div>
                               <span className="text-[10px] text-slate-400 block uppercase font-semibold">Validity</span>
                               <span className="font-bold text-slate-800 dark:text-slate-200">{p.validity}</span>
                             </div>
 
-                            <div className="w-px h-5 bg-slate-200 dark:bg-slate-800" />
+                            <div className="w-px h-4 bg-slate-200 dark:bg-slate-800" />
 
                             <div>
                               <span className="text-[10px] text-slate-400 block uppercase font-semibold">
@@ -184,7 +184,7 @@ export const BrowsePlansModal: React.FC<BrowsePlansModalProps> = ({
 
                         {/* Description snippet with clickable Details link */}
                         <div className="text-xs text-slate-600 dark:text-slate-400 flex items-center justify-between gap-2 pt-1 border-t border-slate-200/80 dark:border-slate-800/80">
-                          <span className="truncate max-w-[240px] sm:max-w-md">
+                          <span className="truncate max-w-[150px] sm:max-w-md">
                             {p.description}
                           </span>
 
@@ -194,7 +194,7 @@ export const BrowsePlansModal: React.FC<BrowsePlansModalProps> = ({
                               e.stopPropagation();
                               setSelectedPlanForDetails(p);
                             }}
-                            className="text-blue-600 dark:text-brand-400 hover:text-blue-700 dark:hover:text-brand-300 font-bold shrink-0 flex items-center gap-1 hover:underline ml-auto"
+                            className="text-blue-600 dark:text-brand-400 hover:text-blue-700 dark:hover:text-brand-300 font-bold shrink-0 flex items-center gap-0.5 hover:underline ml-auto"
                           >
                             <span>Details</span>
                             <ChevronRight className="w-3.5 h-3.5" />
@@ -202,31 +202,33 @@ export const BrowsePlansModal: React.FC<BrowsePlansModalProps> = ({
                         </div>
                       </div>
 
-                      {/* Right: Select Plan Button */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onSelectPlan(p.amount);
-                          onClose();
-                        }}
-                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 self-center ${
-                          isSelected
-                            ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30'
-                            : 'bg-white hover:bg-blue-600 dark:bg-slate-900 dark:hover:bg-brand-600 text-slate-700 hover:text-white dark:text-slate-300 dark:hover:text-white border border-slate-300 dark:border-slate-700 shadow-xs'
-                        }`}
-                      >
-                        {isSelected ? (
-                          <>
-                            <Check className="w-3.5 h-3.5" />
-                            <span>Selected</span>
-                          </>
-                        ) : (
-                          <>
-                            <span>Select</span>
-                            <ChevronRight className="w-3.5 h-3.5" />
-                          </>
-                        )}
-                      </button>
+                      {/* Right: Select Plan Button (Fixed width, never cut off) */}
+                      <div className="shrink-0 pl-1 self-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onSelectPlan(p.amount);
+                            onClose();
+                          }}
+                          className={`px-3 py-2 sm:px-3.5 rounded-xl text-xs font-bold transition-all shrink-0 min-w-[70px] sm:min-w-[76px] flex items-center justify-center gap-1 ${
+                            isSelected
+                              ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30'
+                              : 'bg-white hover:bg-blue-600 dark:bg-slate-900 dark:hover:bg-brand-600 text-slate-700 hover:text-white dark:text-slate-300 dark:hover:text-white border border-slate-300 dark:border-slate-700 shadow-xs'
+                          }`}
+                        >
+                          {isSelected ? (
+                            <>
+                              <Check className="w-3.5 h-3.5" />
+                              <span>Selected</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>Select</span>
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );

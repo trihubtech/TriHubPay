@@ -21,19 +21,19 @@ INSERT INTO commission_matrix (
     is_noble_active, 
     is_active
 ) VALUES 
-    -- Mobile Prepaid Operators
-    ('JIO', 'Jio', 'MOBILE', 'PERCENT', 1.00, 1.00, 0.58, 0.42, false, true),
-    ('AIRTEL', 'Airtel', 'MOBILE', 'PERCENT', 0.90, 1.00, 0.58, 0.42, false, true),
-    ('VI', 'Vi', 'MOBILE', 'PERCENT', 3.50, 3.50, 2.03, 1.47, false, true),
-    ('BSNL', 'BSNL', 'MOBILE', 'PERCENT', 3.00, 3.00, 1.74, 1.26, false, true),
+    -- Mobile Prepaid Operators (50/50 Split)
+    ('JIO', 'Jio', 'MOBILE', 'PERCENT', 1.00, 1.00, 0.50, 0.50, false, true),
+    ('AIRTEL', 'Airtel', 'MOBILE', 'PERCENT', 1.00, 1.00, 0.50, 0.50, false, true),
+    ('VI', 'Vi', 'MOBILE', 'PERCENT', 3.50, 3.50, 1.75, 1.75, false, true),
+    ('BSNL', 'BSNL', 'MOBILE', 'PERCENT', 3.00, 3.00, 1.50, 1.50, false, true),
     
-    -- DTH Operators
-    ('TATAPLAY', 'Tata Play', 'DTH', 'PERCENT', 3.10, 2.60, 1.80, 1.30, false, true),
-    ('AIRTEL_DTH', 'Airtel DTH', 'DTH', 'PERCENT', 4.10, 3.50, 2.38, 1.72, false, true),
-    ('DISHTV', 'Dish TV', 'DTH', 'PERCENT', 3.20, 3.50, 2.03, 1.47, false, true),
-    ('SUNDIRECT', 'Sun Direct', 'DTH', 'PERCENT', 2.80, 3.60, 2.09, 1.51, false, true),
-    ('VIDEOCON', 'Videocon d2h', 'DTH', 'PERCENT', 3.50, 3.60, 2.09, 1.51, false, true),
-    ('VIDEOCON_D2H', 'Videocon d2h', 'DTH', 'PERCENT', 3.50, 3.60, 2.09, 1.51, false, true),
+    -- DTH Operators (50/50 Split)
+    ('TATAPLAY', 'Tata Play', 'DTH', 'PERCENT', 3.10, 2.60, 1.55, 1.55, false, true),
+    ('AIRTEL_DTH', 'Airtel DTH', 'DTH', 'PERCENT', 4.10, 3.50, 2.05, 2.05, false, true),
+    ('DISHTV', 'Dish TV', 'DTH', 'PERCENT', 3.20, 3.50, 1.60, 1.60, false, true),
+    ('SUNDIRECT', 'Sun Direct', 'DTH', 'PERCENT', 2.80, 3.60, 1.40, 1.40, false, true),
+    ('VIDEOCON', 'Videocon d2h', 'DTH', 'PERCENT', 3.50, 3.60, 1.75, 1.75, false, true),
+    ('VIDEOCON_D2H', 'Videocon d2h', 'DTH', 'PERCENT', 3.50, 3.60, 1.75, 1.75, false, true),
     
     -- Electricity Boards
     ('TNEB', 'TNEB Electricity', 'ELECTRICITY', 'FLAT', 0.00, 2.50, 1.45, 1.05, false, true),
