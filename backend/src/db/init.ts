@@ -26,14 +26,19 @@ To switch to persistent PostgreSQL storage:
     const schemaSql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf-8');
     await query(schemaSql);
 
-    // Apply safe migrations for NeroPay + Noble Dynamic Failover and new categories
-    const migrationPath = path.join(__dirname, 'migrations/20260922_neropay_noble_migration.sql');
-    if (fs.existsSync(migrationPath)) {
-      const migrationSql = fs.readFileSync(migrationPath, 'utf-8');
-      await query(migrationSql).catch((err) => {
-        console.warn('ℹ️ [DB INIT MIGRATION NOTICE]:', err.message);
-      });
-      console.log('✅ [DB INIT] Applied 20260922 NeroPay + Noble failover migration.');
+    // Apply all safe database migrations automatically
+    const migrationsDir = path.join(__dirname, 'migrations');
+    if (fs.existsSync(migrationsDir)) {
+      const migrationFiles = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort();
+      for (const file of migrationFiles) {
+        try {
+          const migrationSql = fs.readFileSync(path.join(migrationsDir, file), 'utf-8');
+          await query(migrationSql);
+          console.log(`✅ [DB INIT] Applied migration ${file}`);
+        } catch (err: any) {
+          console.warn(`ℹ️ [DB INIT MIGRATION NOTICE] ${file}:`, err.message);
+        }
+      }
     }
 
     console.log('✅ [DB INIT] PostgreSQL schema verified & updated successfully.');
