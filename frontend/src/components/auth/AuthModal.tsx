@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { api } from '../../services/api';
 import { User } from '../../types';
-import { Store, ShieldCheck, UserPlus, LogIn, Sparkles, X, ArrowRight, Loader2, Lock } from 'lucide-react';
+import { Store, ShieldCheck, UserPlus, LogIn, Sparkles, X, ArrowRight, Loader2, Lock, Eye, EyeOff } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -21,6 +21,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   // Login form
   const [loginIdentifier, setLoginIdentifier] = useState<string>('9876543220');
   const [loginPassword, setLoginPassword] = useState<string>('Password@123');
+  const [showLoginPassword, setShowLoginPassword] = useState<boolean>(false);
 
   // Register form (Shop Owner Direct Self-Onboarding)
   const [shopName, setShopName] = useState<string>('');
@@ -28,6 +29,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [phone, setPhone] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [regPassword, setRegPassword] = useState<string>('Password@123');
+  const [showRegPassword, setShowRegPassword] = useState<boolean>(false);
 
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
@@ -211,14 +213,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
               <div>
                 <label className="block text-[11px] font-semibold text-slate-400 mb-1">PASSWORD</label>
-                <input
-                  type="password"
-                  required
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-brand-500"
-                />
+                <div className="relative">
+                  <input
+                    type={showLoginPassword ? 'text' : 'password'}
+                    required
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white focus:outline-none focus:border-brand-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowLoginPassword(!showLoginPassword)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 p-1"
+                  >
+                    {showLoginPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
                 <div className="text-[10px] text-slate-500 mt-1">Default Demo Password: Password@123</div>
               </div>
 
@@ -291,15 +302,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
               <div>
                 <label className="block text-[11px] font-semibold text-slate-400 mb-1">CREATE PASSWORD</label>
-                <input
-                  type="password"
-                  required
-                  minLength={6}
-                  value={regPassword}
-                  onChange={(e) => setRegPassword(e.target.value)}
-                  placeholder="At least 6 characters"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-brand-500"
-                />
+                <div className="relative">
+                  <input
+                    type={showRegPassword ? 'text' : 'password'}
+                    required
+                    minLength={6}
+                    value={regPassword}
+                    onChange={(e) => setRegPassword(e.target.value)}
+                    placeholder="At least 6 characters"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-3.5 pr-10 py-2 text-xs text-white focus:outline-none focus:border-brand-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowRegPassword(!showRegPassword)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 p-1"
+                  >
+                    {showRegPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
               </div>
 
               <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-[11px] text-emerald-300">

@@ -144,15 +144,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     }
   };
 
-  // Top operators to showcase in horizontal commission strip
+  // Top operators to showcase in horizontal commission strip (50/50 split of wholesale rates)
   const showcaseOperators = [
-    { code: 'JIO', defaultRate: 3.00 },
-    { code: 'AIRTEL', defaultRate: 2.80 },
-    { code: 'VI', defaultRate: 3.50 },
-    { code: 'BSNL', defaultRate: 3.00 },
-    { code: 'TATAPLAY', defaultRate: 3.20 },
-    { code: 'DISHTV', defaultRate: 3.20 },
-    { code: 'SUNDIRECT', defaultRate: 3.20 },
+    { code: 'JIO', defaultRate: 0.50 },
+    { code: 'AIRTEL', defaultRate: 0.50 },
+    { code: 'VI', defaultRate: 1.75 },
+    { code: 'BSNL', defaultRate: 1.50 },
+    { code: 'TATAPLAY', defaultRate: 1.55 },
+    { code: 'DISHTV', defaultRate: 1.60 },
+    { code: 'SUNDIRECT', defaultRate: 1.40 },
   ];
 
   return (
@@ -312,160 +312,103 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       </div>
 
       {/* ─── 3. All Services Grid (PhonePe & Gold Standard Reference) ─── */}
+      {/* ─── 3. Active Live Services Grid (Mobile & DTH) ─── */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 sm:p-5 shadow-xs">
         <div className="flex items-center justify-between mb-3.5">
           <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
-            All Services
+            Recharge Services
           </h2>
+          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+            ● Live & Instant
+          </span>
         </div>
 
-        <div className="grid grid-cols-4 gap-2.5 sm:gap-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
           {/* Tile 1: Mobile Recharge */}
           <button
             type="button"
             onClick={() => onSelectService('MOBILE')}
-            className="flex flex-col items-center text-center p-2 sm:p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all active:scale-95 group"
+            className="flex items-center gap-3.5 p-3.5 sm:p-4 rounded-2xl bg-rose-500/5 hover:bg-rose-500/10 border border-rose-500/15 transition-all active:scale-95 group text-left"
           >
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center mb-2 shadow-xs group-hover:scale-105 transition-transform">
-              <Smartphone className="w-6 h-6 sm:w-7 sm:h-7" />
+            <div className="w-12 h-12 rounded-2xl bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+              <Smartphone className="w-6 h-6" />
             </div>
-            <span className="text-[11px] sm:text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">
-              Mobile Recharge
-            </span>
+            <div>
+              <div className="text-sm font-extrabold text-slate-900 dark:text-white leading-tight">
+                Mobile Recharge
+              </div>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                Jio, Airtel, Vi, BSNL Prepaid
+              </div>
+            </div>
           </button>
 
           {/* Tile 2: DTH */}
           <button
             type="button"
             onClick={() => onSelectService('DTH')}
-            className="flex flex-col items-center text-center p-2 sm:p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all active:scale-95 group"
+            className="flex items-center gap-3.5 p-3.5 sm:p-4 rounded-2xl bg-purple-500/5 hover:bg-purple-500/10 border border-purple-500/15 transition-all active:scale-95 group text-left"
           >
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-2 shadow-xs group-hover:scale-105 transition-transform">
-              <Tv className="w-6 h-6 sm:w-7 sm:h-7" />
+            <div className="w-12 h-12 rounded-2xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+              <Tv className="w-6 h-6" />
             </div>
-            <span className="text-[11px] sm:text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">
-              DTH TV
-            </span>
-          </button>
-
-          {/* Tile 3: Electricity Bill */}
-          <button
-            type="button"
-            onClick={() => onSelectService('ELECTRICITY')}
-            className="flex flex-col items-center text-center p-2 sm:p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all active:scale-95 group"
-          >
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-2 shadow-xs group-hover:scale-105 transition-transform">
-              <Zap className="w-6 h-6 sm:w-7 sm:h-7" />
+            <div>
+              <div className="text-sm font-extrabold text-slate-900 dark:text-white leading-tight">
+                DTH Television
+              </div>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                Tata Play, Sun Direct, Airtel, Dish TV
+              </div>
             </div>
-            <span className="text-[11px] sm:text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">
-              Electricity Bill
-            </span>
-          </button>
-
-          {/* Tile 4: FASTag */}
-          <button
-            type="button"
-            onClick={() => onSelectService('FASTAG')}
-            className="flex flex-col items-center text-center p-2 sm:p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all active:scale-95 group"
-          >
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center mb-2 shadow-xs group-hover:scale-105 transition-transform">
-              <Car className="w-6 h-6 sm:w-7 sm:h-7" />
-            </div>
-            <span className="text-[11px] sm:text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">
-              FASTag
-            </span>
-          </button>
-
-          {/* Tile 5: Google Play */}
-          <button
-            type="button"
-            onClick={() => onSelectService('GOOGLE_PLAY')}
-            className="flex flex-col items-center text-center p-2 sm:p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all active:scale-95 group"
-          >
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2 shadow-xs group-hover:scale-105 transition-transform">
-              <Play className="w-6 h-6 sm:w-7 sm:h-7" />
-            </div>
-            <span className="text-[11px] sm:text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">
-              Google Play
-            </span>
-          </button>
-
-          {/* Tile 6: LPG Gas Cylinder */}
-          <button
-            type="button"
-            onClick={() => onSelectService('LPG_GAS')}
-            className="flex flex-col items-center text-center p-2 sm:p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all active:scale-95 group"
-          >
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center mb-2 shadow-xs group-hover:scale-105 transition-transform">
-              <Flame className="w-6 h-6 sm:w-7 sm:h-7" />
-            </div>
-            <span className="text-[11px] sm:text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">
-              LPG Gas
-            </span>
-          </button>
-
-          {/* Tile 7: Broadband */}
-          <button
-            type="button"
-            onClick={() => onSelectService('BROADBAND')}
-            className="flex flex-col items-center text-center p-2 sm:p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all active:scale-95 group"
-          >
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center justify-center mb-2 shadow-xs group-hover:scale-105 transition-transform">
-              <Wifi className="w-6 h-6 sm:w-7 sm:h-7" />
-            </div>
-            <span className="text-[11px] sm:text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">
-              Broadband
-            </span>
-          </button>
-
-          {/* Tile 8: OTT Apps */}
-          <button
-            type="button"
-            onClick={() => onSelectService('OTT_APPS')}
-            className="flex flex-col items-center text-center p-2 sm:p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all active:scale-95 group"
-          >
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-2 shadow-xs group-hover:scale-105 transition-transform">
-              <Film className="w-6 h-6 sm:w-7 sm:h-7" />
-            </div>
-            <span className="text-[11px] sm:text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">
-              OTT Vouchers
-            </span>
           </button>
         </div>
       </div>
 
-      {/* ─── 4. Invite Friends / Growth Banner (Matching Reference) ─── */}
+      {/* ─── 4. Share TriHubPay App Banner ─── */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-800 p-4 sm:p-5 text-white shadow-md">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="text-[11px] font-bold text-blue-300 uppercase tracking-wider">
-              Invite Retailers & Earn
+              Share TriHubPay App
             </div>
-            <div className="text-lg sm:text-xl font-extrabold text-amber-300">
-              Get up to ₹15 Cashback
+            <div className="text-lg sm:text-xl font-extrabold text-white">
+              Fastest Mobile & DTH Recharge Portal
             </div>
             <p className="text-xs text-blue-100 max-w-sm">
-              When your retailer friend signs up and adds ₹100 or more to their TriHubPay wallet.
+              Share TriHubPay with fellow shopkeepers, retailers, and business partners.
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={handleShareInvite}
-            className="px-4 py-2.5 rounded-xl bg-white text-blue-900 hover:bg-blue-50 font-bold text-xs flex items-center gap-2 shadow-md shrink-0 active:scale-95 transition-all"
-          >
-            {copiedInvite ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-emerald-600" />
-                <span className="text-emerald-700">Link Copied!</span>
-              </>
-            ) : (
-              <>
-                <Share2 className="w-3.5 h-3.5 text-blue-600" />
-                <span>Invite Now</span>
-              </>
-            )}
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                const url = window.location.origin;
+                const text = encodeURIComponent(`🏪 Join TriHubPay — Instant mobile & DTH recharge portal with high retailer commissions! Sign up here: ${url}`);
+                window.open(`https://wa.me/?text=${text}`, '_blank');
+              }}
+              className="px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+            >
+              <span>WhatsApp</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleShareInvite}
+              className="px-4 py-2.5 rounded-xl bg-white text-blue-900 hover:bg-blue-50 font-bold text-xs flex items-center gap-2 shadow-md active:scale-95 transition-all"
+            >
+              {copiedInvite ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  <span className="text-emerald-700">Link Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Share2 className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Share / Copy</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
 

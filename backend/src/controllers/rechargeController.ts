@@ -390,9 +390,6 @@ export async function getRetailerCommissionRates(req: Request, res: Response) {
         cm.operator_name, 
         cm.service_type, 
         cm.commission_type,
-        cm.neropay_master_rate,
-        cm.noble_master_rate,
-        cm.is_noble_active,
         COALESCE(uc.custom_pass_down_rate, cm.retailer_pass_down_rate) as commission_rate,
         (uc.custom_pass_down_rate IS NOT NULL) as is_custom
       FROM commission_matrix cm
@@ -407,9 +404,13 @@ export async function getRetailerCommissionRates(req: Request, res: Response) {
       const numRate = parseFloat(String(rawRate ?? 0));
       const safeRate = isNaN(numRate) ? 0 : numRate;
       return {
-        ...row,
+        operator_code: row.operator_code,
+        operator_name: row.operator_name,
+        service_type: row.service_type,
+        commission_type: row.commission_type,
         commission_rate: safeRate,
-        retailer_pass_down_rate: safeRate
+        retailer_pass_down_rate: safeRate,
+        is_custom: Boolean(row.is_custom)
       };
     });
 

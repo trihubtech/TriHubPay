@@ -85,8 +85,18 @@ export function humanizeErrorMessage(rawError: any, status?: number): string {
   return `We encountered an issue processing your request. Please try again or reach TriHubPay Support (${TRIHUB_SUPPORT.phone} / ${TRIHUB_SUPPORT.email}).`;
 }
 
+export function getActiveAuthToken(): string | null {
+  const isAdminRoute = typeof window !== 'undefined' && 
+    (window.location.pathname.startsWith('/admin') || window.location.hash === '#admin');
+  
+  if (isAdminRoute) {
+    return localStorage.getItem('trihub_admin_token') || localStorage.getItem('trihub_token');
+  }
+  return localStorage.getItem('trihub_retailer_token') || localStorage.getItem('trihub_token');
+}
+
 function getAuthHeader(): Record<string, string> {
-  const token = localStorage.getItem('trihub_token');
+  const token = getActiveAuthToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 

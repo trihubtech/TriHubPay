@@ -58,9 +58,7 @@ export const TriHubPayLogo: React.FC<TriHubPayLogoProps> = ({
           )}
         </div>
         <div className={`text-slate-400 font-medium tracking-wide mt-0.5 flex items-center gap-1 ${subtitleSizes}`}>
-          <span>TriHubPay</span>
-          <span className="inline-block w-1 h-1 rounded-full bg-emerald-400" />
-          <span className="text-emerald-400 font-semibold">Official</span>
+          <span>B2B Recharge Portal</span>
         </div>
       </div>
     </div>

@@ -67,51 +67,51 @@ const memoryStore = {
   ],
 
   commission_matrix: [
-    // 1. Mobile Telecom Operators
-    { id: 1, operator_code: 'JIO', operator_name: 'Jio', service_type: 'MOBILE', commission_type: 'PERCENT', neropay_master_rate: 1.00, noble_master_rate: 1.00, retailer_pass_down_rate: 0.58, admin_net_margin: 0.42, is_noble_active: false, is_active: true },
-    { id: 2, operator_code: 'AIRTEL', operator_name: 'Airtel', service_type: 'MOBILE', commission_type: 'PERCENT', neropay_master_rate: 0.90, noble_master_rate: 1.00, retailer_pass_down_rate: 0.58, admin_net_margin: 0.42, is_noble_active: false, is_active: true },
-    { id: 3, operator_code: 'VI', operator_name: 'Vi', service_type: 'MOBILE', commission_type: 'PERCENT', neropay_master_rate: 3.50, noble_master_rate: 3.50, retailer_pass_down_rate: 2.03, admin_net_margin: 1.47, is_noble_active: false, is_active: true },
-    { id: 4, operator_code: 'BSNL', operator_name: 'BSNL', service_type: 'MOBILE', commission_type: 'PERCENT', neropay_master_rate: 3.00, noble_master_rate: 3.00, retailer_pass_down_rate: 1.74, admin_net_margin: 1.26, is_noble_active: false, is_active: true },
+    // 1. Mobile Telecom Operators (50/50 split of NeroPay wholesale rate)
+    { id: 1, operator_code: 'JIO', operator_name: 'Jio', service_type: 'MOBILE', commission_type: 'PERCENT', neropay_master_rate: 1.00, noble_master_rate: 1.00, retailer_pass_down_rate: 0.50, admin_net_margin: 0.50, is_noble_active: false, is_active: true },
+    { id: 2, operator_code: 'AIRTEL', operator_name: 'Airtel', service_type: 'MOBILE', commission_type: 'PERCENT', neropay_master_rate: 1.00, noble_master_rate: 1.00, retailer_pass_down_rate: 0.50, admin_net_margin: 0.50, is_noble_active: false, is_active: true },
+    { id: 3, operator_code: 'VI', operator_name: 'Vi', service_type: 'MOBILE', commission_type: 'PERCENT', neropay_master_rate: 3.50, noble_master_rate: 3.50, retailer_pass_down_rate: 1.75, admin_net_margin: 1.75, is_noble_active: false, is_active: true },
+    { id: 4, operator_code: 'BSNL', operator_name: 'BSNL', service_type: 'MOBILE', commission_type: 'PERCENT', neropay_master_rate: 3.00, noble_master_rate: 3.00, retailer_pass_down_rate: 1.50, admin_net_margin: 1.50, is_noble_active: false, is_active: true },
 
-    // 2. DTH Providers
-    { id: 5, operator_code: 'SUNDIRECT', operator_name: 'Sun Direct', service_type: 'DTH', commission_type: 'PERCENT', neropay_master_rate: 2.80, noble_master_rate: 3.60, retailer_pass_down_rate: 2.09, admin_net_margin: 1.51, is_noble_active: false, is_active: true },
-    { id: 6, operator_code: 'AIRTEL_DTH', operator_name: 'Airtel DTH', service_type: 'DTH', commission_type: 'PERCENT', neropay_master_rate: 4.10, noble_master_rate: 3.50, retailer_pass_down_rate: 2.38, admin_net_margin: 1.72, is_noble_active: false, is_active: true },
-    { id: 7, operator_code: 'VIDEOCON', operator_name: 'Videocon d2h', service_type: 'DTH', commission_type: 'PERCENT', neropay_master_rate: 3.50, noble_master_rate: 3.60, retailer_pass_down_rate: 2.09, admin_net_margin: 1.51, is_noble_active: false, is_active: true },
-    { id: 8, operator_code: 'VIDEOCON_D2H', operator_name: 'Videocon d2h', service_type: 'DTH', commission_type: 'PERCENT', neropay_master_rate: 3.50, noble_master_rate: 3.60, retailer_pass_down_rate: 2.09, admin_net_margin: 1.51, is_noble_active: false, is_active: true },
-    { id: 9, operator_code: 'TATAPLAY', operator_name: 'Tata Play', service_type: 'DTH', commission_type: 'PERCENT', neropay_master_rate: 3.10, noble_master_rate: 2.60, retailer_pass_down_rate: 1.80, admin_net_margin: 1.30, is_noble_active: false, is_active: true },
-    { id: 10, operator_code: 'DISHTV', operator_name: 'Dish TV', service_type: 'DTH', commission_type: 'PERCENT', neropay_master_rate: 3.20, noble_master_rate: 3.50, retailer_pass_down_rate: 2.03, admin_net_margin: 1.47, is_noble_active: false, is_active: true },
+    // 2. DTH Providers (50/50 split of NeroPay wholesale rate)
+    { id: 5, operator_code: 'SUNDIRECT', operator_name: 'Sun Direct', service_type: 'DTH', commission_type: 'PERCENT', neropay_master_rate: 2.80, noble_master_rate: 3.60, retailer_pass_down_rate: 1.40, admin_net_margin: 1.40, is_noble_active: false, is_active: true },
+    { id: 6, operator_code: 'AIRTEL_DTH', operator_name: 'Airtel DTH', service_type: 'DTH', commission_type: 'PERCENT', neropay_master_rate: 4.10, noble_master_rate: 3.50, retailer_pass_down_rate: 2.05, admin_net_margin: 2.05, is_noble_active: false, is_active: true },
+    { id: 7, operator_code: 'VIDEOCON', operator_name: 'Videocon d2h', service_type: 'DTH', commission_type: 'PERCENT', neropay_master_rate: 3.50, noble_master_rate: 3.60, retailer_pass_down_rate: 1.75, admin_net_margin: 1.75, is_noble_active: false, is_active: true },
+    { id: 8, operator_code: 'VIDEOCON_D2H', operator_name: 'Videocon d2h', service_type: 'DTH', commission_type: 'PERCENT', neropay_master_rate: 3.50, noble_master_rate: 3.60, retailer_pass_down_rate: 1.75, admin_net_margin: 1.75, is_noble_active: false, is_active: true },
+    { id: 9, operator_code: 'TATAPLAY', operator_name: 'Tata Play', service_type: 'DTH', commission_type: 'PERCENT', neropay_master_rate: 3.10, noble_master_rate: 2.60, retailer_pass_down_rate: 1.55, admin_net_margin: 1.55, is_noble_active: false, is_active: true },
+    { id: 10, operator_code: 'DISHTV', operator_name: 'Dish TV', service_type: 'DTH', commission_type: 'PERCENT', neropay_master_rate: 3.20, noble_master_rate: 3.50, retailer_pass_down_rate: 1.60, admin_net_margin: 1.60, is_noble_active: false, is_active: true },
 
     // 3. Electricity & Utilities (BBPS)
-    { id: 11, operator_code: 'TNEB', operator_name: 'TNEB / TANGEDCO Tamil Nadu', service_type: 'ELECTRICITY', commission_type: 'FLAT', neropay_master_rate: 0.00, noble_master_rate: 2.50, retailer_pass_down_rate: 1.45, admin_net_margin: 1.05, is_noble_active: false, is_active: true },
-    { id: 12, operator_code: 'BESCOM', operator_name: 'BESCOM Karnataka (Bengaluru)', service_type: 'ELECTRICITY', commission_type: 'FLAT', neropay_master_rate: 0.00, noble_master_rate: 2.00, retailer_pass_down_rate: 1.16, admin_net_margin: 0.84, is_noble_active: false, is_active: true },
-    { id: 13, operator_code: 'MSEB', operator_name: 'MSEB / Mahavitaran Maharashtra', service_type: 'ELECTRICITY', commission_type: 'FLAT', neropay_master_rate: 0.00, noble_master_rate: 2.00, retailer_pass_down_rate: 1.16, admin_net_margin: 0.84, is_noble_active: false, is_active: true },
-    { id: 14, operator_code: 'WBSEDCL', operator_name: 'WBSEDCL West Bengal', service_type: 'ELECTRICITY', commission_type: 'FLAT', neropay_master_rate: 0.00, noble_master_rate: 2.00, retailer_pass_down_rate: 1.16, admin_net_margin: 0.84, is_noble_active: false, is_active: true },
-    { id: 15, operator_code: 'UPPCL', operator_name: 'UPPCL Uttar Pradesh (Urban / Rural)', service_type: 'ELECTRICITY', commission_type: 'FLAT', neropay_master_rate: 0.00, noble_master_rate: 2.00, retailer_pass_down_rate: 1.16, admin_net_margin: 0.84, is_noble_active: false, is_active: true },
+    { id: 11, operator_code: 'TNEB', operator_name: 'TNEB / TANGEDCO Tamil Nadu', service_type: 'ELECTRICITY', commission_type: 'FLAT', neropay_master_rate: 0.00, noble_master_rate: 2.50, retailer_pass_down_rate: 1.25, admin_net_margin: 1.25, is_noble_active: false, is_active: true },
+    { id: 12, operator_code: 'BESCOM', operator_name: 'BESCOM Karnataka (Bengaluru)', service_type: 'ELECTRICITY', commission_type: 'FLAT', neropay_master_rate: 0.00, noble_master_rate: 2.00, retailer_pass_down_rate: 1.00, admin_net_margin: 1.00, is_noble_active: false, is_active: true },
+    { id: 13, operator_code: 'MSEB', operator_name: 'MSEB / Mahavitaran Maharashtra', service_type: 'ELECTRICITY', commission_type: 'FLAT', neropay_master_rate: 0.00, noble_master_rate: 2.00, retailer_pass_down_rate: 1.00, admin_net_margin: 1.00, is_noble_active: false, is_active: true },
+    { id: 14, operator_code: 'WBSEDCL', operator_name: 'WBSEDCL West Bengal', service_type: 'ELECTRICITY', commission_type: 'FLAT', neropay_master_rate: 0.00, noble_master_rate: 2.00, retailer_pass_down_rate: 1.00, admin_net_margin: 1.00, is_noble_active: false, is_active: true },
+    { id: 15, operator_code: 'UPPCL', operator_name: 'UPPCL Uttar Pradesh (Urban / Rural)', service_type: 'ELECTRICITY', commission_type: 'FLAT', neropay_master_rate: 0.00, noble_master_rate: 2.00, retailer_pass_down_rate: 1.00, admin_net_margin: 1.00, is_noble_active: false, is_active: true },
 
     // 4. Digital Entertainment & Play Store
-    { id: 16, operator_code: 'GOOGLE_PLAY', operator_name: 'Google Play Redeem Code', service_type: 'GOOGLE_PLAY', commission_type: 'PERCENT', neropay_master_rate: 2.00, noble_master_rate: 3.00, retailer_pass_down_rate: 1.74, admin_net_margin: 1.26, is_noble_active: false, is_active: true },
-    { id: 17, operator_code: 'OTT_APPS', operator_name: 'OTT Streaming Vouchers (SonyLIV, Hotstar, ZEE5)', service_type: 'OTT_APPS', commission_type: 'PERCENT', neropay_master_rate: 3.50, noble_master_rate: 4.00, retailer_pass_down_rate: 2.32, admin_net_margin: 1.68, is_noble_active: false, is_active: true },
+    { id: 16, operator_code: 'GOOGLE_PLAY', operator_name: 'Google Play Redeem Code', service_type: 'GOOGLE_PLAY', commission_type: 'PERCENT', neropay_master_rate: 2.00, noble_master_rate: 3.00, retailer_pass_down_rate: 1.00, admin_net_margin: 1.00, is_noble_active: false, is_active: true },
+    { id: 17, operator_code: 'OTT_APPS', operator_name: 'OTT Streaming Vouchers (SonyLIV, Hotstar, ZEE5)', service_type: 'OTT_APPS', commission_type: 'PERCENT', neropay_master_rate: 3.50, noble_master_rate: 4.00, retailer_pass_down_rate: 1.75, admin_net_margin: 1.75, is_noble_active: false, is_active: true },
 
     // 5. FASTag Toll Topup (All Banks)
-    { id: 18, operator_code: 'FASTAG_PAYTM', operator_name: 'Paytm Payments Bank FASTag', service_type: 'FASTAG', commission_type: 'PERCENT', neropay_master_rate: 0.20, noble_master_rate: 0.30, retailer_pass_down_rate: 0.17, admin_net_margin: 0.13, is_noble_active: false, is_active: true },
-    { id: 19, operator_code: 'FASTAG_ICICI', operator_name: 'ICICI Bank FASTag', service_type: 'FASTAG', commission_type: 'PERCENT', neropay_master_rate: 0.20, noble_master_rate: 0.30, retailer_pass_down_rate: 0.17, admin_net_margin: 0.13, is_noble_active: false, is_active: true },
-    { id: 20, operator_code: 'FASTAG_SBI', operator_name: 'State Bank of India (SBI) FASTag', service_type: 'FASTAG', commission_type: 'PERCENT', neropay_master_rate: 0.20, noble_master_rate: 0.30, retailer_pass_down_rate: 0.17, admin_net_margin: 0.13, is_noble_active: false, is_active: true },
-    { id: 21, operator_code: 'FASTAG_AIRTEL', operator_name: 'Airtel Payments Bank FASTag', service_type: 'FASTAG', commission_type: 'PERCENT', neropay_master_rate: 0.20, noble_master_rate: 0.30, retailer_pass_down_rate: 0.17, admin_net_margin: 0.13, is_noble_active: false, is_active: true },
-    { id: 22, operator_code: 'FASTAG_HDFC', operator_name: 'HDFC Bank FASTag', service_type: 'FASTAG', commission_type: 'PERCENT', neropay_master_rate: 0.20, noble_master_rate: 0.30, retailer_pass_down_rate: 0.17, admin_net_margin: 0.13, is_noble_active: false, is_active: true },
-    { id: 23, operator_code: 'FASTAG', operator_name: 'NHAI FASTag (All Banks)', service_type: 'FASTAG', commission_type: 'PERCENT', neropay_master_rate: 0.15, noble_master_rate: 0.30, retailer_pass_down_rate: 0.17, admin_net_margin: 0.13, is_noble_active: false, is_active: true },
+    { id: 18, operator_code: 'FASTAG_PAYTM', operator_name: 'Paytm Payments Bank FASTag', service_type: 'FASTAG', commission_type: 'PERCENT', neropay_master_rate: 0.20, noble_master_rate: 0.30, retailer_pass_down_rate: 0.10, admin_net_margin: 0.10, is_noble_active: false, is_active: true },
+    { id: 19, operator_code: 'FASTAG_ICICI', operator_name: 'ICICI Bank FASTag', service_type: 'FASTAG', commission_type: 'PERCENT', neropay_master_rate: 0.20, noble_master_rate: 0.30, retailer_pass_down_rate: 0.10, admin_net_margin: 0.10, is_noble_active: false, is_active: true },
+    { id: 20, operator_code: 'FASTAG_SBI', operator_name: 'State Bank of India (SBI) FASTag', service_type: 'FASTAG', commission_type: 'PERCENT', neropay_master_rate: 0.20, noble_master_rate: 0.30, retailer_pass_down_rate: 0.10, admin_net_margin: 0.10, is_noble_active: false, is_active: true },
+    { id: 21, operator_code: 'FASTAG_AIRTEL', operator_name: 'Airtel Payments Bank FASTag', service_type: 'FASTAG', commission_type: 'PERCENT', neropay_master_rate: 0.20, noble_master_rate: 0.30, retailer_pass_down_rate: 0.10, admin_net_margin: 0.10, is_noble_active: false, is_active: true },
+    { id: 22, operator_code: 'FASTAG_HDFC', operator_name: 'HDFC Bank FASTag', service_type: 'FASTAG', commission_type: 'PERCENT', neropay_master_rate: 0.20, noble_master_rate: 0.30, retailer_pass_down_rate: 0.10, admin_net_margin: 0.10, is_noble_active: false, is_active: true },
+    { id: 23, operator_code: 'FASTAG', operator_name: 'NHAI FASTag (All Banks)', service_type: 'FASTAG', commission_type: 'PERCENT', neropay_master_rate: 0.15, noble_master_rate: 0.30, retailer_pass_down_rate: 0.08, admin_net_margin: 0.07, is_noble_active: false, is_active: true },
 
     // 6. LPG Gas Cylinder Booking (NeroPay Official Providers)
-    { id: 24, operator_code: 'INDANE_GAS', operator_name: 'Indane Gas (Indian Oil)', service_type: 'LPG_GAS', commission_type: 'FLAT', neropay_master_rate: 2.00, noble_master_rate: 6.00, retailer_pass_down_rate: 3.50, admin_net_margin: 2.50, is_noble_active: false, is_active: true },
-    { id: 25, operator_code: 'BHARAT_GAS', operator_name: 'Bharat Gas (BPCL)', service_type: 'LPG_GAS', commission_type: 'FLAT', neropay_master_rate: 2.00, noble_master_rate: 6.00, retailer_pass_down_rate: 3.50, admin_net_margin: 2.50, is_noble_active: false, is_active: true },
-    { id: 26, operator_code: 'HP_GAS', operator_name: 'HP Gas (HPCL)', service_type: 'LPG_GAS', commission_type: 'FLAT', neropay_master_rate: 2.00, noble_master_rate: 6.00, retailer_pass_down_rate: 3.50, admin_net_margin: 2.50, is_noble_active: false, is_active: true },
-    { id: 27, operator_code: 'LPG_GAS', operator_name: 'LPG Gas Cylinder (All Providers)', service_type: 'LPG_GAS', commission_type: 'FLAT', neropay_master_rate: 2.00, noble_master_rate: 6.00, retailer_pass_down_rate: 3.50, admin_net_margin: 2.50, is_noble_active: false, is_active: true },
+    { id: 24, operator_code: 'INDANE_GAS', operator_name: 'Indane Gas (Indian Oil)', service_type: 'LPG_GAS', commission_type: 'FLAT', neropay_master_rate: 2.00, noble_master_rate: 6.00, retailer_pass_down_rate: 1.00, admin_net_margin: 1.00, is_noble_active: false, is_active: true },
+    { id: 25, operator_code: 'BHARAT_GAS', operator_name: 'Bharat Gas (BPCL)', service_type: 'LPG_GAS', commission_type: 'FLAT', neropay_master_rate: 2.00, noble_master_rate: 6.00, retailer_pass_down_rate: 1.00, admin_net_margin: 1.00, is_noble_active: false, is_active: true },
+    { id: 26, operator_code: 'HP_GAS', operator_name: 'HP Gas (HPCL)', service_type: 'LPG_GAS', commission_type: 'FLAT', neropay_master_rate: 2.00, noble_master_rate: 6.00, retailer_pass_down_rate: 1.00, admin_net_margin: 1.00, is_noble_active: false, is_active: true },
+    { id: 27, operator_code: 'LPG_GAS', operator_name: 'LPG Gas Cylinder (All Providers)', service_type: 'LPG_GAS', commission_type: 'FLAT', neropay_master_rate: 2.00, noble_master_rate: 6.00, retailer_pass_down_rate: 1.00, admin_net_margin: 1.00, is_noble_active: false, is_active: true },
 
     // 7. Broadband & Fiber Bill Payments
-    { id: 28, operator_code: 'AIRTEL_BROADBAND', operator_name: 'Airtel Broadband & Xstream Fiber', service_type: 'BROADBAND', commission_type: 'PERCENT', neropay_master_rate: 0.50, noble_master_rate: 0.80, retailer_pass_down_rate: 0.46, admin_net_margin: 0.34, is_noble_active: false, is_active: true },
-    { id: 29, operator_code: 'JIO_FIBER', operator_name: 'JioFiber Broadband', service_type: 'BROADBAND', commission_type: 'PERCENT', neropay_master_rate: 0.50, noble_master_rate: 0.80, retailer_pass_down_rate: 0.46, admin_net_margin: 0.34, is_noble_active: false, is_active: true },
-    { id: 30, operator_code: 'ACT_FIBERNET', operator_name: 'ACT Fibernet Broadband', service_type: 'BROADBAND', commission_type: 'PERCENT', neropay_master_rate: 0.50, noble_master_rate: 0.80, retailer_pass_down_rate: 0.46, admin_net_margin: 0.34, is_noble_active: false, is_active: true },
-    { id: 31, operator_code: 'BSNL_BROADBAND', operator_name: 'BSNL Broadband & Bharat Fiber', service_type: 'BROADBAND', commission_type: 'PERCENT', neropay_master_rate: 0.50, noble_master_rate: 0.80, retailer_pass_down_rate: 0.46, admin_net_margin: 0.34, is_noble_active: false, is_active: true },
-    { id: 32, operator_code: 'BROADBAND', operator_name: 'Other Broadband & ISP Providers', service_type: 'BROADBAND', commission_type: 'PERCENT', neropay_master_rate: 0.50, noble_master_rate: 0.80, retailer_pass_down_rate: 0.46, admin_net_margin: 0.34, is_noble_active: false, is_active: true }
+    { id: 28, operator_code: 'AIRTEL_BROADBAND', operator_name: 'Airtel Broadband & Xstream Fiber', service_type: 'BROADBAND', commission_type: 'PERCENT', neropay_master_rate: 0.50, noble_master_rate: 0.80, retailer_pass_down_rate: 0.25, admin_net_margin: 0.25, is_noble_active: false, is_active: true },
+    { id: 29, operator_code: 'JIO_FIBER', operator_name: 'JioFiber Broadband', service_type: 'BROADBAND', commission_type: 'PERCENT', neropay_master_rate: 0.50, noble_master_rate: 0.80, retailer_pass_down_rate: 0.25, admin_net_margin: 0.25, is_noble_active: false, is_active: true },
+    { id: 30, operator_code: 'ACT_FIBERNET', operator_name: 'ACT Fibernet Broadband', service_type: 'BROADBAND', commission_type: 'PERCENT', neropay_master_rate: 0.50, noble_master_rate: 0.80, retailer_pass_down_rate: 0.25, admin_net_margin: 0.25, is_noble_active: false, is_active: true },
+    { id: 31, operator_code: 'BSNL_BROADBAND', operator_name: 'BSNL Broadband & Bharat Fiber', service_type: 'BROADBAND', commission_type: 'PERCENT', neropay_master_rate: 0.50, noble_master_rate: 0.80, retailer_pass_down_rate: 0.25, admin_net_margin: 0.25, is_noble_active: false, is_active: true },
+    { id: 32, operator_code: 'BROADBAND', operator_name: 'Other Broadband & ISP Providers', service_type: 'BROADBAND', commission_type: 'PERCENT', neropay_master_rate: 0.50, noble_master_rate: 0.80, retailer_pass_down_rate: 0.25, admin_net_margin: 0.25, is_noble_active: false, is_active: true }
   ],
 
   user_commissions: [] as any[],
@@ -361,8 +361,8 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
   // 3b. INSERT INTO users (for direct shop registration & admin onboarding)
   else if (/INSERT INTO users/i.test(cleanSql)) {
     const explicitId = params.find(p => typeof p === 'string' && p.includes('-')) || `usr-${Date.now()}`;
-    const balMatch = cleanSql.match(/(\d+(\.\d+)?)\s*\)\s*ON CONFLICT/i);
-    const initialBal = balMatch ? balMatch[1] : (params.length >= 8 ? String(params[7]) : '500.0000');
+    const balMatch = cleanSql.match(/(\d+(\.\d+)?)\s*\)\s*ON CONFLICT/i) || cleanSql.match(/,\s*(\d+(\.\d+)?)\s*\)\s*RETURNING/i);
+    const initialBal = balMatch ? balMatch[1] : (params.length >= 8 ? String(params[7]) : '0.0000');
 
     const existing = memoryStore.users.find(u => u.id === explicitId);
     if (existing) {
@@ -370,17 +370,31 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
       savePersistentStore();
       rows = [{ id: explicitId, current_balance: initialBal }];
     } else {
+      let orgName = 'Shop Account';
+      let ownerName = 'Retailer';
+      let phone = '0000000000';
+      let email = 'shop@trihubpay.in';
+      let passwordHash = 'hash';
+
+      if (params.length >= 5) {
+        orgName = String(params[0] || 'Shop Account');
+        ownerName = String(params[1] || 'Retailer');
+        phone = String(params[2] || '0000000000');
+        email = String(params[3] || 'shop@trihubpay.in');
+        passwordHash = String(params[4] || 'hash');
+      }
+
       const newUser = {
         id: explicitId,
-        organization_name: params[0] === explicitId ? (params[1] || 'Test User') : (params[0] || 'Test User'),
-        owner_name: 'Tester',
-        phone: '9999999999',
-        email: 'test@rechargehub.in',
-        password_hash: 'hash',
+        organization_name: orgName,
+        owner_name: ownerName,
+        phone: phone,
+        email: email,
+        password_hash: passwordHash,
         role: 'RETAILER' as any,
         current_balance: initialBal,
         locked_balance: '0.0000',
-        api_key: `key-${Date.now()}`,
+        api_key: `trihub-retailer-${Date.now()}`,
         is_active: true,
         created_at: new Date().toISOString()
       };
@@ -388,7 +402,13 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
       savePersistentStore();
       rows = [{
         id: newUser.id,
-        current_balance: parseFloat(initialBal)
+        organization_name: newUser.organization_name,
+        owner_name: newUser.owner_name,
+        phone: newUser.phone,
+        email: newUser.email,
+        role: newUser.role,
+        current_balance: parseFloat(initialBal),
+        api_key: newUser.api_key
       }];
     }
   }

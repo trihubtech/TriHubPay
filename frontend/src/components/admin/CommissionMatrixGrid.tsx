@@ -58,7 +58,7 @@ export const CommissionMatrixGrid: React.FC<CommissionMatrixGridProps> = ({ item
             <span>Global Dynamic Commission Matrix</span>
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Orchestrate baseline payout splits so Platform Admin retains a 5.0% net average margin.
+            Orchestrate wholesale rates with automatic 50/50 equal revenue split between retailer and admin.
           </p>
         </div>
 
@@ -84,8 +84,8 @@ export const CommissionMatrixGrid: React.FC<CommissionMatrixGridProps> = ({ item
               <th className="py-3 px-4">Operator Code & Name</th>
               <th className="py-3 px-4">Category</th>
               <th className="py-3 px-4 text-center">NeroPay Upstream Rate</th>
-              <th className="py-3 px-4 text-center">Retailer Pass-Down (58%)</th>
-              <th className="py-3 px-4 text-center">Admin Net Margin (42%)</th>
+              <th className="py-3 px-4 text-center">Retailer (50%)</th>
+              <th className="py-3 px-4 text-center">Admin (50%)</th>
               <th className="py-3 px-4 text-right">Actions</th>
             </tr>
           </thead>
@@ -93,7 +93,7 @@ export const CommissionMatrixGrid: React.FC<CommissionMatrixGridProps> = ({ item
             {items.map((it) => {
               const isEditing = editingCode === it.operator_code;
               const masterRate = Number(it.neropay_master_rate ?? it.master_api_rate ?? 1.0);
-              const retailerRate = Number(it.retailer_pass_down_rate ?? 0.58);
+              const retailerRate = Number(it.retailer_pass_down_rate ?? (masterRate * 0.5));
               const projectedMargin = isEditing
                 ? Number((editMasterRate - editRetailerRate).toFixed(2))
                 : Number(it.admin_net_margin ?? (masterRate - retailerRate).toFixed(2));

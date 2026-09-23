@@ -73,8 +73,23 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
       addRow('Service:', srv);
       addRow('Operator:', op);
       addRow('Number / ID:', num);
-      addRow('Txn ID:', txId.length > 15 ? txId.substring(0, 15) + '..' : txId);
-      addRow('Operator Ref:', opRef.length > 15 ? opRef.substring(0, 15) + '..' : opRef);
+      
+      // Full Txn ID and Operator Ref without truncation
+      doc.setFont('courier', 'normal');
+      doc.setFontSize(7.5);
+      doc.text('Txn ID:', 3, y);
+      doc.setFont('courier', 'bold');
+      doc.setFontSize(7);
+      doc.text(txId, 55, y, { align: 'right' });
+      y += 4;
+
+      doc.setFont('courier', 'normal');
+      doc.setFontSize(7.5);
+      doc.text('Operator Ref:', 3, y);
+      doc.setFont('courier', 'bold');
+      doc.setFontSize(7);
+      doc.text(opRef, 55, y, { align: 'right' });
+      y += 4.5;
 
       y += 1;
       doc.line(3, y, 55, y);
@@ -94,8 +109,8 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
       doc.setFont('courier', 'normal');
       doc.text('Thank you! Please visit again.', 29, y, { align: 'center' });
       y += 3.8;
-      doc.setFontSize(6);
-      doc.text('Powered by TriHub Technologies', 29, y, { align: 'center' });
+      doc.setFontSize(6.5);
+      doc.text('Powered by TriHubPay', 29, y, { align: 'center' });
       y += 3;
       doc.text('https://pay.trihubtechnologies.com/', 29, y, { align: 'center' });
 
@@ -268,7 +283,7 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
           <div class="footer">
             <div class="status-badge">STATUS: ${transaction.status || 'SUCCESS'}</div>
             <div>Thank you! Please visit again.</div>
-            <div class="brand-footer">Powered by TriHubPay • https://trihubpay.in/</div>
+            <div class="brand-footer">Powered by TriHubPay • https://pay.trihubtechnologies.com/</div>
           </div>
         </body>
       </html>
@@ -337,7 +352,7 @@ _Thank you for recharging with TriHubPay!_
           >
             {/* Store Banner */}
             <div className="text-center border-b border-dashed border-neutral-400 pb-2">
-              <div className="font-black text-sm uppercase tracking-wider">{shopName || 'RECHARGE POINT'}</div>
+              <div className="font-black text-sm uppercase tracking-wider">{shopName || 'TRIHUBPAY RECHARGE POINT'}</div>
               <div className="text-[10px] text-neutral-600">Authorized Partner</div>
               <div className="text-[9px] text-neutral-500 mt-0.5">
                 {new Date(transaction.created_at || transaction.timestamp || Date.now()).toLocaleString('en-IN')}

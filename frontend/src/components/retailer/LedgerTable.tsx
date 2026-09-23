@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Transaction, DepositRequest } from '../../types';
-import { Receipt, CheckCircle, Clock, XCircle, RotateCcw, History, RefreshCw, AlertCircle, CheckCircle2, Loader2, ArrowUpRight } from 'lucide-react';
+import { Transaction, DepositRequest, LedgerEntry } from '../../types';
+import { Receipt, CheckCircle, Clock, XCircle, RotateCcw, History, RefreshCw, AlertCircle, CheckCircle2, Loader2, ArrowUpRight, ArrowDownLeft, Wallet } from 'lucide-react';
 import { OperatorIcon } from '../common/OperatorIcon';
 import { api } from '../../services/api';
 
@@ -10,9 +10,11 @@ interface LedgerTableProps {
 }
 
 export const LedgerTable: React.FC<LedgerTableProps> = ({ transactions, onViewReceipt }) => {
-  const [activeTab, setActiveTab] = useState<'RECHARGES' | 'DEPOSITS'>('RECHARGES');
+  const [activeTab, setActiveTab] = useState<'RECHARGES' | 'LEDGER' | 'DEPOSITS'>('RECHARGES');
   const [deposits, setDeposits] = useState<DepositRequest[]>([]);
   const [loadingDeposits, setLoadingDeposits] = useState<boolean>(false);
+  const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([]);
+  const [loadingLedger, setLoadingLedger] = useState<boolean>(false);
 
   const fetchDeposits = async () => {
     setLoadingDeposits(true);
@@ -28,9 +30,25 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({ transactions, onViewRe
     }
   };
 
+  const fetchLedger = async () => {
+    setLoadingLedger(true);
+    try {
+      const res = await api.getRetailerLedger();
+      if (res.success) {
+        setLedgerEntries(res.data);
+      }
+    } catch (err: any) {
+      console.error('Failed to load wallet ledger', err);
+    } finally {
+      setLoadingLedger(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'DEPOSITS') {
       fetchDeposits();
+    } else if (activeTab === 'LEDGER') {
+      fetchLedger();
     }
   }, [activeTab]);
 
@@ -88,6 +106,23 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({ transactions, onViewRe
           </button>
 
           <button
+            onClick={() => setActiveTab('LEDGER')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              activeTab === 'LEDGER'
+                ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-sm border border-slate-200 dark:border-slate-700'
+                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+            }`}
+          >
+            <Wallet className="w-3.5 h-3.5 text-blue-500" />
+            <span>Wallet Ledger</span>
+            {ledgerEntries.length > 0 && (
+              <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-mono">
+                {ledgerEntries.length}
+              </span>
+            )}
+          </button>
+
+          <button
             onClick={() => setActiveTab('DEPOSITS')}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
               activeTab === 'DEPOSITS'
@@ -105,13 +140,13 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({ transactions, onViewRe
           </button>
         </div>
 
-        {activeTab === 'DEPOSITS' && (
+        {(activeTab === 'DEPOSITS' || activeTab === 'LEDGER') && (
           <button
-            onClick={fetchDeposits}
-            disabled={loadingDeposits}
+            onClick={activeTab === 'DEPOSITS' ? fetchDeposits : fetchLedger}
+            disabled={loadingDeposits || loadingLedger}
             className="flex items-center gap-1 text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline p-1"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loadingDeposits ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${loadingDeposits || loadingLedger ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Refresh</span>
           </button>
         )}
@@ -209,6 +244,74 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({ transactions, onViewRe
                         <span>Awaiting bank credit confirmation from Admin</span>
                       </div>
                     )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      ) : activeTab === 'LEDGER' ? (
+        /* Tab 2: Detailed Wallet Ledger (Credits, Debits, Adjustments, Balance Before/After) */
+        <div className="max-h-[480px] overflow-y-auto">
+          {loadingLedger ? (
+            <div className="p-8 text-center text-slate-400 text-xs flex items-center justify-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Loading ledger history...</span>
+            </div>
+          ) : ledgerEntries.length === 0 ? (
+            <div className="p-8 text-center space-y-2">
+              <Wallet className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto" />
+              <p className="text-xs font-bold text-slate-600 dark:text-slate-400">No ledger movements yet</p>
+              <p className="text-[11px] text-slate-400">
+                All balance credits, debits, UPI approvals, and admin adjustments will record here.
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
+              {ledgerEntries.map((entry) => {
+                const isCredit = entry.transaction_type === 'CREDIT';
+                const amtNum = Math.abs(parseFloat(String(entry.amount || 0)));
+                const beforeNum = parseFloat(String(entry.balance_before || 0));
+                const afterNum = parseFloat(String(entry.balance_after || 0));
+
+                return (
+                  <div key={entry.id || entry.reference_id} className="p-4 hover:bg-slate-50/50 dark:hover:bg-slate-850/50 transition-colors space-y-2">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase ${
+                            isCredit 
+                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' 
+                              : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                          }`}>
+                            {isCredit ? <ArrowDownLeft className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
+                            <span>{entry.transaction_type}</span>
+                          </span>
+                          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                            {new Date(entry.created_at).toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                        <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1">
+                          {entry.description || 'Wallet Balance Movement'}
+                        </div>
+                        {entry.reference_id && (
+                          <div className="text-[10px] text-slate-400 font-mono">
+                            Ref: {entry.reference_id}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="text-right shrink-0 space-y-0.5">
+                        <div className={`text-base font-black font-mono ${
+                          isCredit ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'
+                        }`}>
+                          {isCredit ? '+' : '-'}₹{amtNum.toFixed(2)}
+                        </div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                          Bal: ₹{beforeNum.toFixed(2)} ➔ <span className="font-bold text-slate-700 dark:text-slate-200">₹{afterNum.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 );
               })}

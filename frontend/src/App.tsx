@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { api } from './services/api';
+import { api, getActiveAuthToken } from './services/api';
 import { User, Transaction, DashboardKPIs, CommissionMatrixItem, ServiceType } from './types';
 
 // Retailer components
@@ -70,24 +70,44 @@ export function App() {
   const [isOnboardModalOpen, setIsOnboardModalOpen] = useState<boolean>(false);
   const [adminSubTab, setAdminSubTab] = useState<'OVERVIEW' | 'SHOPS' | 'MATRIX' | 'FAILOVER' | 'TRANSACTIONS' | 'DEPOSITS'>('OVERVIEW');
 
-  // Check saved session on load
+  // Check saved session on load (route-aware token isolation)
   useEffect(() => {
-    const token = localStorage.getItem('trihub_token');
+    const token = getActiveAuthToken();
+    const isAdminRoute = window.location.pathname.startsWith('/admin') || window.location.hash === '#admin';
     if (token) {
       api.getMe()
         .then((res) => {
           if (res.success) {
-            setCurrentUser(res.data);
-            if (res.data.role === 'ADMIN') {
+            // Handle session role matching route
+            if (isAdminRoute && res.data.role !== 'ADMIN') {
+              setCurrentUser(res.data);
+              loadRetailerData();
+            } else if (!isAdminRoute && res.data.role === 'ADMIN') {
+              const retailerToken = localStorage.getItem('trihub_retailer_token');
+              if (retailerToken) {
+                localStorage.setItem('trihub_token', retailerToken);
+                window.location.reload();
+                return;
+              }
+              setCurrentUser(res.data);
               loadAdminData();
             } else {
-              loadRetailerData();
+              setCurrentUser(res.data);
+              if (res.data.role === 'ADMIN') {
+                loadAdminData();
+              } else {
+                loadRetailerData();
+              }
             }
           } else {
+            if (isAdminRoute) localStorage.removeItem('trihub_admin_token');
+            else localStorage.removeItem('trihub_retailer_token');
             localStorage.removeItem('trihub_token');
           }
         })
         .catch(() => {
+          if (isAdminRoute) localStorage.removeItem('trihub_admin_token');
+          else localStorage.removeItem('trihub_retailer_token');
           localStorage.removeItem('trihub_token');
         })
         .finally(() => setIsInitializing(false));
@@ -138,8 +158,12 @@ export function App() {
   const handleAuthSuccess = (user: User, token: string, isNewRegistration?: boolean) => {
     setCurrentUser(user);
     if (user.role === 'ADMIN') {
+      localStorage.setItem('trihub_admin_token', token);
+      localStorage.setItem('trihub_token', token);
       loadAdminData();
     } else {
+      localStorage.setItem('trihub_retailer_token', token);
+      localStorage.setItem('trihub_token', token);
       loadRetailerData();
       if (isNewRegistration) {
         setWelcomeBanner(`🎉 Welcome ${user.organization_name}! Your store is onboarded. Load float via UPI QR to start recharging.`);
@@ -149,6 +173,12 @@ export function App() {
   };
 
   const handleLogout = () => {
+    const isAdminRoute = window.location.pathname.startsWith('/admin') || window.location.hash === '#admin';
+    if (isAdminRoute || currentUser?.role === 'ADMIN') {
+      localStorage.removeItem('trihub_admin_token');
+    } else {
+      localStorage.removeItem('trihub_retailer_token');
+    }
     localStorage.removeItem('trihub_token');
     setCurrentUser(null);
     setWelcomeBanner('');
@@ -214,11 +244,21 @@ export function App() {
             showSubtitle={false}
           />
 
-          {/* Platform Admin Role Indicator */}
+          {/* Platform Admin Role Indicator & Switch to Retailer App */}
           {isAdmin && (
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-xl text-blue-600 dark:text-blue-300 text-xs font-semibold">
-              <ShieldCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-              <span>Master Administrator Console</span>
+            <div className="flex items-center gap-2">
+              <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-xl text-blue-600 dark:text-blue-300 text-xs font-semibold">
+                <ShieldCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                <span>Master Administrator Console</span>
+              </div>
+              <a
+                href="/"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 rounded-xl text-brand-700 dark:text-brand-300 text-xs font-semibold transition-all shadow-sm"
+                title="Open Retailer Recharge App"
+              >
+                <span>🏪</span>
+                <span className="hidden sm:inline">Retailer App</span>
+              </a>
             </div>
           )}
 

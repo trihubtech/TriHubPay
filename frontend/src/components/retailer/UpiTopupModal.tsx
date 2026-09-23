@@ -9,11 +9,11 @@ interface UpiTopupModalProps {
   onSuccess?: (newBalance: number) => void;
 }
 
-const PRESET_AMOUNTS = [500, 1000, 2000, 5000, 10000];
+const PRESET_AMOUNTS = [10, 50, 100, 500, 1000];
 
 export const UpiTopupModal: React.FC<UpiTopupModalProps> = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState<'TOPUP' | 'HISTORY'>('TOPUP');
-  const [amount, setAmount] = useState<number>(1000);
+  const [amount, setAmount] = useState<number>(100);
   const [loading, setLoading] = useState<boolean>(false);
   const [qrData, setQrData] = useState<{
     txn_ref: string;
@@ -56,8 +56,8 @@ export const UpiTopupModal: React.FC<UpiTopupModalProps> = ({ isOpen, onClose })
   if (!isOpen) return null;
 
   const handleGenerateQr = async () => {
-    if (!amount || amount < 100) {
-      setErrorMsg('Minimum top-up amount is ₹100');
+    if (!amount || amount < 10) {
+      setErrorMsg('Minimum top-up amount is ₹10');
       return;
     }
     setErrorMsg('');
@@ -76,6 +76,19 @@ export const UpiTopupModal: React.FC<UpiTopupModalProps> = ({ isOpen, onClose })
     }
   };
 
+  const sendWhatsAppNotification = (phone: string) => {
+    if (!qrData) return;
+    const waMsg = 
+      `*TriHubPay Wallet Top-Up Request*\n\n` +
+      `💰 *Amount:* ₹${qrData.amount}\n` +
+      `🔢 *Ref:* ${qrData.txn_ref}\n` +
+      `📌 *UTR / Ref No:* ${utrNumber.trim()}\n` +
+      `⏰ *Time:* ${new Date().toLocaleString('en-IN')}\n\n` +
+      `Please verify bank credit and approve my wallet balance. Thank you!`;
+    const encoded = encodeURIComponent(waMsg);
+    window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank');
+  };
+
   const handleSubmitDeposit = async () => {
     if (!qrData) return;
     if (!utrNumber || utrNumber.trim().length < 6) {
@@ -88,6 +101,8 @@ export const UpiTopupModal: React.FC<UpiTopupModalProps> = ({ isOpen, onClose })
       const res = await api.submitUpiDeposit(qrData.txn_ref, utrNumber.trim());
       if (res.success) {
         setSubmitted(true);
+        // Automatically open WhatsApp reminder to Admin 1 (916374569225)
+        sendWhatsAppNotification('916374569225');
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to submit deposit request');
@@ -308,6 +323,29 @@ export const UpiTopupModal: React.FC<UpiTopupModalProps> = ({ isOpen, onClose })
                   </p>
                 </div>
 
+                {/* Direct WhatsApp Reminder to Both Admins */}
+                <div className="space-y-2 pt-1 text-left">
+                  <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    Remind Admins on WhatsApp:
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => sendWhatsAppNotification('916374569225')}
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-95"
+                    >
+                      <span>💬 Admin 1 (6374569225)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => sendWhatsAppNotification('918825538776')}
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-95"
+                    >
+                      <span>💬 Admin 2 (8825538776)</span>
+                    </button>
+                  </div>
+                </div>
+
                 <div className="flex flex-col gap-2 pt-2">
                   <button
                     onClick={() => {
@@ -341,7 +379,7 @@ export const UpiTopupModal: React.FC<UpiTopupModalProps> = ({ isOpen, onClose })
                   </span>
                   <input
                     type="number"
-                    min="100"
+                    min="10"
                     max="200000"
                     value={amount}
                     onChange={(e) => setAmount(Number(e.target.value))}

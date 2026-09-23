@@ -1,21 +1,25 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
   <defs>
-    <linearGradient id="favGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1d4ed8"/>
+    <linearGradient id="favEmerald" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#047857"/>
       <stop offset="100%" stop-color="#10b981"/>
     </linearGradient>
   </defs>
-  <rect width="128" height="128" rx="32" fill="#0f172a"/>
-  <!-- Global Sphere -->
-  <circle cx="64" cy="64" r="42" fill="none" stroke="url(#favGrad)" stroke-width="6"/>
-  <ellipse cx="64" cy="64" rx="20" ry="42" fill="none" stroke="url(#favGrad)" stroke-width="4"/>
-  <path d="M 28,52 C 45,62 83,62 100,52" fill="none" stroke="url(#favGrad)" stroke-width="4"/>
-  <path d="M 28,76 C 45,66 83,66 100,76" fill="none" stroke="url(#favGrad)" stroke-width="4"/>
-  <!-- Nodes -->
-  <circle cx="42" cy="54" r="5" fill="#1d4ed8"/>
-  <circle cx="86" cy="54" r="5" fill="#10b981"/>
-  <circle cx="40" cy="74" r="5" fill="#2563eb"/>
-  <circle cx="88" cy="74" r="5" fill="#22c55e"/>
-  <!-- Recharge Bolt in Center -->
-  <path d="M 66,45 L 58,64 L 66,64 L 60,83 L 72,62 L 64,62 Z" fill="#ffffff"/>
+  <!-- Emerald Rounded Background -->
+  <rect width="128" height="128" rx="32" fill="url(#favEmerald)"/>
+  
+  <!-- Global Sphere in White -->
+  <circle cx="64" cy="64" r="42" fill="none" stroke="#ffffff" stroke-width="5" opacity="0.95"/>
+  <ellipse cx="64" cy="64" rx="19" ry="42" fill="none" stroke="#ffffff" stroke-width="3.5" opacity="0.85"/>
+  <path d="M 28,52 C 45,62 83,62 100,52" fill="none" stroke="#ffffff" stroke-width="3.5" opacity="0.8"/>
+  <path d="M 28,76 C 45,66 83,66 100,76" fill="none" stroke="#ffffff" stroke-width="3.5" opacity="0.8"/>
+  
+  <!-- Node dots -->
+  <circle cx="42" cy="54" r="4.5" fill="#ffffff"/>
+  <circle cx="86" cy="54" r="4.5" fill="#ffffff"/>
+  <circle cx="40" cy="74" r="4.5" fill="#ffffff"/>
+  <circle cx="88" cy="74" r="4.5" fill="#ffffff"/>
+  
+  <!-- Center Lightning Bolt -->
+  <path d="M 67,42 L 57,63 L 67,63 L 61,84 L 73,61 L 65,61 Z" fill="#ffffff" filter="drop-shadow(0 1px 3px rgba(0,0,0,0.3))"/>
 </svg>

@@ -345,8 +345,8 @@ export async function updateCommissionMatrix(req: Request, res: Response) {
     const nobleActive = is_noble_active !== undefined ? Boolean(is_noble_active) : false;
     const maxMaster = nobleActive ? Math.max(neroRate, nobleRate) : neroRate;
 
-    // Standard 58% pass down if not specified explicitly
-    let passDown = retailer_pass_down_rate !== undefined ? parseFloat(retailer_pass_down_rate) : Number((maxMaster * 0.58).toFixed(2));
+    // Standard 50% pass down if not specified explicitly (50/50 split with admin)
+    let passDown = retailer_pass_down_rate !== undefined ? parseFloat(retailer_pass_down_rate) : Number((maxMaster * 0.50).toFixed(2));
     if (passDown > maxMaster) {
       passDown = maxMaster;
     }
