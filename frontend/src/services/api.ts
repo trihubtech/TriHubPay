@@ -12,7 +12,8 @@ import {
   DepositRequest,
   RetailerCommissionRate,
   RetailerInsights,
-  InsightsPeriod
+  InsightsPeriod,
+  AdminReportsData
 } from '../types';
 
 const API_BASE = '/api';
@@ -123,6 +124,15 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     }
 
     if (!res.ok) {
+      if (res.status === 403 && (data?.code === 'ACCOUNT_DEACTIVATED' || String(data?.message || '').toLowerCase().includes('deactivated'))) {
+        localStorage.removeItem('trihub_retailer_token');
+        localStorage.removeItem('trihub_token');
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('trihub_force_logout', {
+            detail: { message: data?.message || 'Your account has been deactivated. Please contact administrator.' }
+          }));
+        }
+      }
       const humanMsg = humanizeErrorMessage(data?.message || data?.error || `HTTP ${res.status}`, res.status);
       throw new Error(humanMsg);
     }
@@ -437,5 +447,25 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ reason })
     });
+  },
+
+  async checkTransactionStatus(id: string) {
+    return request<{
+      success: boolean;
+      status: 'SUCCESS' | 'PENDING' | 'FAILED';
+      message: string;
+      upstream_ref?: string;
+      refunded?: boolean;
+      data?: any;
+    }>(`/admin/transactions/${id}/check-status`, {
+      method: 'POST'
+    });
+  },
+
+  async getAdminReports(period: string = 'today') {
+    return request<{
+      success: boolean;
+      data: AdminReportsData;
+    }>(`/admin/reports?period=${period}`);
   }
 };

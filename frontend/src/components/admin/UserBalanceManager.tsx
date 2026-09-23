@@ -360,8 +360,124 @@ export const UserBalanceManager: React.FC<UserBalanceManagerProps> = ({
         </div>
       </div>
 
-      {/* Directory Table */}
-      <div className="overflow-x-auto">
+      {/* MOBILE CARD VIEW: Zero horizontal scrolling on mobile devices */}
+      <div className="block md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+        {filteredUsers.map((u) => (
+          <div key={u.id} className="p-4 space-y-3">
+            {/* Header: Shop Name & Status */}
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <div className="font-bold text-slate-900 dark:text-white text-sm">{u.organization_name}</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{u.owner_name}</div>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-xs font-mono text-slate-600 dark:text-slate-300">{u.phone}</span>
+                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold uppercase">
+                    {u.role}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => handleToggleStatus(u)}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors shrink-0 ${
+                  u.is_active
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                    : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
+                }`}
+              >
+                {u.is_active ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                <span>{u.is_active ? 'Active' : 'Blocked'}</span>
+              </button>
+            </div>
+
+            {/* Balance Badge */}
+            <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200/60 dark:border-slate-800 flex items-center justify-between">
+              <span className="text-xs text-slate-500 font-medium">Available Cash Float:</span>
+              <div className="text-right">
+                {u.role === 'ADMIN' ? (
+                  <div className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-sm">
+                    ₹{masterBalance.toFixed(2)}
+                  </div>
+                ) : (
+                  <div>
+                    <div className="font-mono font-bold text-slate-900 dark:text-white text-sm">
+                      ₹{Number(u.current_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </div>
+                    <div className="text-[10px] text-slate-400">
+                      {u.total_recharges || 0} recharges completed
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Quick Action Buttons Grid */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              <button
+                onClick={() => handleOpenAdjust(u, 'CREDIT')}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold border border-emerald-500/20 hover:bg-emerald-500/20"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Credit</span>
+              </button>
+
+              <button
+                onClick={() => handleOpenAdjust(u, 'DEBIT')}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 text-xs font-semibold border border-rose-500/20 hover:bg-rose-500/20"
+              >
+                <Minus className="w-3.5 h-3.5" />
+                <span>Debit</span>
+              </button>
+
+              {u.role === 'RETAILER' && (
+                <button
+                  onClick={() => setResetSingleUserModal(u)}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-semibold border border-amber-500/20 hover:bg-amber-500/20"
+                  title="Reset to ₹0"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Reset ₹0</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => onOpenCustomCommissions(u)}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-semibold border border-blue-500/20 hover:bg-blue-500/20"
+              >
+                <Settings2 className="w-3.5 h-3.5" />
+                <span>Rates</span>
+              </button>
+
+              <button
+                onClick={() => handleViewLedger(u)}
+                className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+                title="Ledger"
+              >
+                <FileText className="w-3.5 h-3.5" />
+              </button>
+
+              <button
+                onClick={() => handleOpenCredentials(u)}
+                className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                title="Login Credentials & Reset"
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+              </button>
+
+              <button
+                onClick={() => handleOpenEditProfile(u)}
+                className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20"
+                title="Edit Profile"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* DESKTOP DIRECTORY TABLE */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-left text-xs text-slate-700 dark:text-slate-300">
           <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-800">
             <tr>

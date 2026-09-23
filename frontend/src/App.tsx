@@ -24,6 +24,7 @@ import { FailoverToggle } from './components/admin/FailoverToggle';
 import { AllTransactionsTable } from './components/admin/AllTransactionsTable';
 import { OnboardShopModal } from './components/admin/OnboardShopModal';
 import { PendingDepositsTable } from './components/admin/PendingDepositsTable';
+import { AdminReportsView } from './components/admin/AdminReportsView';
 
 // Auth Screen
 import { AuthPage } from './components/auth/AuthPage';
@@ -41,7 +42,8 @@ import {
   Sparkles,
   Layers,
   Store,
-  Percent
+  Percent,
+  BarChart3
 } from 'lucide-react';
 import { useLanguage } from './context/LanguageContext';
 
@@ -70,10 +72,18 @@ export function App() {
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [selectedShopForOverrides, setSelectedShopForOverrides] = useState<User | null>(null);
   const [isOnboardModalOpen, setIsOnboardModalOpen] = useState<boolean>(false);
-  const [adminSubTab, setAdminSubTab] = useState<'OVERVIEW' | 'SHOPS' | 'MATRIX' | 'FAILOVER' | 'TRANSACTIONS' | 'DEPOSITS'>('OVERVIEW');
+  const [adminSubTab, setAdminSubTab] = useState<'OVERVIEW' | 'REPORTS' | 'SHOPS' | 'MATRIX' | 'FAILOVER' | 'TRANSACTIONS' | 'DEPOSITS'>('OVERVIEW');
 
   // Check saved session on load (route-aware token isolation)
   useEffect(() => {
+    // 1. Listen for immediate account deactivation force-logout event
+    const handleForceLogout = (e: any) => {
+      const msg = e.detail?.message || 'Your account has been deactivated. Please contact TriHubPay administrator.';
+      setCurrentUser(null);
+      alert(msg);
+    };
+    window.addEventListener('trihub_force_logout', handleForceLogout);
+
     const token = getActiveAuthToken();
     const isAdminRoute = window.location.pathname.startsWith('/admin') || window.location.hash === '#admin';
     if (token) {
@@ -133,6 +143,19 @@ export function App() {
       setCurrentUser(null);
       setIsInitializing(false);
     }
+
+    // 2. Periodic background session validation heartbeat (ejects deactivated accounts within 20s)
+    const heartbeatInterval = setInterval(() => {
+      const activeToken = getActiveAuthToken();
+      if (activeToken) {
+        api.getMe().catch(() => {});
+      }
+    }, 20000);
+
+    return () => {
+      window.removeEventListener('trihub_force_logout', handleForceLogout);
+      clearInterval(heartbeatInterval);
+    };
   }, []);
 
   const loadRetailerData = async () => {
@@ -223,13 +246,22 @@ export function App() {
     localStorage.setItem('trihub_user', JSON.stringify(updatedUser));
   };
 
-  // 1. Initial Loading Screen
+  // 1. Initial Loading Screen (Branded White Background Splash)
   if (isInitializing) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-800 dark:text-white text-xs font-mono">
-        <div className="flex items-center gap-2">
-          <Zap className="w-5 h-5 text-brand-500 animate-pulse" />
-          <span>Starting TriHubPay Engine...</span>
+      <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col items-center justify-center p-6 text-center select-none animate-in fade-in duration-300">
+        <div className="w-24 h-24 mb-4 rounded-2xl bg-white dark:bg-slate-900 shadow-xl border border-slate-100 dark:border-slate-800 p-2 flex items-center justify-center animate-pulse">
+          <img src="/icon-192.png" alt="TriHubPay Logo" className="w-full h-full object-contain" />
+        </div>
+        <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+          TriHub<span className="text-brand-600">Pay</span>
+        </h1>
+        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 max-w-xs leading-relaxed">
+          Instant Mobile &amp; DTH Recharges • 100% Reliable
+        </p>
+        <div className="mt-6 flex items-center gap-2 text-xs font-mono text-slate-400">
+          <RefreshCw className="w-3.5 h-3.5 animate-spin text-brand-600" />
+          <span>Starting Secure Engine...</span>
         </div>
       </div>
     );
@@ -573,31 +605,42 @@ export function App() {
       {isAdmin && (
         <main className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6 flex-1 w-full max-w-full overflow-x-hidden">
           {/* Admin Navigation Sub-Tabs */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
-            <div className="flex items-center gap-1.5 overflow-x-auto">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar max-w-full pb-1 sm:pb-0">
               <button
                 onClick={() => setAdminSubTab('OVERVIEW')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
                   adminSubTab === 'OVERVIEW'
                     ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
                     : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800'
                 }`}
               >
-                Operations Dashboard
+                Overview
+              </button>
+              <button
+                onClick={() => setAdminSubTab('REPORTS')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 flex items-center gap-1 ${
+                  adminSubTab === 'REPORTS'
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
+                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800'
+                }`}
+              >
+                <BarChart3 className="w-3.5 h-3.5" />
+                <span>Reports &amp; Analytics</span>
               </button>
               <button
                 onClick={() => setAdminSubTab('SHOPS')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
                   adminSubTab === 'SHOPS'
                     ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
                     : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800'
                 }`}
               >
-                Accounts & Balances
+                Accounts &amp; Balances
               </button>
               <button
                 onClick={() => setAdminSubTab('MATRIX')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
                   adminSubTab === 'MATRIX'
                     ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
                     : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800'
@@ -607,40 +650,40 @@ export function App() {
               </button>
               <button
                 onClick={() => setAdminSubTab('FAILOVER')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
                   adminSubTab === 'FAILOVER'
                     ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
                     : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800'
                 }`}
               >
-                Upstream Failover Toggle
+                Failover Toggle
               </button>
               <button
                 onClick={() => setAdminSubTab('TRANSACTIONS')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
                   adminSubTab === 'TRANSACTIONS'
                     ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
                     : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800'
                 }`}
               >
-                Live Transaction Log
+                Live Audit Log
               </button>
               <button
                 onClick={() => setAdminSubTab('DEPOSITS')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
                   adminSubTab === 'DEPOSITS'
                     ? 'bg-amber-600 text-white shadow-md shadow-amber-600/20'
                     : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800'
                 }`}
               >
-                Deposit Approvals
+                Deposits
               </button>
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-xs font-bold text-emerald-700 dark:text-emerald-400">
+            <div className="flex items-center gap-2 justify-between sm:justify-end">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-xs font-bold text-emerald-700 dark:text-emerald-400">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>NeroPay Float: ₹{(adminKPIs?.master_wallet?.balance ?? 100).toFixed(2)}</span>
+                <span>NeroPay: ₹{(adminKPIs?.master_wallet?.balance ?? 100).toFixed(2)}</span>
               </div>
               <button
                 onClick={loadAdminData}
@@ -656,8 +699,13 @@ export function App() {
           {adminSubTab === 'OVERVIEW' && (
             <div className="space-y-6">
               <DashboardKPIsComponent kpis={adminKPIs} onRefresh={loadAdminData} />
-              <AllTransactionsTable transactions={allTransactions} />
+              <AllTransactionsTable transactions={allTransactions} onRefresh={loadAdminData} />
             </div>
+          )}
+
+          {/* Sub-Tab: Revenue & Performance Reports */}
+          {adminSubTab === 'REPORTS' && (
+            <AdminReportsView />
           )}
 
           {/* Sub-Tab 2: Shops & Balances (User Balance Manager) */}
@@ -690,7 +738,7 @@ export function App() {
 
           {/* Sub-Tab 5: All Transactions */}
           {adminSubTab === 'TRANSACTIONS' && (
-            <AllTransactionsTable transactions={allTransactions} />
+            <AllTransactionsTable transactions={allTransactions} onRefresh={loadAdminData} />
           )}
 
           {/* Sub-Tab 6: UPI Deposit Approvals */}

@@ -1,20 +1,54 @@
 import React, { useState } from 'react';
 import { Transaction } from '../../types';
-import { Layers, Search, CheckCircle, Clock, XCircle, RotateCcw, Copy, Check } from 'lucide-react';
+import { api } from '../../services/api';
+import { Layers, Search, CheckCircle, Clock, XCircle, RotateCcw, Copy, Check, RefreshCw, AlertCircle, X, ShieldAlert } from 'lucide-react';
 
 interface AllTransactionsTableProps {
   transactions: Transaction[];
+  onRefresh?: () => void;
 }
 
-export const AllTransactionsTable: React.FC<AllTransactionsTableProps> = ({ transactions }) => {
+export const AllTransactionsTable: React.FC<AllTransactionsTableProps> = ({ transactions, onRefresh }) => {
   const [filter, setFilter] = useState<string>('ALL');
   const [search, setSearch] = useState<string>('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [checkingId, setCheckingId] = useState<string | null>(null);
+  const [statusResult, setStatusResult] = useState<{
+    txId: string;
+    status: 'SUCCESS' | 'PENDING' | 'FAILED';
+    message: string;
+    upstream_ref?: string;
+    refunded?: boolean;
+  } | null>(null);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard?.writeText(text);
     setCopiedId(text);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleCheckStatus = async (t: Transaction) => {
+    if (!t.id) return;
+    setCheckingId(t.id);
+    try {
+      const res = await api.checkTransactionStatus(t.id);
+      setStatusResult({
+        txId: t.internal_tx_id,
+        status: res.status,
+        message: res.message,
+        upstream_ref: res.upstream_ref,
+        refunded: res.refunded
+      });
+      if (onRefresh) onRefresh();
+    } catch (err: any) {
+      setStatusResult({
+        txId: t.internal_tx_id,
+        status: 'FAILED',
+        message: err.message || 'Failed to check status with upstream gateway.'
+      });
+    } finally {
+      setCheckingId(null);
+    }
   };
 
   const filtered = transactions.filter((t) => {
@@ -148,9 +182,9 @@ export const AllTransactionsTable: React.FC<AllTransactionsTableProps> = ({ tran
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono pt-0.5">
+              <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono pt-1 border-t border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-1">
-                  <span className="truncate max-w-[170px]">{t.internal_tx_id}</span>
+                  <span className="truncate max-w-[140px]">{t.internal_tx_id}</span>
                   <button
                     type="button"
                     onClick={() => copyToClipboard(t.internal_tx_id)}
@@ -160,7 +194,15 @@ export const AllTransactionsTable: React.FC<AllTransactionsTableProps> = ({ tran
                     {copiedId === t.internal_tx_id ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
                   </button>
                 </div>
-                <span>{new Date(t.created_at).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                
+                <button
+                  onClick={() => handleCheckStatus(t)}
+                  disabled={checkingId === t.id}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-300 font-sans font-bold text-[11px] border border-blue-200 dark:border-blue-800 transition-colors"
+                >
+                  <RefreshCw className={`w-3 h-3 ${checkingId === t.id ? 'animate-spin' : ''}`} />
+                  <span>{checkingId === t.id ? 'Checking...' : 'Check Status'}</span>
+                </button>
               </div>
             </div>
           ))
@@ -180,12 +222,13 @@ export const AllTransactionsTable: React.FC<AllTransactionsTableProps> = ({ tran
               <th className="py-3 px-4 text-right">Admin Margin</th>
               <th className="py-3 px-4 text-center">Channel</th>
               <th className="py-3 px-4 text-center">Status</th>
+              <th className="py-3 px-4 text-right">Live Audit</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60 font-mono">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={8} className="py-8 text-center text-slate-500 text-xs font-sans">
+                <td colSpan={9} className="py-8 text-center text-slate-500 text-xs font-sans">
                   No matching platform transactions found.
                 </td>
               </tr>
@@ -230,12 +273,83 @@ export const AllTransactionsTable: React.FC<AllTransactionsTableProps> = ({ tran
                   <td className="py-3 px-4 text-center">
                     {getStatusBadge(t.status)}
                   </td>
+
+                  <td className="py-3 px-4 text-right font-sans">
+                    <button
+                      onClick={() => handleCheckStatus(t)}
+                      disabled={checkingId === t.id}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-300 font-bold text-xs border border-blue-200 dark:border-blue-800 transition-colors"
+                      title="Query live operator status"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${checkingId === t.id ? 'animate-spin' : ''}`} />
+                      <span>{checkingId === t.id ? 'Checking...' : 'Check Status'}</span>
+                    </button>
+                  </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
       </div>
+
+      {/* ─── LIVE STATUS RESULT MODAL ─── */}
+      {statusResult && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {statusResult.status === 'SUCCESS' && <CheckCircle className="w-6 h-6 text-emerald-500" />}
+                {statusResult.status === 'PENDING' && <Clock className="w-6 h-6 text-amber-500" />}
+                {statusResult.status === 'FAILED' && <XCircle className="w-6 h-6 text-rose-500" />}
+                <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                  Upstream Live Status Check
+                </h3>
+              </div>
+              <button
+                onClick={() => setStatusResult(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-3.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
+              <div className="flex justify-between">
+                <span className="text-slate-400">Transaction ID:</span>
+                <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{statusResult.txId}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">Live Status:</span>
+                {getStatusBadge(statusResult.status)}
+              </div>
+              {statusResult.upstream_ref && (
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Operator Ref:</span>
+                  <span className="font-mono text-slate-700 dark:text-slate-300">{statusResult.upstream_ref}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="text-xs text-slate-600 dark:text-slate-300 bg-slate-100/70 dark:bg-slate-800/70 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+              {statusResult.message}
+            </div>
+
+            {statusResult.refunded && (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 shrink-0" />
+                <span>Order cost was automatically refunded to the retailer cash float wallet.</span>
+              </div>
+            )}
+
+            <button
+              onClick={() => setStatusResult(null)}
+              className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

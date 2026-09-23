@@ -906,4 +906,312 @@ export async function resetSingleRetailerBalance(req: Request, res: Response) {
   }
 }
 
+/**
+ * Live Upstream Status Check & Auto-Reconcile/Refund
+ * Endpoint: POST /api/admin/transactions/:id/check-status
+ */
+export async function checkTransactionStatus(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const txRes = await query('SELECT * FROM transactions WHERE id = $1', [id]);
+    if (txRes.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Transaction not found' });
+    }
+
+    const tx = txRes.rows[0];
+
+    // If transaction is already successful
+    if (tx.status === 'SUCCESS') {
+      return res.json({
+        success: true,
+        status: 'SUCCESS',
+        message: 'Transaction is confirmed SUCCESS.',
+        upstream_ref: tx.upstream_operator_ref,
+        refunded: false
+      });
+    }
+
+    // Call live upstream status API (NeroPay)
+    const neroClient = new NeroPayClient();
+    const queryRef = tx.internal_tx_id || tx.upstream_operator_ref;
+    const statusRes = await neroClient.checkStatus(queryRef);
+
+    if (statusRes.status === 'SUCCESS') {
+      await query(
+        `UPDATE transactions SET 
+          status = 'SUCCESS',
+          upstream_operator_ref = COALESCE($1, upstream_operator_ref),
+          failure_reason = NULL,
+          updated_at = clock_timestamp()
+         WHERE id = $2`,
+        [statusRes.upstreamRef || null, tx.id]
+      );
+
+      return res.json({
+        success: true,
+        status: 'SUCCESS',
+        message: statusRes.message || 'Transaction successfully completed at telecom operator.',
+        upstream_ref: statusRes.upstreamRef || tx.upstream_operator_ref,
+        refunded: false
+      });
+    }
+
+    if (statusRes.status === 'FAILED') {
+      let wasRefunded = false;
+      if (tx.status !== 'FAILED' && tx.status !== 'REFUNDED') {
+        await withTransaction(async (client) => {
+          const uRes = await client.query('SELECT current_balance FROM users WHERE id = $1 FOR UPDATE', [tx.retailer_id]);
+          if (uRes.rows.length > 0) {
+            const curBal = parseFloat(uRes.rows[0].current_balance);
+            const refundAmount = parseFloat(tx.final_cost_billed);
+            const newBal = curBal + refundAmount;
+
+            await client.query('UPDATE users SET current_balance = $1, updated_at = clock_timestamp() WHERE id = $2', [newBal, tx.retailer_id]);
+            await client.query(`
+              INSERT INTO wallet_ledger (
+                user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
+              ) VALUES ($1, $2, 'REFUND', $3, $4, $5, $6)
+            `, [
+              tx.retailer_id,
+              refundAmount,
+              curBal,
+              newBal,
+              `REFUND_${tx.internal_tx_id}`,
+              `Admin Live Status: Upstream failure refund for ${tx.target_account_number}`
+            ]);
+            wasRefunded = true;
+          }
+
+          await client.query(
+            `UPDATE transactions SET 
+              status = 'FAILED',
+              failure_reason = $1,
+              updated_at = clock_timestamp()
+             WHERE id = $2`,
+            [statusRes.message || 'Failed at upstream operator', tx.id]
+          );
+        });
+      }
+
+      return res.json({
+        success: true,
+        status: 'FAILED',
+        message: wasRefunded
+          ? `Upstream confirmed FAILED. ₹${parseFloat(tx.final_cost_billed).toFixed(2)} refunded to retailer wallet.`
+          : 'Transaction confirmed FAILED at upstream.',
+        upstream_ref: statusRes.upstreamRef,
+        refunded: wasRefunded
+      });
+    }
+
+    // PENDING
+    return res.json({
+      success: true,
+      status: 'PENDING',
+      message: statusRes.message || 'Transaction is still processing at upstream operator.',
+      upstream_ref: statusRes.upstreamRef,
+      refunded: false
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+/**
+ * Get comprehensive analytics & earnings reports (period-filtered, user-wise & operator-wise)
+ * Endpoint: GET /api/admin/reports?period=today|yesterday|this_week|last_week|this_month|last_month|all
+ */
+export async function getAdminReports(req: Request, res: Response) {
+  try {
+    const period = (req.query.period as string) || 'today';
+
+    const now = new Date();
+    let startDate: Date;
+    let endDate: Date = now;
+
+    if (period === 'yesterday') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
+      endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
+    } else if (period === 'this_week') {
+      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (period === 'last_week') {
+      startDate = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+      endDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (period === 'this_month') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    } else if (period === 'last_month') {
+      startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+      endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+    } else if (period === 'all') {
+      startDate = new Date(0);
+    } else {
+      // today
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    }
+
+    // Fetch transactions within range with user details
+    const txRes = await query(`
+      SELECT 
+        t.id,
+        t.internal_tx_id,
+        t.retailer_id,
+        t.service_type,
+        t.operator_code,
+        t.face_value,
+        t.retailer_commission,
+        t.admin_commission,
+        t.status,
+        t.created_at,
+        u.organization_name,
+        u.owner_name,
+        u.phone,
+        u.role
+      FROM transactions t
+      LEFT JOIN users u ON t.retailer_id = u.id
+      WHERE t.created_at >= $1 AND t.created_at <= $2
+      ORDER BY t.created_at DESC;
+    `, [startDate.toISOString(), endDate.toISOString()]);
+
+    let totalVolume = 0;
+    let totalRetailerPayout = 0;
+    let totalAdminProfit = 0;
+    let successCount = 0;
+    let failedCount = 0;
+    let pendingCount = 0;
+    const totalTransactions = txRes.rows.length;
+
+    // Operator aggregates
+    const opMap: Record<string, {
+      operator_code: string;
+      operator_name: string;
+      service_type: string;
+      count: number;
+      volume: number;
+      retailer_commission: number;
+      admin_commission: number;
+      success_count: number;
+    }> = {};
+
+    // User aggregates
+    const userMap: Record<string, {
+      user_id: string;
+      organization_name: string;
+      owner_name: string;
+      phone: string;
+      role: string;
+      count: number;
+      volume: number;
+      retailer_commission: number;
+      admin_commission: number;
+    }> = {};
+
+    for (const r of txRes.rows) {
+      const vol = parseFloat(r.face_value || '0');
+      const retComm = parseFloat(r.retailer_commission || '0');
+      const admComm = parseFloat(r.admin_commission || '0');
+      const opCode = r.operator_code || 'OTHER';
+      const sType = r.service_type || 'MOBILE';
+      const uId = r.retailer_id || 'UNKNOWN';
+
+      if (!opMap[opCode]) {
+        opMap[opCode] = {
+          operator_code: opCode,
+          operator_name: opCode,
+          service_type: sType,
+          count: 0,
+          volume: 0,
+          retailer_commission: 0,
+          admin_commission: 0,
+          success_count: 0
+        };
+      }
+      opMap[opCode].count += 1;
+
+      if (!userMap[uId]) {
+        userMap[uId] = {
+          user_id: uId,
+          organization_name: r.organization_name || 'Store',
+          owner_name: r.owner_name || '',
+          phone: r.phone || '',
+          role: r.role || 'RETAILER',
+          count: 0,
+          volume: 0,
+          retailer_commission: 0,
+          admin_commission: 0
+        };
+      }
+      userMap[uId].count += 1;
+
+      if (r.status === 'SUCCESS') {
+        successCount++;
+        totalVolume += vol;
+        totalRetailerPayout += retComm;
+        totalAdminProfit += admComm;
+
+        opMap[opCode].volume += vol;
+        opMap[opCode].retailer_commission += retComm;
+        opMap[opCode].admin_commission += admComm;
+        opMap[opCode].success_count += 1;
+
+        userMap[uId].volume += vol;
+        userMap[uId].retailer_commission += retComm;
+        userMap[uId].admin_commission += admComm;
+      } else if (r.status === 'FAILED') {
+        failedCount++;
+      } else {
+        pendingCount++;
+      }
+    }
+
+    const operatorReports = Object.values(opMap).map(op => ({
+      operator_code: op.operator_code,
+      operator_name: op.operator_name,
+      service_type: op.service_type,
+      count: op.count,
+      volume: Number(op.volume.toFixed(2)),
+      retailer_commission: Number(op.retailer_commission.toFixed(2)),
+      admin_commission: Number(op.admin_commission.toFixed(2)),
+      success_rate: op.count > 0 ? Number(((op.success_count / op.count) * 100).toFixed(1)) : 100
+    })).sort((a, b) => b.volume - a.volume);
+
+    const userReports = Object.values(userMap).map(u => ({
+      user_id: u.user_id,
+      organization_name: u.organization_name,
+      owner_name: u.owner_name,
+      phone: u.phone,
+      role: u.role,
+      count: u.count,
+      volume: Number(u.volume.toFixed(2)),
+      retailer_commission: Number(u.retailer_commission.toFixed(2)),
+      admin_commission: Number(u.admin_commission.toFixed(2))
+    })).sort((a, b) => b.volume - a.volume);
+
+    const successRate = totalTransactions > 0 ? Number(((successCount / totalTransactions) * 100).toFixed(1)) : 100;
+    const adminMarginPercent = totalVolume > 0 ? Number(((totalAdminProfit / totalVolume) * 100).toFixed(2)) : 0;
+
+    return res.json({
+      success: true,
+      data: {
+        period,
+        summary: {
+          total_transactions: totalTransactions,
+          success_count: successCount,
+          failed_count: failedCount,
+          pending_count: pendingCount,
+          total_volume: Number(totalVolume.toFixed(2)),
+          total_retailer_payout: Number(totalRetailerPayout.toFixed(2)),
+          total_admin_profit: Number(totalAdminProfit.toFixed(2)),
+          success_rate: successRate,
+          admin_margin_percent: adminMarginPercent
+        },
+        operator_reports: operatorReports,
+        user_reports: userReports
+      }
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+
 

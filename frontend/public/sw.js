@@ -1,4 +1,4 @@
-const CACHE_NAME = 'trihubpay-pwa-v2';
+const CACHE_NAME = 'trihubpay-pwa-v3';
 
 self.addEventListener('install', (event) => {
   // Immediately take over from old SW - no waiting

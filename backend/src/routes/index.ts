@@ -80,6 +80,8 @@ router.post('/admin/users/custom-commission/delete', authenticate, requireRole([
 router.get('/admin/failover', authenticate, requireRole(['ADMIN']), adminController.getFailoverSettings);
 router.post('/admin/failover', authenticate, requireRole(['ADMIN']), adminController.updateFailoverSettings);
 router.get('/admin/transactions', authenticate, requireRole(['ADMIN']), adminController.getAllTransactions);
+router.post('/admin/transactions/:id/check-status', authenticate, requireRole(['ADMIN']), adminController.checkTransactionStatus);
+router.get('/admin/reports', authenticate, requireRole(['ADMIN']), adminController.getAdminReports);
 
 // UPI Cash Deposit Approvals
 router.get('/admin/deposits/pending', authenticate, requireRole(['ADMIN']), adminController.getPendingDeposits);

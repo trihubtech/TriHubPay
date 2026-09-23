@@ -95,8 +95,14 @@ export const RetailerInsightsCard: React.FC<RetailerInsightsCardProps> = ({
       endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
     } else if (selectedPeriod === 'this_week') {
       startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (selectedPeriod === 'last_week') {
+      startDate = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+      endDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     } else if (selectedPeriod === 'this_month') {
       startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    } else if (selectedPeriod === 'last_month') {
+      startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+      endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
     } else if (selectedPeriod === 'all') {
       startDate = new Date(0);
     } else {
@@ -184,8 +190,10 @@ export const RetailerInsightsCard: React.FC<RetailerInsightsCardProps> = ({
   const periodLabels: Record<InsightsPeriod, string> = {
     today: 'Today',
     yesterday: 'Yesterday',
-    this_week: 'Last 7 Days',
+    this_week: 'This Week',
+    last_week: 'Last Week',
     this_month: 'This Month',
+    last_month: 'Last Month',
     all: 'All Time'
   };
 
@@ -250,8 +258,10 @@ export const RetailerInsightsCard: React.FC<RetailerInsightsCardProps> = ({
                 >
                   <option value="today">Today</option>
                   <option value="yesterday">Yesterday</option>
-                  <option value="this_week">Last 7 Days</option>
+                  <option value="this_week">This Week</option>
+                  <option value="last_week">Last Week</option>
                   <option value="this_month">This Month</option>
+                  <option value="last_month">Last Month</option>
                   <option value="all">All Time</option>
                 </select>
                 <div className="absolute right-2.5 pointer-events-none text-slate-400 text-[10px]">▼</div>
@@ -399,6 +409,33 @@ export const RetailerInsightsCard: React.FC<RetailerInsightsCardProps> = ({
                   </div>
                 </div>
               </div>
+
+              {/* Operator-wise Performance Breakdown */}
+              {insights?.operator_breakdown && insights.operator_breakdown.length > 0 && (
+                <div className="space-y-2 pt-1">
+                  <div className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center justify-between">
+                    <span>Operator Performance ({periodLabels[period]})</span>
+                    <span className="text-[10px] text-slate-400 font-normal">Cashback &amp; Volume</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {insights.operator_breakdown.map((op) => (
+                      <div
+                        key={op.operator_code}
+                        className="p-2.5 bg-slate-50 dark:bg-slate-950/70 border border-slate-200/70 dark:border-slate-800 rounded-xl space-y-1"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-xs text-slate-800 dark:text-slate-200 font-sans">{op.operator_code}</span>
+                          <span className="text-[10px] font-mono text-slate-500 font-medium">{op.count} orders</span>
+                        </div>
+                        <div className="flex items-baseline justify-between text-[11px] font-mono">
+                          <span className="text-slate-500 font-sans text-[10px]">Vol: ₹{op.volume.toFixed(0)}</span>
+                          <span className="font-bold text-emerald-600 dark:text-emerald-400">+₹{op.commission.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Tip / Insight strip */}
               <div className="p-3 bg-slate-50 dark:bg-slate-950/80 rounded-xl border border-slate-200/80 dark:border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">

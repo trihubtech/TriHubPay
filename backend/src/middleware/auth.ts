@@ -27,12 +27,28 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
       const decoded = jwt.verify(token, config.jwtSecret) as any;
+
+      // Real-time verification: ensure account is not deactivated
+      const userRes = await query(
+        'SELECT id, email, role, organization_name, phone, is_active FROM users WHERE id = $1 LIMIT 1',
+        [decoded.id]
+      );
+
+      if (userRes.rows.length === 0 || userRes.rows[0].is_active === false) {
+        return res.status(403).json({
+          success: false,
+          code: 'ACCOUNT_DEACTIVATED',
+          message: 'Your account has been deactivated. Please contact administrator.'
+        });
+      }
+
+      const u = userRes.rows[0];
       req.user = {
-        id: decoded.id,
-        email: decoded.email,
-        role: decoded.role,
-        organization_name: decoded.organization_name,
-        phone: decoded.phone
+        id: u.id,
+        email: u.email,
+        role: u.role,
+        organization_name: u.organization_name,
+        phone: u.phone
       };
       return next();
     }

@@ -165,7 +165,7 @@ export interface RetailerCommissionRate {
   earnings_per_1000: number;
 }
 
-export type InsightsPeriod = 'today' | 'yesterday' | 'this_week' | 'this_month' | 'all';
+export type InsightsPeriod = 'today' | 'yesterday' | 'this_week' | 'last_week' | 'this_month' | 'last_month' | 'all';
 
 export interface RetailerInsights {
   period: InsightsPeriod;
@@ -187,5 +187,47 @@ export interface RetailerInsights {
     DTH: number;
     ELECTRICITY: number;
   };
+  operator_breakdown?: Array<{
+    operator_code: string;
+    count: number;
+    volume: number;
+    commission: number;
+  }>;
+}
+
+export interface AdminReportsData {
+  period: string;
+  summary: {
+    total_transactions: number;
+    success_count: number;
+    failed_count: number;
+    pending_count: number;
+    total_volume: number;
+    total_retailer_payout: number;
+    total_admin_profit: number;
+    success_rate: number;
+    admin_margin_percent: number;
+  };
+  operator_reports: Array<{
+    operator_code: string;
+    operator_name: string;
+    service_type: string;
+    count: number;
+    volume: number;
+    retailer_commission: number;
+    admin_commission: number;
+    success_rate: number;
+  }>;
+  user_reports: Array<{
+    user_id: string;
+    organization_name: string;
+    owner_name: string;
+    phone: string;
+    role: string;
+    count: number;
+    volume: number;
+    retailer_commission: number;
+    admin_commission: number;
+  }>;
 }
 

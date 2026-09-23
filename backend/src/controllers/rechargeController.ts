@@ -465,8 +465,14 @@ export async function getMyInsights(req: Request, res: Response) {
       endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
     } else if (period === 'this_week') {
       startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (period === 'last_week') {
+      startDate = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+      endDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     } else if (period === 'this_month') {
       startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    } else if (period === 'last_month') {
+      startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+      endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
     } else if (period === 'all') {
       startDate = new Date(0);
     } else {
@@ -486,7 +492,7 @@ export async function getMyInsights(req: Request, res: Response) {
     let pendingCount = 0;
     let totalTxs = 0;
 
-    const opMap: Record<string, { earnings: number; volume: number }> = {};
+    const opMap: Record<string, { earnings: number; volume: number; count: number }> = {};
     const serviceEarnings: Record<string, number> = { MOBILE: 0, DTH: 0, ELECTRICITY: 0 };
 
     for (const t of txRes.rows) {
@@ -496,6 +502,9 @@ export async function getMyInsights(req: Request, res: Response) {
       }
 
       totalTxs++;
+      const code = t.operator_code || 'OTHER';
+      if (!opMap[code]) opMap[code] = { earnings: 0, volume: 0, count: 0 };
+
       if (t.status === 'SUCCESS') {
         const comm = parseFloat(t.retailer_commission || '0');
         const vol = parseFloat(t.face_value || '0');
@@ -503,10 +512,9 @@ export async function getMyInsights(req: Request, res: Response) {
         totalCommission += comm;
         successCount++;
 
-        const code = t.operator_code || 'OTHER';
-        if (!opMap[code]) opMap[code] = { earnings: 0, volume: 0 };
         opMap[code].earnings += comm;
         opMap[code].volume += vol;
+        opMap[code].count += 1;
 
         const sType = t.service_type || 'MOBILE';
         serviceEarnings[sType] = (serviceEarnings[sType] || 0) + comm;
@@ -518,7 +526,17 @@ export async function getMyInsights(req: Request, res: Response) {
     }
 
     let topOp: { operator_code: string; earnings: number; volume: number } | null = null;
+    const operatorBreakdown: Array<{ operator_code: string; count: number; volume: number; commission: number }> = [];
+
     for (const [code, stats] of Object.entries(opMap)) {
+      if (stats.volume > 0 || stats.earnings > 0 || stats.count > 0) {
+        operatorBreakdown.push({
+          operator_code: code,
+          count: stats.count,
+          volume: Number(stats.volume.toFixed(2)),
+          commission: Number(stats.earnings.toFixed(2))
+        });
+      }
       if (!topOp || stats.earnings > topOp.earnings) {
         topOp = {
           operator_code: code,
@@ -527,6 +545,8 @@ export async function getMyInsights(req: Request, res: Response) {
         };
       }
     }
+
+    operatorBreakdown.sort((a, b) => b.volume - a.volume);
 
     const successRate = totalTxs > 0 ? Number(((successCount / totalTxs) * 100).toFixed(1)) : 100;
     const avgCommissionRate = totalVolume > 0 ? Number(((totalCommission / totalVolume) * 100).toFixed(2)) : 0;
@@ -544,7 +564,8 @@ export async function getMyInsights(req: Request, res: Response) {
         success_rate: successRate,
         average_commission_rate: avgCommissionRate,
         top_operator: topOp,
-        earnings_by_service: serviceEarnings
+        earnings_by_service: serviceEarnings,
+        operator_breakdown: operatorBreakdown
       }
     });
   } catch (error: any) {

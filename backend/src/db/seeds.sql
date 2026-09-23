@@ -35,18 +35,18 @@ INSERT INTO commission_matrix (
     ('VIDEOCON', 'Videocon d2h', 'DTH', 'PERCENT', 3.50, 3.60, 1.75, 1.75, false, true),
     ('VIDEOCON_D2H', 'Videocon d2h', 'DTH', 'PERCENT', 3.50, 3.60, 1.75, 1.75, false, true),
     
-    -- Electricity Boards
-    ('TNEB', 'TNEB Electricity', 'ELECTRICITY', 'FLAT', 0.00, 2.50, 1.45, 1.05, false, true),
-    ('BESCOM', 'BESCOM Electricity', 'ELECTRICITY', 'FLAT', 0.00, 2.00, 1.16, 0.84, false, true),
-    ('WBSEDCL', 'WBSEDCL Electricity', 'ELECTRICITY', 'FLAT', 0.00, 2.00, 1.16, 0.84, false, true),
-    ('MSEB', 'MSEB Electricity', 'ELECTRICITY', 'FLAT', 0.00, 2.00, 1.16, 0.84, false, true),
+    -- Electricity Boards (Inactive for now)
+    ('TNEB', 'TNEB Electricity', 'ELECTRICITY', 'FLAT', 0.00, 2.50, 1.45, 1.05, false, false),
+    ('BESCOM', 'BESCOM Electricity', 'ELECTRICITY', 'FLAT', 0.00, 2.00, 1.16, 0.84, false, false),
+    ('WBSEDCL', 'WBSEDCL Electricity', 'ELECTRICITY', 'FLAT', 0.00, 2.00, 1.16, 0.84, false, false),
+    ('MSEB', 'MSEB Electricity', 'ELECTRICITY', 'FLAT', 0.00, 2.00, 1.16, 0.84, false, false),
 
-    -- High-Margin New Categories
-    ('GOOGLE_PLAY', 'Google Play Redeem Code', 'GOOGLE_PLAY', 'PERCENT', 2.00, 3.00, 1.74, 1.26, false, true),
-    ('OTT_APPS', 'OTT Streaming Vouchers', 'OTT_APPS', 'PERCENT', 3.50, 4.00, 2.32, 1.68, false, true),
-    ('FASTAG', 'FASTag Recharge', 'FASTAG', 'PERCENT', 0.15, 0.30, 0.17, 0.13, false, true),
-    ('LPG_GAS', 'LPG Gas Cylinder Booking', 'LPG_GAS', 'FLAT', 0.40, 6.00, 3.50, 2.50, false, true),
-    ('BROADBAND', 'Broadband Bill Payment', 'BROADBAND', 'PERCENT', 0.50, 0.80, 0.46, 0.34, false, true)
+    -- High-Margin New Categories (Inactive until upstream enabled)
+    ('GOOGLE_PLAY', 'Google Play Redeem Code', 'GOOGLE_PLAY', 'PERCENT', 2.00, 3.00, 1.74, 1.26, false, false),
+    ('OTT_APPS', 'OTT Streaming Vouchers', 'OTT_APPS', 'PERCENT', 3.50, 4.00, 2.32, 1.68, false, false),
+    ('FASTAG', 'FASTag Recharge', 'FASTAG', 'PERCENT', 0.15, 0.30, 0.17, 0.13, false, false),
+    ('LPG_GAS', 'LPG Gas Cylinder Booking', 'LPG_GAS', 'FLAT', 0.40, 6.00, 3.50, 2.50, false, false),
+    ('BROADBAND', 'Broadband Bill Payment', 'BROADBAND', 'PERCENT', 0.50, 0.80, 0.46, 0.34, false, false)
 ON CONFLICT (operator_code) DO NOTHING;
 
 -- 4. SEED PER-SHOP CUSTOMIZED COMMISSION OVERRIDE
