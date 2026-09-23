@@ -56,12 +56,7 @@ export async function generateUpiTopup(req: Request, res: Response) {
     const amount = parsed.data.amount;
     const txnRef = `UPI_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
 
-    // Store pending topup in database
-    await query(
-      `INSERT INTO wallet_topups (user_id, txn_ref, amount, status)
-       VALUES ($1, $2, $3, 'PENDING')`,
-      [userId, txnRef, amount]
-    );
+    // Note: Do NOT create a pending approval record until retailer submits their payment UTR
 
     // Build standard NPCI-compliant UPI payment URL
     // Format: upi://pay?pa=VPA&pn=NAME&am=AMOUNT&tr=REF&tn=NOTE&cu=INR
@@ -101,7 +96,7 @@ export async function generateUpiTopup(req: Request, res: Response) {
  */
 export async function submitUpiDeposit(req: Request, res: Response) {
   try {
-    const { txn_ref, utr_number } = req.body;
+    const { txn_ref, utr_number, amount } = req.body;
     const userId = req.user!.id;
 
     if (!txn_ref) {
@@ -111,14 +106,26 @@ export async function submitUpiDeposit(req: Request, res: Response) {
       return res.status(400).json({ success: false, message: 'Please enter valid 12-digit UPI UTR / Reference number from your payment app' });
     }
 
-    // Update topup record to PENDING_APPROVAL with UTR
-    await query(
-      `UPDATE wallet_topups SET 
-        status = 'PENDING_APPROVAL',
-        upi_txn_id = $1
-       WHERE txn_ref = $2 AND user_id = $3`,
-      [String(utr_number).trim(), txn_ref, userId]
-    );
+    const cleanUtr = String(utr_number).trim();
+    const depositAmount = parseFloat(amount) || 0;
+
+    // Check if record exists
+    const existing = await query('SELECT id FROM wallet_topups WHERE txn_ref = $1', [txn_ref]);
+    if (existing.rows.length > 0) {
+      await query(
+        `UPDATE wallet_topups SET 
+          status = 'PENDING_APPROVAL',
+          upi_txn_id = $1
+         WHERE txn_ref = $2 AND user_id = $3`,
+        [cleanUtr, txn_ref, userId]
+      );
+    } else {
+      await query(
+        `INSERT INTO wallet_topups (user_id, txn_ref, amount, upi_txn_id, status)
+         VALUES ($1, $2, $3, $4, 'PENDING_APPROVAL')`,
+        [userId, txn_ref, depositAmount, cleanUtr]
+      );
+    }
 
     return res.json({
       success: true,

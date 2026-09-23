@@ -98,7 +98,7 @@ export const UpiTopupModal: React.FC<UpiTopupModalProps> = ({ isOpen, onClose })
     setSubmitting(true);
     setErrorMsg('');
     try {
-      const res = await api.submitUpiDeposit(qrData.txn_ref, utrNumber.trim());
+      const res = await api.submitUpiDeposit(qrData.txn_ref, utrNumber.trim(), qrData.amount);
       if (res.success) {
         setSubmitted(true);
         // Automatically open WhatsApp reminder to Admin 1 (916374569225)

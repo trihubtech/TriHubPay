@@ -136,19 +136,19 @@ export const UserBalanceManager: React.FC<UserBalanceManagerProps> = ({
     }
   };
 
+  const [isResetAllModalOpen, setIsResetAllModalOpen] = useState<boolean>(false);
   const [isResettingBalances, setIsResettingBalances] = useState<boolean>(false);
 
-  const handleResetAllBalances = async () => {
-    const confirmed = window.confirm(
-      '⚠️ RESET ALL RETAILER BALANCES TO ₹0.00?\n\nThis will zero out all retailer cash balances in your platform so that recharges require real wallet deposits. Continue?'
-    );
-    if (!confirmed) return;
+  const [resetSingleUserModal, setResetSingleUserModal] = useState<User | null>(null);
+  const [isResettingSingle, setIsResettingSingle] = useState<boolean>(false);
 
+  const handleConfirmResetAll = async () => {
     setIsResettingBalances(true);
     try {
       const res = await api.resetAllRetailerBalances();
       if (res.success) {
         setFeedbackMsg({ text: 'All retailer balances successfully reset to ₹0.00 for live launch.' });
+        setIsResetAllModalOpen(false);
         onRefresh();
       } else {
         setFeedbackMsg({ text: res.message || 'Failed to reset balances', error: true });
@@ -157,6 +157,25 @@ export const UserBalanceManager: React.FC<UserBalanceManagerProps> = ({
       setFeedbackMsg({ text: e.message || 'Error resetting balances', error: true });
     } finally {
       setIsResettingBalances(false);
+    }
+  };
+
+  const handleConfirmResetSingle = async () => {
+    if (!resetSingleUserModal) return;
+    setIsResettingSingle(true);
+    try {
+      const res = await api.resetSingleRetailerBalance(resetSingleUserModal.id);
+      if (res.success) {
+        setFeedbackMsg({ text: `Balance for "${resetSingleUserModal.organization_name}" successfully reset to ₹0.00.` });
+        setResetSingleUserModal(null);
+        onRefresh();
+      } else {
+        setFeedbackMsg({ text: res.message || 'Failed to reset balance', error: true });
+      }
+    } catch (e: any) {
+      setFeedbackMsg({ text: e.message || 'Error resetting balance', error: true });
+    } finally {
+      setIsResettingSingle(false);
     }
   };
 
@@ -287,9 +306,9 @@ export const UserBalanceManager: React.FC<UserBalanceManagerProps> = ({
 
         <div className="flex items-center gap-2.5 w-full sm:w-auto">
           <button
-            onClick={handleResetAllBalances}
+            onClick={() => setIsResetAllModalOpen(true)}
             disabled={isResettingBalances}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 dark:text-rose-300 font-bold text-xs border border-rose-200 dark:border-rose-800 transition-all shrink-0"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 dark:text-rose-300 font-bold text-xs border border-rose-200 dark:border-rose-800 transition-all shrink-0 cursor-pointer"
             title="Reset all test retailer balances to ₹0.00 for live launch"
           >
             {isResettingBalances ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
@@ -424,6 +443,17 @@ export const UserBalanceManager: React.FC<UserBalanceManagerProps> = ({
                     >
                       <Minus className="w-3.5 h-3.5" />
                     </button>
+
+                    {/* Reset to ₹0 for this row */}
+                    {u.role === 'RETAILER' && (
+                      <button
+                        onClick={() => setResetSingleUserModal(u)}
+                        title={`Reset ${u.organization_name} balance to ₹0.00`}
+                        className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 border border-amber-500/20 transition-colors"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                      </button>
+                    )}
 
                     {/* Shop Custom Commission */}
                     <button
@@ -841,6 +871,137 @@ export const UserBalanceManager: React.FC<UserBalanceManagerProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Reset All Retailer Balances Confirmation Modal */}
+      {isResetAllModalOpen && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isResettingBalances) setIsResetAllModalOpen(false);
+          }}
+        >
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95">
+            <div className="p-6 text-center">
+              <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-600 dark:text-rose-400">
+                <RotateCcw className="w-7 h-7" />
+              </div>
+
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                Reset All Retailer Balances to ₹0.00?
+              </h3>
+
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-6">
+                This will zero out all retailer cash balances in your platform so that recharges require real wallet deposits. Each reset will be recorded in the audit ledger. Continue?
+              </p>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsResetAllModalOpen(false)}
+                  disabled={isResettingBalances}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmResetAll}
+                  disabled={isResettingBalances}
+                  className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-all shadow-md shadow-rose-600/30 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {isResettingBalances ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Resetting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Confirm Reset to ₹0</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Single Retailer Balance Confirmation Modal */}
+      {resetSingleUserModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isResettingSingle) setResetSingleUserModal(null);
+          }}
+        >
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95">
+            <div className="p-6 text-center">
+              <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                <RotateCcw className="w-7 h-7" />
+              </div>
+
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                Reset Account Balance to ₹0.00?
+              </h3>
+
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 text-left my-4 space-y-1.5">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-500 dark:text-slate-400">Retailer / Shop:</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{resetSingleUserModal.organization_name}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-500 dark:text-slate-400">Owner Name:</span>
+                  <span className="font-semibold text-slate-750 dark:text-slate-300">{resetSingleUserModal.owner_name}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-500 dark:text-slate-400">Phone Number:</span>
+                  <span className="font-mono text-slate-700 dark:text-slate-300">{resetSingleUserModal.phone}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs pt-1 border-t border-slate-200 dark:border-slate-800">
+                  <span className="text-slate-500 dark:text-slate-400">Current Balance:</span>
+                  <span className="font-mono font-bold text-brand-600 dark:text-brand-400">
+                    ₹{Number(resetSingleUserModal.current_balance).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-6">
+                Are you sure you want to reset this retailer&apos;s available cash balance to <strong>₹0.00</strong>? This action will be logged in their wallet ledger.
+              </p>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setResetSingleUserModal(null)}
+                  disabled={isResettingSingle}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmResetSingle}
+                  disabled={isResettingSingle}
+                  className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-all shadow-md shadow-rose-600/30 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {isResettingSingle ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Resetting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Confirm Reset to ₹0</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

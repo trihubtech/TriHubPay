@@ -64,6 +64,7 @@ router.post('/admin/users/balance', authenticate, requireRole(['ADMIN']), adminC
 router.post('/admin/users/status', authenticate, requireRole(['ADMIN']), adminController.toggleUserStatus);
 router.post('/admin/users/reset-password', authenticate, requireRole(['ADMIN']), adminController.resetUserPassword);
 router.post('/admin/users/reset-all-balances', authenticate, requireRole(['ADMIN']), adminController.resetAllRetailerBalances);
+router.post('/admin/users/:user_id/reset-balance', authenticate, requireRole(['ADMIN']), adminController.resetSingleRetailerBalance);
 router.put('/admin/users/:user_id/profile', authenticate, requireRole(['ADMIN']), adminController.updateUserProfile);
 router.get('/admin/users/:user_id/ledger', authenticate, requireRole(['ADMIN']), adminController.getUserLedger);
 

@@ -262,10 +262,10 @@ export const api = {
     });
   },
 
-  async submitUpiDeposit(txn_ref: string, utr_number: string) {
+  async submitUpiDeposit(txn_ref: string, utr_number: string, amount?: number) {
     return request<{ success: boolean; message: string }>('/wallet/topup/submit', {
       method: 'POST',
-      body: JSON.stringify({ txn_ref, utr_number })
+      body: JSON.stringify({ txn_ref, utr_number, amount })
     });
   },
 
@@ -320,6 +320,12 @@ export const api = {
 
   async resetAllRetailerBalances() {
     return request<{ success: boolean; message: string }>('/admin/users/reset-all-balances', {
+      method: 'POST'
+    });
+  },
+
+  async resetSingleRetailerBalance(userId: string) {
+    return request<{ success: boolean; message: string }>(`/admin/users/${userId}/reset-balance`, {
       method: 'POST'
     });
   },

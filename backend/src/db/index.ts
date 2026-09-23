@@ -691,13 +691,31 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
   }
   // 21. INSERT INTO wallet_topups
   else if (/INSERT INTO wallet_topups/i.test(cleanSql)) {
+    const userId = params[0];
+    const txnRef = params[1];
+    const amount = String(params[2]);
+    let upiTxnId = '';
+    let status = 'PENDING_APPROVAL';
+
+    if (params.length >= 5) {
+      upiTxnId = params[3] || '';
+      status = params[4] || 'PENDING_APPROVAL';
+    } else if (params.length === 4) {
+      if (params[3] === 'PENDING' || params[3] === 'PENDING_APPROVAL') {
+        status = params[3];
+      } else {
+        upiTxnId = params[3];
+        status = 'PENDING_APPROVAL';
+      }
+    }
+
     memoryStore.wallet_topups.push({
       id: `topup-${Date.now()}`,
-      user_id: params[0],
-      txn_ref: params[1],
-      amount: String(params[2]),
-      status: params[3] || 'PENDING',
-      upi_txn_id: '',
+      user_id: userId,
+      txn_ref: txnRef,
+      amount: amount,
+      status: status,
+      upi_txn_id: upiTxnId,
       created_at: new Date().toISOString()
     });
     savePersistentStore();
@@ -731,10 +749,8 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
       if (/WHERE wt\.status = \$1/i.test(cleanSql) || /WHERE status = \$1/i.test(cleanSql)) {
         const st = params[0];
         filtered = filtered.filter(t => t.status === st);
-      } else if (/WHERE wt\.status IN/i.test(cleanSql)) {
-        filtered = filtered.filter(t => t.status === 'PENDING' || t.status === 'PENDING_APPROVAL');
-      } else if (/status = 'PENDING_APPROVAL'/i.test(cleanSql)) {
-        filtered = filtered.filter(t => t.status === 'PENDING_APPROVAL');
+      } else if (/status = 'PENDING_APPROVAL'/i.test(cleanSql) || /WHERE wt\.status IN/i.test(cleanSql)) {
+        filtered = filtered.filter(t => t.status === 'PENDING_APPROVAL' && t.upi_txn_id && t.upi_txn_id.trim() !== '');
       }
 
       rows = filtered.map(t => {

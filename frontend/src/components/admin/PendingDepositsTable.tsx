@@ -121,9 +121,10 @@ export const PendingDepositsTable: React.FC<PendingDepositsTableProps> = ({ onBa
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const pendingDeposits = deposits.filter(d => d.status === 'PENDING' || d.status === 'PENDING_APPROVAL');
-  const approvedDeposits = deposits.filter(d => d.status === 'COMPLETED');
-  const rejectedDeposits = deposits.filter(d => d.status === 'REJECTED');
+  const validDeposits = deposits.filter(d => d.status !== 'PENDING' || (d.utr_number && d.utr_number !== 'N/A' && d.utr_number.trim() !== ''));
+  const pendingDeposits = validDeposits.filter(d => d.status === 'PENDING_APPROVAL' || (d.status === 'PENDING' && d.utr_number && d.utr_number !== 'N/A'));
+  const approvedDeposits = validDeposits.filter(d => d.status === 'COMPLETED');
+  const rejectedDeposits = validDeposits.filter(d => d.status === 'REJECTED');
 
   const visibleDeposits = filterTab === 'PENDING'
     ? pendingDeposits
@@ -131,7 +132,7 @@ export const PendingDepositsTable: React.FC<PendingDepositsTableProps> = ({ onBa
     ? approvedDeposits
     : filterTab === 'REJECTED'
     ? rejectedDeposits
-    : deposits;
+    : validDeposits;
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">

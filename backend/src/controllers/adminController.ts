@@ -603,10 +603,12 @@ export async function getPendingDeposits(req: Request, res: Response) {
     const params: any[] = [];
 
     if (status === 'PENDING') {
-      querySql += " WHERE wt.status IN ('PENDING', 'PENDING_APPROVAL')";
+      querySql += " WHERE wt.status = 'PENDING_APPROVAL' AND wt.upi_txn_id IS NOT NULL AND wt.upi_txn_id != ''";
     } else if (status !== 'ALL') {
       querySql += ' WHERE wt.status = $1';
       params.push(status);
+    } else {
+      querySql += " WHERE wt.status != 'PENDING' OR (wt.upi_txn_id IS NOT NULL AND wt.upi_txn_id != '')";
     }
 
     querySql += ' ORDER BY wt.created_at DESC;';
@@ -773,10 +775,85 @@ export async function rejectDeposit(req: Request, res: Response) {
  */
 export async function resetAllRetailerBalances(req: Request, res: Response) {
   try {
-    await query("UPDATE users SET current_balance = 0.0000 WHERE role = 'RETAILER'");
+    const adminEmail = req.user?.email || 'admin@trihubpay.com';
+
+    await withTransaction(async (client) => {
+      const usersRes = await client.query("SELECT id, current_balance FROM users WHERE role = 'RETAILER' AND current_balance > 0");
+      for (const u of usersRes.rows) {
+        const curBal = parseFloat(u.current_balance);
+        const refId = `RESET_ALL_${Date.now()}_${u.id}`;
+        await client.query(
+          `INSERT INTO wallet_ledger (
+            user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
+          ) VALUES ($1, $2, 'DEBIT', $3, 0.0000, $4, $5)`,
+          [
+            u.id,
+            curBal,
+            curBal,
+            refId,
+            `Admin Reset All Balances to ₹0.00 by ${adminEmail}`
+          ]
+        );
+      }
+      await client.query("UPDATE users SET current_balance = 0.0000 WHERE role = 'RETAILER'");
+    });
+
     return res.json({
       success: true,
       message: 'All retailer balances have been reset to ₹0.00 for live launch.'
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+/**
+ * Reset a single retailer's cash balance to ₹0.00 with ledger audit
+ */
+export async function resetSingleRetailerBalance(req: Request, res: Response) {
+  try {
+    const { user_id } = req.params;
+    const adminEmail = req.user?.email || 'admin@trihubpay.com';
+
+    let orgName = '';
+
+    await withTransaction(async (client) => {
+      const uRes = await client.query(
+        'SELECT id, organization_name, current_balance FROM users WHERE id = $1 FOR UPDATE',
+        [user_id]
+      );
+      if (uRes.rows.length === 0) {
+        throw new Error('Target user does not exist');
+      }
+
+      orgName = uRes.rows[0].organization_name;
+      const curBal = parseFloat(uRes.rows[0].current_balance);
+
+      await client.query(
+        'UPDATE users SET current_balance = 0.0000, updated_at = clock_timestamp() WHERE id = $1',
+        [user_id]
+      );
+
+      if (curBal > 0) {
+        const refId = `RESET_ZERO_${Date.now()}`;
+        await client.query(
+          `INSERT INTO wallet_ledger (
+            user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
+          ) VALUES ($1, $2, 'DEBIT', $3, 0.0000, $4, $5)`,
+          [
+            user_id,
+            curBal,
+            curBal,
+            refId,
+            `Admin Reset Balance to ₹0.00 by ${adminEmail}: Manual zero balance reset`
+          ]
+        );
+      }
+    });
+
+    return res.json({
+      success: true,
+      message: `Balance for "${orgName}" has been successfully reset to ₹0.00`
     });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
