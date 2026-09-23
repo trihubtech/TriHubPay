@@ -454,8 +454,28 @@ export async function getRetailerTransactions(req: Request, res: Response) {
 export async function getMyInsights(req: Request, res: Response) {
   try {
     const retailerId = req.user!.id;
+    const period = (req.query.period as string) || 'today';
+
+    const now = new Date();
+    let startDate: Date;
+    let endDate: Date = now;
+
+    if (period === 'yesterday') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
+      endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
+    } else if (period === 'this_week') {
+      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (period === 'this_month') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    } else if (period === 'all') {
+      startDate = new Date(0);
+    } else {
+      // today
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    }
+
     const txRes = await query(
-      `SELECT face_value, retailer_commission, status, created_at FROM transactions WHERE retailer_id = $1`,
+      `SELECT operator_code, service_type, face_value, retailer_commission, status, created_at FROM transactions WHERE retailer_id = $1`,
       [retailerId]
     );
 
@@ -464,28 +484,67 @@ export async function getMyInsights(req: Request, res: Response) {
     let successCount = 0;
     let failedCount = 0;
     let pendingCount = 0;
+    let totalTxs = 0;
+
+    const opMap: Record<string, { earnings: number; volume: number }> = {};
+    const serviceEarnings: Record<string, number> = { MOBILE: 0, DTH: 0, ELECTRICITY: 0 };
 
     for (const t of txRes.rows) {
+      const txTime = new Date(t.created_at).getTime();
+      if (txTime < startDate.getTime() || txTime > endDate.getTime()) {
+        continue;
+      }
+
+      totalTxs++;
       if (t.status === 'SUCCESS') {
-        totalVolume += parseFloat(t.face_value || '0');
-        totalCommission += parseFloat(t.retailer_commission || '0');
+        const comm = parseFloat(t.retailer_commission || '0');
+        const vol = parseFloat(t.face_value || '0');
+        totalVolume += vol;
+        totalCommission += comm;
         successCount++;
+
+        const code = t.operator_code || 'OTHER';
+        if (!opMap[code]) opMap[code] = { earnings: 0, volume: 0 };
+        opMap[code].earnings += comm;
+        opMap[code].volume += vol;
+
+        const sType = t.service_type || 'MOBILE';
+        serviceEarnings[sType] = (serviceEarnings[sType] || 0) + comm;
       } else if (t.status === 'FAILED') {
         failedCount++;
-      } else if (t.status === 'PENDING') {
+      } else {
         pendingCount++;
       }
     }
 
+    let topOp: { operator_code: string; earnings: number; volume: number } | null = null;
+    for (const [code, stats] of Object.entries(opMap)) {
+      if (!topOp || stats.earnings > topOp.earnings) {
+        topOp = {
+          operator_code: code,
+          earnings: Number(stats.earnings.toFixed(2)),
+          volume: Number(stats.volume.toFixed(2))
+        };
+      }
+    }
+
+    const successRate = totalTxs > 0 ? Number(((successCount / totalTxs) * 100).toFixed(1)) : 100;
+    const avgCommissionRate = totalVolume > 0 ? Number(((totalCommission / totalVolume) * 100).toFixed(2)) : 0;
+
     return res.json({
       success: true,
       data: {
-        totalVolume,
-        totalCommission,
-        successCount,
-        failedCount,
-        pendingCount,
-        totalOrders: txRes.rows.length
+        period,
+        total_commission: Number(totalCommission.toFixed(2)),
+        total_sales_volume: Number(totalVolume.toFixed(2)),
+        total_transactions: totalTxs,
+        successful_transactions: successCount,
+        failed_transactions: failedCount,
+        pending_transactions: pendingCount,
+        success_rate: successRate,
+        average_commission_rate: avgCommissionRate,
+        top_operator: topOp,
+        earnings_by_service: serviceEarnings
       }
     });
   } catch (error: any) {

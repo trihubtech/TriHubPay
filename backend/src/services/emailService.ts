@@ -140,3 +140,138 @@ export async function sendPasswordResetOtpEmail(
     };
   }
 }
+
+export async function sendLoginAlertEmail(
+  toEmail: string,
+  recipientName: string,
+  meta: { ip: string; userAgent: string; time: string; location?: string }
+): Promise<{ success: boolean; delivered: boolean; info?: string }> {
+  console.log(`\n======================================================`);
+  console.log(`🔔 [LOGIN SECURITY ALERT] New Session Login`);
+  console.log(`👤 User: ${recipientName} (${toEmail})`);
+  console.log(`🌐 IP Address: ${meta.ip}`);
+  console.log(`📱 Device / Client: ${meta.userAgent}`);
+  console.log(`⏰ Time: ${meta.time}`);
+  console.log(`======================================================\n`);
+
+  if (!toEmail || !toEmail.includes('@')) {
+    return { success: false, delivered: false, info: 'No valid email address' };
+  }
+
+  const mailTransporter = getTransporter();
+  if (!mailTransporter || !config.smtp.pass) {
+    return {
+      success: true,
+      delivered: false,
+      info: 'SMTP not configured; login alert logged to console.'
+    };
+  }
+
+  // Parse simple device name from userAgent
+  let deviceName = 'Web Browser';
+  const ua = meta.userAgent || '';
+  if (/android/i.test(ua)) deviceName = 'Android Mobile / Tablet';
+  else if (/iphone|ipad|ipod/i.test(ua)) deviceName = 'Apple iOS Device';
+  else if (/windows/i.test(ua)) deviceName = 'Windows PC';
+  else if (/macintosh|mac os/i.test(ua)) deviceName = 'Apple Mac';
+  else if (/linux/i.test(ua)) deviceName = 'Linux Device';
+
+  const htmlContent = `
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Alert: New Login to TriHubPay</title>
+  </head>
+  <body style="margin:0;padding:0;background-color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#334155;">
+    <div style="max-width:560px;margin:30px auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 10px 25px rgba(0,0,0,0.2);">
+      
+      <!-- Brand Header -->
+      <div style="background:linear-gradient(135deg, #1e3a8a 0%, #0284c7 50%, #059669 100%);padding:28px 24px;text-align:center;">
+        <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:900;letter-spacing:-0.5px;">
+          TriHub<span style="color:#6ee7b7;">Pay</span>
+        </h1>
+        <p style="margin:4px 0 0;color:#e0f2fe;font-size:12px;font-weight:500;">
+          Account Security Notification
+        </p>
+      </div>
+
+      <!-- Main Body -->
+      <div style="padding:28px 24px;">
+        <h2 style="margin:0 0 10px;color:#0f172a;font-size:17px;font-weight:700;">
+          New Login Detected
+        </h2>
+        <p style="margin:0 0 16px;color:#475569;font-size:13px;line-height:1.6;">
+          Hello <strong>${recipientName || 'Valued User'}</strong>,
+        </p>
+        <p style="margin:0 0 20px;color:#475569;font-size:13px;line-height:1.6;">
+          A new sign-in was just detected on your TriHubPay account. Here are the security details for this session:
+        </p>
+
+        <!-- Log Details Box -->
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin:16px 0;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;line-height:1.8;">
+            <tr>
+              <td style="color:#64748b;font-weight:600;width:120px;">📱 Device:</td>
+              <td style="color:#0f172a;font-weight:700;">${deviceName}</td>
+            </tr>
+            <tr>
+              <td style="color:#64748b;font-weight:600;">🌐 IP Address:</td>
+              <td style="color:#0f172a;font-family:monospace;font-weight:700;">${meta.ip}</td>
+            </tr>
+            <tr>
+              <td style="color:#64748b;font-weight:600;">⏰ Time:</td>
+              <td style="color:#0f172a;">${meta.time}</td>
+            </tr>
+            <tr>
+              <td style="color:#64748b;font-weight:600;">📍 Location:</td>
+              <td style="color:#0f172a;">${meta.location || 'India (Network Detected)'}</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Security Warning -->
+        <div style="background:#f0fdf4;border-left:4px solid #10b981;padding:12px 14px;border-radius:6px;margin:20px 0;">
+          <p style="margin:0;color:#065f46;font-size:12px;line-height:1.5;">
+            <strong>✅ Was this you?</strong> If you recently logged in, you can safely disregard this alert. No further action is required.
+          </p>
+        </div>
+
+        <div style="background:#fff1f2;border-left:4px solid #f43f5e;padding:12px 14px;border-radius:6px;margin:16px 0;">
+          <p style="margin:0;color:#9f1239;font-size:12px;line-height:1.5;">
+            <strong>⚠️ Don't recognize this activity?</strong> Please log into your TriHubPay account immediately and change your password in the Security settings, or contact priority support.
+          </p>
+        </div>
+      </div>
+
+      <!-- Support Footer -->
+      <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:16px 24px;text-align:center;">
+        <p style="margin:0;font-size:11px;color:#64748b;">
+          TriHubPay Support: +91 63745 69225 • trihubtechnologies@gmail.com
+        </p>
+        <p style="margin:6px 0 0;font-size:10px;color:#94a3b8;">
+          © 2026 TriHub Technologies. All rights reserved.
+        </p>
+      </div>
+
+    </div>
+  </body>
+  </html>
+  `;
+
+  try {
+    const info = await mailTransporter.sendMail({
+      from: config.smtp.from,
+      to: toEmail,
+      subject: `[TriHubPay Security] New Login Detected - ${deviceName}`,
+      text: `Hello ${recipientName},\n\nA new login was detected on your TriHubPay account.\nDevice: ${deviceName}\nIP: ${meta.ip}\nTime: ${meta.time}\n\nIf this wasn't you, please change your password immediately in Settings.\n\nSupport: +91 63745 69225`,
+      html: htmlContent
+    });
+    return { success: true, delivered: true, info: info.messageId };
+  } catch (error: any) {
+    console.error(`⚠️ [LOGIN SECURITY ALERT] Failed to dispatch login alert email:`, error.message);
+    return { success: false, delivered: false, info: error.message };
+  }
+}
+

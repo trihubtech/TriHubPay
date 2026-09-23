@@ -29,11 +29,18 @@ export const MyCommissionsTable: React.FC = () => {
     try {
       const res = await api.getMyCommissions();
       if (res.success) {
-        // Strictly filter to active Mobile and DTH services
-        const activeOnly = (res.data || []).filter(
-          (r: RetailerCommissionRate) => r.service_type === 'MOBILE' || r.service_type === 'DTH'
-        );
-        setRates(activeOnly);
+        // Strictly filter to active Mobile and DTH services and deduplicate
+        const seen = new Set<string>();
+        const uniqueActive: RetailerCommissionRate[] = [];
+        for (const r of (res.data || [])) {
+          if (r.service_type !== 'MOBILE' && r.service_type !== 'DTH') continue;
+          const key = `${r.service_type}_${(r.operator_name || r.operator_code).toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            uniqueActive.push(r);
+          }
+        }
+        setRates(uniqueActive);
       }
     } catch (err: any) {
       setError(err.message || 'Unable to load commission rates');

@@ -122,22 +122,25 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({ transactions, onViewRe
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm dark:shadow-xl">
-      {/* ─── Responsive Tab Switcher Header ─── */}
-      <div className="px-3 sm:px-5 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/60 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar scrollbar-none">
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+      {/* ─── Responsive 3-Tab Switcher Header (All 3 tabs 100% visible on all phones) ─── */}
+      <div className="px-2.5 sm:px-5 py-2 sm:py-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/60 flex items-center justify-between gap-1.5 sm:gap-2">
+        <div className="grid grid-cols-3 gap-1 sm:gap-2 flex-1 min-w-0">
           {/* Tab 1: Recharges */}
           <button
             type="button"
             onClick={() => setActiveTab('RECHARGES')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+            className={`py-2 px-1 sm:px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-w-0 ${
               activeTab === 'RECHARGES'
                 ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-sm border border-slate-200 dark:border-slate-700'
-                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-900/50'
             }`}
           >
-            <Receipt className="w-3.5 h-3.5 text-brand-500" />
-            <span>Recharge Passbook</span>
-            <span className="ml-0.5 text-[10px] px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-mono">
+            <Receipt className="w-3.5 h-3.5 text-brand-500 shrink-0" />
+            <span className="truncate">
+              <span className="sm:hidden">Recharges</span>
+              <span className="hidden sm:inline">Recharge Passbook</span>
+            </span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-mono shrink-0">
               {transactions.length}
             </span>
           </button>
@@ -146,16 +149,19 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({ transactions, onViewRe
           <button
             type="button"
             onClick={() => setActiveTab('LEDGER')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+            className={`py-2 px-1 sm:px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-w-0 ${
               activeTab === 'LEDGER'
                 ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-sm border border-slate-200 dark:border-slate-700'
-                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-900/50'
             }`}
           >
-            <Wallet className="w-3.5 h-3.5 text-blue-500" />
-            <span>Wallet Ledger</span>
+            <Wallet className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+            <span className="truncate">
+              <span className="sm:hidden">Ledger</span>
+              <span className="hidden sm:inline">Wallet Ledger</span>
+            </span>
             {ledgerEntries.length > 0 && (
-              <span className="ml-0.5 text-[10px] px-1.5 py-0.2 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-mono">
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-mono shrink-0">
                 {ledgerEntries.length}
               </span>
             )}
@@ -165,16 +171,19 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({ transactions, onViewRe
           <button
             type="button"
             onClick={() => setActiveTab('DEPOSITS')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+            className={`py-2 px-1 sm:px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-w-0 ${
               activeTab === 'DEPOSITS'
                 ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-sm border border-slate-200 dark:border-slate-700'
-                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-900/50'
             }`}
           >
-            <History className="w-3.5 h-3.5 text-emerald-500" />
-            <span>Deposit Requests</span>
+            <History className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+            <span className="truncate">
+              <span className="sm:hidden">Deposits</span>
+              <span className="hidden sm:inline">Deposit Requests</span>
+            </span>
             {deposits.length > 0 && (
-              <span className="ml-0.5 text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono">
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono shrink-0">
                 {deposits.length}
               </span>
             )}
@@ -187,10 +196,10 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({ transactions, onViewRe
             type="button"
             onClick={activeTab === 'DEPOSITS' ? fetchDeposits : fetchLedger}
             disabled={loadingDeposits || loadingLedger}
-            className="flex items-center gap-1 text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline p-1 shrink-0"
+            title="Refresh List"
+            className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 shrink-0 transition-colors"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loadingDeposits || loadingLedger ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">Refresh</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${loadingDeposits || loadingLedger ? 'animate-spin text-brand-500' : ''}`} />
           </button>
         )}
       </div>

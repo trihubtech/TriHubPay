@@ -46,7 +46,22 @@ export const RetailerInsightsCard: React.FC<RetailerInsightsCardProps> = ({
     try {
       const res = await api.getMyInsights(selectedPeriod);
       if (res.success && res.data) {
-        setInsights(res.data);
+        const d = res.data;
+        setInsights({
+          period: selectedPeriod,
+          total_commission: Number(d.total_commission ?? (d as any).totalCommission ?? 0),
+          total_sales_volume: Number(d.total_sales_volume ?? (d as any).totalVolume ?? 0),
+          total_transactions: Number(d.total_transactions ?? (d as any).totalOrders ?? 0),
+          successful_transactions: Number(d.successful_transactions ?? (d as any).successCount ?? 0),
+          failed_transactions: Number(d.failed_transactions ?? (d as any).failedCount ?? 0),
+          pending_transactions: Number(d.pending_transactions ?? (d as any).pendingCount ?? 0),
+          success_rate: Number(d.success_rate ?? 100),
+          average_commission_rate: Number(d.average_commission_rate ?? 0),
+          top_operator: d.top_operator || null,
+          earnings_by_service: d.earnings_by_service || { MOBILE: 0, DTH: 0, ELECTRICITY: 0 }
+        });
+      } else {
+        computeLocalInsights(selectedPeriod);
       }
     } catch (err) {
       console.warn('Backend insights fetch failed, computing client fallback from transactions', err);
@@ -318,7 +333,7 @@ export const RetailerInsightsCard: React.FC<RetailerInsightsCardProps> = ({
                     </div>
                   </div>
                   <div className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 font-mono">
-                    ₹{insights ? insights.total_commission.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
+                    ₹{insights ? Number(insights.total_commission || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
                   </div>
                   <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-1 font-medium">
                     Net profit added to your balance
@@ -336,7 +351,7 @@ export const RetailerInsightsCard: React.FC<RetailerInsightsCardProps> = ({
                     </div>
                   </div>
                   <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono">
-                    ₹{insights ? insights.total_sales_volume.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
+                    ₹{insights ? Number(insights.total_sales_volume || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
                   </div>
                   <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
                     Total recharge amount processed
@@ -354,11 +369,11 @@ export const RetailerInsightsCard: React.FC<RetailerInsightsCardProps> = ({
                     </div>
                   </div>
                   <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono">
-                    {insights ? insights.successful_transactions : 0}
-                    <span className="text-xs font-normal text-slate-400 ml-1">/ {insights ? insights.total_transactions : 0}</span>
+                    {insights ? (insights.successful_transactions ?? 0) : 0}
+                    <span className="text-xs font-normal text-slate-400 ml-1">/ {insights ? (insights.total_transactions ?? 0) : 0}</span>
                   </div>
                   <div className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 font-semibold">
-                    {insights ? `${insights.success_rate}% orders successful` : '100% success'}
+                    {insights ? `${Number(insights.success_rate ?? 100).toFixed(0)}% orders successful` : '100% success'}
                   </div>
                 </div>
 
@@ -373,7 +388,7 @@ export const RetailerInsightsCard: React.FC<RetailerInsightsCardProps> = ({
                     </div>
                   </div>
                   <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono">
-                    {insights ? `${insights.average_commission_rate.toFixed(2)}%` : '0.00%'}
+                    {insights ? `${Number(insights.average_commission_rate || 0).toFixed(2)}%` : '0.00%'}
                   </div>
                   <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 truncate">
                     {insights?.top_operator ? (
@@ -390,9 +405,9 @@ export const RetailerInsightsCard: React.FC<RetailerInsightsCardProps> = ({
                 <div className="flex items-start gap-2 text-slate-700 dark:text-slate-300">
                   <Lightbulb className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                   <span className="text-[11px]">
-                    {insights && insights.total_commission > 0 ? (
+                    {insights && (insights.total_commission || 0) > 0 ? (
                       <>
-                        You earned <strong className="text-emerald-600 dark:text-emerald-400 font-mono">₹{insights.total_commission.toFixed(2)}</strong> {periodLabels[period].toLowerCase()}.
+                        You earned <strong className="text-emerald-600 dark:text-emerald-400 font-mono">₹{Number(insights.total_commission || 0).toFixed(2)}</strong> {(periodLabels[period] || 'today').toLowerCase()}.
                         {insights.top_operator && (
                           <span> Best operator: <strong>{insights.top_operator.operator_code}</strong>.</span>
                         )}

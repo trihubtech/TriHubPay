@@ -22,6 +22,7 @@ router.post('/auth/forgot-password/send-otp', authController.sendPasswordResetOt
 router.post('/auth/forgot-password/reset', authController.verifyOtpAndResetPassword);
 router.get('/auth/me', authenticate, authController.getMe);
 router.put('/auth/profile', authenticate, authController.updateProfile);
+router.post('/auth/change-password', authenticate, authController.changePassword);
 
 // -------------------------------------------------------------
 // 2. OPERATORS & PLANS DIRECTORY

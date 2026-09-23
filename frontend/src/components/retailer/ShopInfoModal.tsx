@@ -18,7 +18,11 @@ import {
   Globe,
   Languages,
   Check,
-  ShieldAlert
+  ShieldAlert,
+  Lock,
+  Eye,
+  EyeOff,
+  Key
 } from 'lucide-react';
 import { useLanguage, Language } from '../../context/LanguageContext';
 
@@ -48,6 +52,16 @@ export const ShopInfoModal: React.FC<ShopInfoModalProps> = ({
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [successMsg, setSuccessMsg] = useState<string>('');
 
+  // Change Password state
+  const [currentPassword, setCurrentPassword] = useState<string>('');
+  const [newPassword, setNewPassword] = useState<string>('');
+  const [confirmPassword, setConfirmPassword] = useState<string>('');
+  const [showCurrentPw, setShowCurrentPw] = useState<boolean>(false);
+  const [showNewPw, setShowNewPw] = useState<boolean>(false);
+  const [pwError, setPwError] = useState<string>('');
+  const [pwSuccess, setPwSuccess] = useState<string>('');
+  const [isChangingPw, setIsChangingPw] = useState<boolean>(false);
+
   useEffect(() => {
     if (isOpen) {
       setOrgName(user.organization_name || '');
@@ -57,6 +71,11 @@ export const ShopInfoModal: React.FC<ShopInfoModalProps> = ({
       setIsEditing(false);
       setErrorMsg('');
       setSuccessMsg('');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setPwError('');
+      setPwSuccess('');
     }
   }, [isOpen, user]);
 
@@ -123,6 +142,42 @@ export const ShopInfoModal: React.FC<ShopInfoModalProps> = ({
       setErrorMsg(err.message || 'Failed to update profile details.');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPwError('');
+    setPwSuccess('');
+
+    if (!currentPassword) {
+      setPwError('Please enter your current password.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPwError('New password must be at least 6 characters long.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPwError('New password and confirm password do not match.');
+      return;
+    }
+
+    setIsChangingPw(true);
+    try {
+      const res = await api.changePassword(currentPassword, newPassword);
+      if (res.success) {
+        setPwSuccess(res.message || 'Password changed successfully!');
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      } else {
+        setPwError(res.message || 'Failed to change password.');
+      }
+    } catch (err: any) {
+      setPwError(err.message || 'Failed to change password. Please check your current password.');
+    } finally {
+      setIsChangingPw(false);
     }
   };
 
@@ -418,25 +473,123 @@ export const ShopInfoModal: React.FC<ShopInfoModalProps> = ({
             </div>
           )}
 
-          {/* ─── TAB 3: SECURITY & PORTAL ─── */}
+          {/* ─── TAB 3: SECURITY & PASSWORD ─── */}
           {modalTab === 'SECURITY' && (
-            <div className="space-y-3.5">
-              {/* Go to Admin Portal Link */}
-              <div className="p-3.5 rounded-2xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 space-y-2">
+            <div className="space-y-4">
+              {/* Change Password Card */}
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-3.5">
                 <div className="flex items-center gap-2">
-                  <ShieldAlert className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                  <span className="font-bold text-xs text-blue-900 dark:text-blue-200">Admin Control Center</span>
+                  <div className="w-8 h-8 rounded-xl bg-brand-500/15 text-brand-600 dark:text-brand-400 flex items-center justify-center shrink-0">
+                    <Key className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
+                      Change Password
+                    </h3>
+                    <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400">
+                      Update your account password to keep your wallet and recharges secure.
+                    </p>
+                  </div>
                 </div>
-                <p className="text-[11px] text-blue-700 dark:text-blue-300 leading-relaxed">
-                  Platform owners and administrators can log into the Master Admin Console at <code className="font-mono bg-blue-100 dark:bg-blue-900/50 px-1 py-0.5 rounded">/admin</code>.
-                </p>
-                <a
-                  href="/admin"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-500 transition-colors shadow-sm"
-                >
-                  <span>Open Admin Portal</span>
-                  <span>➔</span>
-                </a>
+
+                {pwError && (
+                  <div className="p-2.5 bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs rounded-xl flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{pwError}</span>
+                  </div>
+                )}
+
+                {pwSuccess && (
+                  <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs rounded-xl flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>{pwSuccess}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleChangePassword} className="space-y-3">
+                  {/* Current Password */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                      Current Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showCurrentPw ? 'text' : 'password'}
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        placeholder="Enter current password"
+                        required
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 pr-9 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-brand-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrentPw(!showCurrentPw)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      >
+                        {showCurrentPw ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* New Password */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                      New Password (minimum 6 characters)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showNewPw ? 'text' : 'password'}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Enter new password"
+                        required
+                        minLength={6}
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 pr-9 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-brand-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPw(!showNewPw)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      >
+                        {showNewPw ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Confirm Password */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                      Confirm New Password
+                    </label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Re-enter new password"
+                      required
+                      minLength={6}
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-brand-500"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isChangingPw}
+                    className="w-full py-2.5 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-md shadow-brand-600/20 active:scale-98"
+                  >
+                    {isChangingPw ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Updating Password...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-3.5 h-3.5" />
+                        <span>Update Password</span>
+                      </>
+                    )}
+                  </button>
+                </form>
               </div>
 
               {/* Sign out action */}

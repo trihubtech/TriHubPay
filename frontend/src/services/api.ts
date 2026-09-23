@@ -167,6 +167,13 @@ export const api = {
     });
   },
 
+  async changePassword(currentPassword: string, newPassword: string) {
+    return request<{ success: boolean; message: string }>('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword })
+    });
+  },
+
   async sendForgotPasswordOtp(identifier: string) {
     return request<{ success: boolean; message: string; masked_email: string; phone?: string }>('/auth/forgot-password/send-otp', {
       method: 'POST',
