@@ -6,7 +6,7 @@ import { config } from '../config';
 import { query, withTransaction } from '../db';
 
 const topupRequestSchema = z.object({
-  amount: z.number().min(10, 'Minimum UPI wallet top-up is ₹10').max(200000, 'Maximum top-up is ₹2,00,000')
+  amount: z.number({ invalid_type_error: 'Please enter a valid amount' }).min(10, 'Minimum top-up amount is ₹10')
 });
 
 /**
@@ -49,7 +49,8 @@ export async function generateUpiTopup(req: Request, res: Response) {
   try {
     const parsed = topupRequestSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ success: false, message: 'Invalid top-up amount (Min ₹10, Max ₹2,00,000)' });
+      const errMsg = parsed.error.issues[0]?.message || 'Minimum top-up amount is ₹10';
+      return res.status(400).json({ success: false, message: errMsg });
     }
 
     const userId = req.user!.id;

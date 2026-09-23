@@ -13,7 +13,7 @@ const PRESET_AMOUNTS = [10, 50, 100, 500, 1000];
 
 export const UpiTopupModal: React.FC<UpiTopupModalProps> = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState<'TOPUP' | 'HISTORY'>('TOPUP');
-  const [amount, setAmount] = useState<number>(100);
+  const [amount, setAmount] = useState<string>('100');
   const [loading, setLoading] = useState<boolean>(false);
   const [qrData, setQrData] = useState<{
     txn_ref: string;
@@ -55,8 +55,21 @@ export const UpiTopupModal: React.FC<UpiTopupModalProps> = ({ isOpen, onClose })
 
   if (!isOpen) return null;
 
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/\D/g, '');
+    const cleaned = raw.replace(/^0+/, '') || (raw === '0' ? '' : '');
+    setAmount(cleaned);
+    if (errorMsg) setErrorMsg('');
+  };
+
   const handleGenerateQr = async () => {
-    if (!amount || amount < 10) {
+    const trimmed = amount.trim();
+    if (!trimmed) {
+      setErrorMsg('Please enter an amount (Minimum ₹10)');
+      return;
+    }
+    const numAmt = parseFloat(trimmed);
+    if (isNaN(numAmt) || numAmt < 10) {
       setErrorMsg('Minimum top-up amount is ₹10');
       return;
     }
@@ -65,7 +78,7 @@ export const UpiTopupModal: React.FC<UpiTopupModalProps> = ({ isOpen, onClose })
     setSubmitted(false);
     setUtrNumber('');
     try {
-      const res = await api.generateUpiTopup(amount);
+      const res = await api.generateUpiTopup(numAmt);
       if (res.success) {
         setQrData(res.data);
       }
@@ -378,11 +391,12 @@ export const UpiTopupModal: React.FC<UpiTopupModalProps> = ({ isOpen, onClose })
                     ₹
                   </span>
                   <input
-                    type="number"
-                    min="10"
-                    max="200000"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    placeholder="Min ₹10"
                     value={amount}
-                    onChange={(e) => setAmount(Number(e.target.value))}
+                    onChange={handleAmountChange}
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl py-3 pl-8 pr-4 text-2xl font-bold text-slate-900 dark:text-white font-mono focus:bg-white dark:focus:bg-slate-950 focus:outline-none focus:border-brand-500 transition-colors"
                   />
                 </div>
@@ -394,9 +408,12 @@ export const UpiTopupModal: React.FC<UpiTopupModalProps> = ({ isOpen, onClose })
                   <button
                     key={amt}
                     type="button"
-                    onClick={() => setAmount(amt)}
+                    onClick={() => {
+                      setAmount(String(amt));
+                      if (errorMsg) setErrorMsg('');
+                    }}
                     className={`py-2 text-xs font-bold rounded-lg border transition-all ${
-                      amount === amt
+                      amount === String(amt)
                         ? 'bg-brand-500/15 border-brand-500 text-brand-600 dark:text-brand-400'
                         : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
                     }`}
