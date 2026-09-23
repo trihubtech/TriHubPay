@@ -390,7 +390,9 @@ export async function getRetailerCommissionRates(req: Request, res: Response) {
         cm.operator_name, 
         cm.service_type, 
         cm.commission_type,
-        COALESCE(uc.custom_pass_down_rate, cm.retailer_pass_down_rate) as commission_rate,
+        cm.neropay_master_rate,
+        cm.retailer_pass_down_rate,
+        uc.custom_pass_down_rate,
         (uc.custom_pass_down_rate IS NOT NULL) as is_custom
       FROM commission_matrix cm
       LEFT JOIN user_commissions uc 
@@ -400,16 +402,25 @@ export async function getRetailerCommissionRates(req: Request, res: Response) {
     `, [retailerId]);
 
     const formatted = ratesRes.rows.map(row => {
-      const rawRate = row.commission_rate !== undefined ? row.commission_rate : row.retailer_pass_down_rate;
-      const numRate = parseFloat(String(rawRate ?? 0));
-      const safeRate = isNaN(numRate) ? 0 : numRate;
+      let rate: number;
+      if (row.is_custom && row.custom_pass_down_rate !== null && row.custom_pass_down_rate !== undefined) {
+        // Individual custom override for this shopkeeper (e.g. 0.3%)
+        rate = parseFloat(String(row.custom_pass_down_rate));
+      } else {
+        // Default 50% split (e.g. 0.50% for Jio, 1.75% for Vi)
+        const master = parseFloat(String(row.neropay_master_rate ?? 1.0));
+        const true50Rate = Number((master * 0.50).toFixed(2));
+        const configuredRate = parseFloat(String(row.retailer_pass_down_rate ?? 0));
+        rate = (configuredRate > 0 && configuredRate <= master) ? configuredRate : true50Rate;
+      }
+
       return {
         operator_code: row.operator_code,
         operator_name: row.operator_name,
         service_type: row.service_type,
         commission_type: row.commission_type,
-        commission_rate: safeRate,
-        retailer_pass_down_rate: safeRate,
+        commission_rate: rate,
+        retailer_pass_down_rate: rate,
         is_custom: Boolean(row.is_custom)
       };
     });

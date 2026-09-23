@@ -315,7 +315,29 @@ export async function getCommissionMatrix(req: Request, res: Response) {
       ORDER BY service_type, operator_name ASC
     `);
 
-    return res.json({ success: true, data: matrixRes.rows });
+    const rows = matrixRes.rows.map(row => {
+      const nero = parseFloat(String(row.neropay_master_rate ?? 0));
+      const noble = parseFloat(String(row.noble_master_rate ?? 0));
+      const master = row.is_noble_active ? Math.max(nero, noble) : nero;
+      let retailerRate = parseFloat(String(row.retailer_pass_down_rate ?? 0));
+      let adminMargin = parseFloat(String(row.admin_net_margin ?? 0));
+
+      // If rates in database are still from old legacy seed (e.g. 3.00% when master is 1.00%), enforce true 50/50 split
+      if (retailerRate > master || (retailerRate + adminMargin > master * 1.2) || retailerRate === 0) {
+        retailerRate = Number((master * 0.50).toFixed(2));
+        adminMargin = Number((master - retailerRate).toFixed(2));
+      }
+
+      return {
+        ...row,
+        neropay_master_rate: nero,
+        noble_master_rate: noble,
+        retailer_pass_down_rate: retailerRate,
+        admin_net_margin: adminMargin
+      };
+    });
+
+    return res.json({ success: true, data: rows });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -354,15 +376,15 @@ export async function updateCommissionMatrix(req: Request, res: Response) {
 
     await query(
       `UPDATE commission_matrix SET 
-        neropay_master_rate = $1,
-        noble_master_rate = $2,
-        retailer_pass_down_rate = $3,
+        neropay_master_rate = $1, 
+        noble_master_rate = $2, 
+        retailer_pass_down_rate = $3, 
         admin_net_margin = $4,
         is_noble_active = $5,
         commission_type = COALESCE($6, commission_type),
         is_active = COALESCE($7, is_active),
         updated_at = clock_timestamp()
-       WHERE operator_code = $8`,
+      WHERE operator_code = $8`,
       [neroRate, nobleRate, passDown, adminMargin, nobleActive, commission_type, is_active, operator_code]
     );
 
@@ -392,7 +414,9 @@ export async function getShopCustomCommissions(req: Request, res: Response) {
     const resOverrides = await query(
       `SELECT 
         uc.id, uc.user_id, uc.operator_code, uc.custom_pass_down_rate, uc.updated_at,
-        cm.operator_name, cm.service_type, cm.master_api_rate, cm.retailer_pass_down_rate as default_rate
+        cm.operator_name, cm.service_type, 
+        cm.neropay_master_rate as master_api_rate, 
+        cm.retailer_pass_down_rate as default_rate
        FROM user_commissions uc
        JOIN commission_matrix cm ON cm.operator_code = uc.operator_code
        WHERE uc.user_id = $1
@@ -400,7 +424,17 @@ export async function getShopCustomCommissions(req: Request, res: Response) {
       [user_id]
     );
 
-    return res.json({ success: true, data: resOverrides.rows });
+    const data = resOverrides.rows.map(r => {
+      const master = parseFloat(String(r.master_api_rate ?? 1.0));
+      const def = parseFloat(String(r.default_rate ?? (master * 0.5)));
+      return {
+        ...r,
+        master_api_rate: master,
+        default_rate: (def > 0 && def <= master) ? def : Number((master * 0.50).toFixed(2))
+      };
+    });
+
+    return res.json({ success: true, data });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -418,14 +452,20 @@ export async function setShopCustomCommission(req: Request, res: Response) {
     }
 
     const rate = parseFloat(custom_pass_down_rate);
+    if (isNaN(rate) || rate < 0) {
+      return res.status(400).json({ success: false, message: 'Please provide a valid custom rate' });
+    }
 
     // Verify against master rate
-    const opRes = await query('SELECT master_api_rate FROM commission_matrix WHERE operator_code = $1', [operator_code]);
+    const opRes = await query('SELECT neropay_master_rate, noble_master_rate, is_noble_active FROM commission_matrix WHERE operator_code = $1', [operator_code]);
     if (opRes.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Operator code not found' });
     }
 
-    const masterRate = parseFloat(opRes.rows[0].master_api_rate);
+    const nero = parseFloat(opRes.rows[0].neropay_master_rate || '0');
+    const noble = parseFloat(opRes.rows[0].noble_master_rate || '0');
+    const masterRate = opRes.rows[0].is_noble_active ? Math.max(nero, noble) : nero;
+
     if (rate > masterRate) {
       return res.status(400).json({
         success: false,

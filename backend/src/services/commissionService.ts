@@ -112,7 +112,7 @@ export async function calculateCommission(
     retailerRatePercent = Number(((retailerCommission / faceValue) * 100).toFixed(2));
     adminRatePercent = Number(((adminCommission / faceValue) * 100).toFixed(2));
   } else {
-    // Standard Percentage Rule: 58% of active master margin to retailer, 42% to Admin
+    // Standard Percentage Rule: 50% equal split to retailer, 50% to Admin (unless custom override exists)
     let passDownPercent: number;
 
     if (customRes.rows.length > 0) {
@@ -122,8 +122,11 @@ export async function calculateCommission(
         passDownPercent = activeMasterRate;
       }
     } else {
-      // 58% of active master rate
-      passDownPercent = Number((activeMasterRate * 0.58).toFixed(2));
+      // 50% equal split of active wholesale rate
+      const defaultPassDown = parseFloat(op.retailer_pass_down_rate ?? '0');
+      passDownPercent = (defaultPassDown > 0 && defaultPassDown <= activeMasterRate)
+        ? defaultPassDown
+        : Number((activeMasterRate * 0.50).toFixed(2));
     }
 
     retailerRatePercent = passDownPercent;
