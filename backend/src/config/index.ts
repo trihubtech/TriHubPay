@@ -30,7 +30,7 @@ export const config = {
     token: (process.env.NEROPAY_TOKEN || process.env.NEROPAY_API_KEY || '').trim(),
     apiKey: (process.env.NEROPAY_TOKEN || process.env.NEROPAY_API_KEY || '').trim(),
     merchantId: (process.env.NEROPAY_MERCHANT_ID || '').trim(),
-    timeoutMs: parseInt(process.env.NEROPAY_TIMEOUT_MS || '8000', 10), // Strict 8-second HTTP timeout requirement
+    timeoutMs: parseInt(process.env.NEROPAY_TIMEOUT_MS || '25000', 10), // 25-second HTTP timeout for live telecom handshakes
     isSandbox: !(process.env.NEROPAY_TOKEN || process.env.NEROPAY_API_KEY) || (process.env.NEROPAY_TOKEN || process.env.NEROPAY_API_KEY || '').trim() === ''
   },
 

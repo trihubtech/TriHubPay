@@ -205,8 +205,31 @@ export class NeroPayClient {
         }
       } catch (err: any) {
         clearTimeout(timeoutId);
-        if (err.name === 'AbortError') {
-          throw new Error(`NEROPAY_TIMEOUT: Request timed out after ${this.timeoutMs}ms strict threshold`);
+        if (err.name === 'AbortError' || err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT') {
+          console.warn(`[NEROPAY TIMEOUT] Request for ${payload.internalTxId} timed out after ${this.timeoutMs}ms. Verifying with status_check API...`);
+          try {
+            const check = await this.checkStatus(payload.internalTxId);
+            if (check.status === 'SUCCESS') {
+              console.log(`[NEROPAY RECOVERY SUCCESS] ref: ${payload.internalTxId} confirmed SUCCESS by gateway! Operator Ref: ${check.upstreamRef}`);
+              return {
+                status: 'SUCCESS',
+                upstreamRef: check.upstreamRef || `NERO_${Date.now()}`,
+                message: check.message || 'Transaction confirmed completed by operator',
+                rawResponse: check.rawResponse
+              };
+            } else if (check.status === 'PENDING') {
+              console.log(`[NEROPAY RECOVERY PENDING] ref: ${payload.internalTxId} is confirmed PENDING at operator.`);
+              return {
+                status: 'PENDING',
+                upstreamRef: check.upstreamRef || `NERO_P_${Date.now()}`,
+                message: check.message || 'Transaction is processing at telecom operator',
+                rawResponse: check.rawResponse
+              };
+            }
+          } catch (statusErr: any) {
+            console.warn(`[NEROPAY STATUS VERIFY ERROR]`, statusErr.message);
+          }
+          throw new Error(`NEROPAY_TIMEOUT: Request timed out after ${this.timeoutMs}ms threshold`);
         }
         lastError = err;
         // If not the last attempt and error mentions "no api active", continue
