@@ -217,9 +217,16 @@ export const AdminReportsView: React.FC = () => {
                               <div className="text-[10px] text-slate-400 font-mono">{op.service_type}</div>
                             </div>
                           </div>
-                          <span className="text-xs font-mono font-bold text-slate-900 dark:text-white">
-                            {op.count} orders
-                          </span>
+                          <div className="text-right">
+                            <span className="text-xs font-mono font-bold text-slate-900 dark:text-white">
+                              {op.count ?? op.success_count ?? (op.volume > 0 ? 1 : 0)} ok
+                            </span>
+                            {(op.failed_count ?? 0) > 0 && (
+                              <div className="text-[10px] text-rose-500 font-mono font-medium">
+                                {op.failed_count} failed
+                              </div>
+                            )}
+                          </div>
                         </div>
 
                         <div className="grid grid-cols-3 gap-2 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl border border-slate-200/60 dark:border-slate-800 text-center font-mono">
@@ -252,7 +259,7 @@ export const AdminReportsView: React.FC = () => {
                   <table className="w-full text-left text-xs text-slate-600 dark:text-slate-300">
                     <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-800">
                       <tr>
-                        <th className="py-3 px-4">Operator & Category</th>
+                        <th className="py-3 px-4">Operator &amp; Category</th>
                         <th className="py-3 px-4 text-center">Orders</th>
                         <th className="py-3 px-4 text-right">Total Volume</th>
                         <th className="py-3 px-4 text-right">Retailer Commission</th>
@@ -281,8 +288,15 @@ export const AdminReportsView: React.FC = () => {
                                 </div>
                               </div>
                             </td>
-                            <td className="py-3.5 px-4 text-center font-bold text-slate-800 dark:text-slate-200">
-                              {op.count}
+                            <td className="py-3.5 px-4 text-center">
+                              <div className="font-bold text-slate-800 dark:text-slate-200">
+                                {op.count ?? op.success_count ?? (op.volume > 0 ? 1 : 0)}
+                              </div>
+                              {(op.failed_count ?? 0) > 0 && (
+                                <div className="text-[10px] text-rose-500 font-semibold font-mono">
+                                  {op.failed_count} failed
+                                </div>
+                              )}
                             </td>
                             <td className="py-3.5 px-4 text-right font-bold text-slate-900 dark:text-white">
                               ₹{op.volume.toFixed(2)}
@@ -318,8 +332,11 @@ export const AdminReportsView: React.FC = () => {
                     </div>
                   ) : (
                     reportsData.user_reports.map((u) => {
-                      const displayName = u.owner_name || u.organization_name || 'Retailer User';
-                      const hasDistinctShop = u.organization_name && u.organization_name !== u.owner_name;
+                      const isGenericOwner = !u.owner_name || u.owner_name.toLowerCase() === 'store' || u.owner_name.trim() === '';
+                      const isGenericOrg = !u.organization_name || u.organization_name.toLowerCase() === 'store' || u.organization_name.trim() === '';
+                      const displayName = !isGenericOwner ? u.owner_name : (!isGenericOrg ? u.organization_name : (u.phone ? `Retailer (${u.phone})` : 'Retailer Partner'));
+                      const shopLabel = !isGenericOrg ? u.organization_name : (!isGenericOwner ? u.owner_name : 'Retail Store');
+                      const hasDistinctShop = shopLabel && shopLabel !== displayName;
                       return (
                         <div key={u.user_id} className="p-4 space-y-2.5">
                           <div className="flex items-start justify-between gap-2">
@@ -334,7 +351,7 @@ export const AdminReportsView: React.FC = () => {
                               </div>
                               <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
                                 {u.phone && <span className="font-mono text-blue-600 dark:text-blue-400 font-semibold">{u.phone}</span>}
-                                {hasDistinctShop && <span className="text-slate-400">({u.organization_name})</span>}
+                                {hasDistinctShop && <span className="text-slate-400">({shopLabel})</span>}
                               </div>
                             </div>
                             <div className="text-right shrink-0">
@@ -402,14 +419,19 @@ export const AdminReportsView: React.FC = () => {
                           </td>
                         </tr>
                       ) : (
-                        reportsData.user_reports.map((u) => (
+                        reportsData.user_reports.map((u) => {
+                          const isGenericOwner = !u.owner_name || u.owner_name.toLowerCase() === 'store' || u.owner_name.trim() === '';
+                          const isGenericOrg = !u.organization_name || u.organization_name.toLowerCase() === 'store' || u.organization_name.trim() === '';
+                          const displayName = !isGenericOwner ? u.owner_name : (!isGenericOrg ? u.organization_name : (u.phone ? `Retailer (${u.phone})` : 'Retailer Partner'));
+                          const shopLabel = !isGenericOrg ? u.organization_name : (!isGenericOwner ? u.owner_name : 'Retail Store');
+                          return (
                           <tr key={u.user_id} className="hover:bg-slate-50/80 dark:hover:bg-slate-850/50 transition-colors">
                             <td className="py-3.5 px-4 font-sans">
-                              <div className="font-bold text-slate-900 dark:text-white text-xs">{u.owner_name || u.organization_name || 'User'}</div>
-                              <div className="text-[11px] text-blue-600 dark:text-blue-400 font-mono font-medium">{u.phone}</div>
+                              <div className="font-bold text-slate-900 dark:text-white text-xs">{displayName}</div>
+                              {u.phone && <div className="text-[11px] text-blue-600 dark:text-blue-400 font-mono font-medium">{u.phone}</div>}
                             </td>
                             <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300 font-sans">
-                              {u.organization_name || 'Individual Retailer'}
+                              {shopLabel}
                             </td>
                             <td className="py-3.5 px-4 text-center">
                               <div className="font-bold text-slate-800 dark:text-slate-200">
@@ -431,7 +453,8 @@ export const AdminReportsView: React.FC = () => {
                               +₹{u.admin_commission.toFixed(2)}
                             </td>
                           </tr>
-                        ))
+                        );
+                      })
                       )}
                     </tbody>
                   </table>

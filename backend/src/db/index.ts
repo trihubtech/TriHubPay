@@ -726,27 +726,61 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
   // 18. SELECT ... FROM transactions
   else if (/SELECT .* FROM transactions/i.test(cleanSql)) {
     let filtered = memoryStore.transactions;
-    if (params && params.length >= 2 && typeof params[0] === 'string' && typeof params[1] === 'string') {
-      const pStart = new Date(params[0]).toISOString();
-      const pEnd = new Date(params[1]).toISOString();
-      if (!isNaN(Date.parse(pStart)) && !isNaN(Date.parse(pEnd))) {
+    if (params && params.length >= 1 && typeof params[0] === 'string') {
+      const period = params[0];
+      const nowISTStr = new Date(Date.now() + 5.5 * 3600000).toISOString().split('T')[0];
+      const yesterdayISTStr = new Date(Date.now() + 5.5 * 3600000 - 86400000).toISOString().split('T')[0];
+
+      if (period === 'today') {
         filtered = filtered.filter(t => {
-          const tTime = new Date(t.created_at).toISOString();
-          return tTime >= pStart && tTime <= pEnd;
+          const tDateIST = new Date(new Date(t.created_at).getTime() + 5.5 * 3600000).toISOString().split('T')[0];
+          return tDateIST === nowISTStr;
         });
+      } else if (period === 'yesterday') {
+        filtered = filtered.filter(t => {
+          const tDateIST = new Date(new Date(t.created_at).getTime() + 5.5 * 3600000).toISOString().split('T')[0];
+          return tDateIST === yesterdayISTStr;
+        });
+      } else if (period === 'all') {
+        // all transactions
+      } else if (params.length >= 3 && typeof params[1] === 'string' && typeof params[2] === 'string') {
+        const pStart = new Date(params[1]).toISOString();
+        const pEnd = new Date(params[2]).toISOString();
+        if (!isNaN(Date.parse(pStart)) && !isNaN(Date.parse(pEnd))) {
+          filtered = filtered.filter(t => {
+            const tTime = new Date(t.created_at).toISOString();
+            return tTime >= pStart && tTime <= pEnd;
+          });
+        }
+      } else if (params.length >= 2 && typeof params[0] === 'string' && typeof params[1] === 'string') {
+        const pStart = new Date(params[0]).toISOString();
+        const pEnd = new Date(params[1]).toISOString();
+        if (!isNaN(Date.parse(pStart)) && !isNaN(Date.parse(pEnd))) {
+          filtered = filtered.filter(t => {
+            const tTime = new Date(t.created_at).toISOString();
+            return tTime >= pStart && tTime <= pEnd;
+          });
+        }
       }
     }
 
     rows = filtered.map(t => {
       const u = memoryStore.users.find(usr => usr.id === t.retailer_id);
+      const rawOrg = (u?.organization_name || '').trim();
+      const rawOwner = (u?.owner_name || '').trim();
+      const rawPhone = (u?.phone || '').trim();
+
+      const orgName = rawOrg && rawOrg.toLowerCase() !== 'store' ? rawOrg : (rawOwner && rawOwner.toLowerCase() !== 'store' ? rawOwner : 'Retail Store');
+      const ownerName = rawOwner && rawOwner.toLowerCase() !== 'store' ? rawOwner : (rawOrg && rawOrg.toLowerCase() !== 'store' ? rawOrg : (rawPhone ? `User (${rawPhone})` : 'Retailer'));
+
       return {
         ...t,
-        organization_name: u?.organization_name || 'Retailer Shop',
-        owner_name: u?.owner_name || u?.organization_name || 'User',
-        phone: u?.phone || '',
+        organization_name: orgName,
+        owner_name: ownerName,
+        phone: rawPhone,
         role: u?.role || 'RETAILER',
-        retailer_shop_name: u?.organization_name || 'Retailer Shop',
-        retailer_phone: u?.phone || ''
+        retailer_shop_name: orgName,
+        retailer_phone: rawPhone
       };
     });
   }

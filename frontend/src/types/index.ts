@@ -217,6 +217,9 @@ export interface AdminReportsData {
     retailer_commission: number;
     admin_commission: number;
     success_rate: number;
+    success_count?: number;
+    failed_count?: number;
+    total_attempts?: number;
   }>;
   user_reports: Array<{
     user_id: string;

@@ -1068,7 +1068,7 @@ export async function getAdminReports(req: Request, res: Response) {
     const period = (req.query.period as string) || 'today';
     const { startDate, endDate } = getISTDateRange(period);
 
-    // Fetch transactions within range with user details
+    // Fetch transactions within range with user details using PostgreSQL native IST date evaluation
     const txRes = await query(`
       SELECT 
         t.id,
@@ -1081,15 +1081,28 @@ export async function getAdminReports(req: Request, res: Response) {
         t.admin_commission,
         t.status,
         t.created_at,
-        u.organization_name,
-        u.owner_name,
-        u.phone,
-        u.role
+        COALESCE(u.organization_name, '') as organization_name,
+        COALESCE(u.owner_name, '') as owner_name,
+        COALESCE(u.phone, '') as phone,
+        COALESCE(u.role, 'RETAILER') as role
       FROM transactions t
       LEFT JOIN users u ON t.retailer_id = u.id
-      WHERE t.created_at >= $1 AND t.created_at <= $2
+      WHERE (
+        CASE 
+          WHEN $1 = 'today' THEN (t.created_at AT TIME ZONE 'Asia/Kolkata')::date = (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Kolkata')::date
+          WHEN $1 = 'yesterday' THEN (t.created_at AT TIME ZONE 'Asia/Kolkata')::date = ((CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Kolkata') - INTERVAL '1 day')::date
+          WHEN $1 = 'this_week' THEN (t.created_at AT TIME ZONE 'Asia/Kolkata')::date >= date_trunc('week', CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Kolkata')::date
+          WHEN $1 = 'last_week' THEN (t.created_at AT TIME ZONE 'Asia/Kolkata')::date >= (date_trunc('week', CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Kolkata') - INTERVAL '1 week')::date 
+                                 AND (t.created_at AT TIME ZONE 'Asia/Kolkata')::date < date_trunc('week', CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Kolkata')::date
+          WHEN $1 = 'this_month' THEN (t.created_at AT TIME ZONE 'Asia/Kolkata')::date >= date_trunc('month', CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Kolkata')::date
+          WHEN $1 = 'last_month' THEN (t.created_at AT TIME ZONE 'Asia/Kolkata')::date >= (date_trunc('month', CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Kolkata') - INTERVAL '1 month')::date
+                                  AND (t.created_at AT TIME ZONE 'Asia/Kolkata')::date < date_trunc('month', CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Kolkata')::date
+          WHEN $1 = 'all' THEN true
+          ELSE t.created_at >= $2 AND t.created_at <= $3
+        END
+      )
       ORDER BY t.created_at DESC;
-    `, [startDate.toISOString(), endDate.toISOString()]);
+    `, [period, startDate.toISOString(), endDate.toISOString()]);
 
     let totalVolume = 0;
     let totalRetailerPayout = 0;
@@ -1151,11 +1164,19 @@ export async function getAdminReports(req: Request, res: Response) {
       opMap[opCode].count += 1;
 
       if (!userMap[uId]) {
+        const rawOrg = (r.organization_name || '').trim();
+        const rawOwner = (r.owner_name || '').trim();
+        const rawPhone = (r.phone || '').trim();
+
+        // Never fallback to generic 'Store'
+        const orgName = rawOrg && rawOrg.toLowerCase() !== 'store' ? rawOrg : (rawOwner && rawOwner.toLowerCase() !== 'store' ? rawOwner : 'Retail Store');
+        const ownerName = rawOwner && rawOwner.toLowerCase() !== 'store' ? rawOwner : (rawOrg && rawOrg.toLowerCase() !== 'store' ? rawOrg : (rawPhone ? `User (${rawPhone})` : 'Retailer'));
+
         userMap[uId] = {
           user_id: uId,
-          organization_name: r.organization_name || 'Retailer Shop',
-          owner_name: r.owner_name || r.organization_name || 'User',
-          phone: r.phone || '',
+          organization_name: orgName,
+          owner_name: ownerName,
+          phone: rawPhone,
           role: r.role || 'RETAILER',
           count: 0,
           success_count: 0,
@@ -1195,7 +1216,8 @@ export async function getAdminReports(req: Request, res: Response) {
       operator_code: op.operator_code,
       operator_name: op.operator_name,
       service_type: op.service_type,
-      count: op.count,
+      count: op.success_count, // Only the success count as requested!
+      total_attempts: op.count,
       success_count: op.success_count,
       failed_count: op.failed_count,
       volume: Number(op.volume.toFixed(2)),
@@ -1210,7 +1232,8 @@ export async function getAdminReports(req: Request, res: Response) {
       owner_name: u.owner_name,
       phone: u.phone,
       role: u.role,
-      count: u.count,
+      count: u.success_count, // Only the success count as requested!
+      total_attempts: u.count,
       success_count: u.success_count,
       failed_count: u.failed_count,
       volume: Number(u.volume.toFixed(2)),

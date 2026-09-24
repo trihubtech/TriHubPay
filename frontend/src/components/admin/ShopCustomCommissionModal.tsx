@@ -68,7 +68,9 @@ export const ShopCustomCommissionModal: React.FC<ShopCustomCommissionModalProps>
 
   if (!isOpen || !shop) return null;
 
-  const currentOpMeta = matrixItems.find(m => m.operator_code === selectedOp);
+  // Filter to only active Mobile and DTH operators (hiding inactive electricity, broadband, FASTag, etc.)
+  const activeMatrixItems = matrixItems.filter(m => m.is_active && (m.service_type === 'MOBILE' || m.service_type === 'DTH'));
+  const currentOpMeta = activeMatrixItems.find(m => m.operator_code === selectedOp) || matrixItems.find(m => m.operator_code === selectedOp);
   const existingOverride = customRates.find(cr => cr.operator_code === selectedOp);
 
   const handleSaveCustomRate = async (e: React.FormEvent) => {
@@ -176,7 +178,7 @@ export const ShopCustomCommissionModal: React.FC<ShopCustomCommissionModalProps>
                   onChange={(e) => setSelectedOp(e.target.value)}
                   className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 font-medium"
                 >
-                  {matrixItems.map((m) => (
+                  {activeMatrixItems.map((m) => (
                     <option key={m.operator_code} value={m.operator_code}>
                       {m.operator_code} - {formatOperatorName(m.operator_code, m.operator_name)}
                     </option>

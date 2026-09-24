@@ -133,23 +133,67 @@ const STANDARD_PLANS: Record<string, PlanItem[]> = {
   ],
 
   VI: [
-    { amount: 199, validity: '18 Days', data: '1 GB/Day', description: 'Unlimited Voice Calls + 100 SMS/Day', category: 'Popular' },
-    { amount: 349, validity: '28 Days', data: '1.5 GB/Day', description: 'Binge All Night (12am-6am Free) + Weekend Rollover + Data Delight', category: 'Popular', tag: 'Best Seller' },
-    { amount: 449, validity: '28 Days', data: '3.0 GB/Day', description: 'Hero Unlimited + Binge All Night + Vi Movies & TV App', category: 'Popular', tag: 'Hero' },
+    // Popular / Best Sellers (Post-Tariff Revision)
+    { amount: 299, validity: '28 Days', data: '1.5 GB/Day', description: 'Just for you! Get EXTRA 0.5GB/D. Total 1.5GB/D Data + Unlimited Calls + 100 SMS/Day', category: 'Popular', tag: 'Best Seller' },
+    { amount: 349, validity: '28 Days', data: '1.5 GB/Day', description: 'Binge All Night (12am-6am Free) + Weekend Rollover + Data Delight + Vi Movies & TV', category: 'Popular', tag: 'Trending' },
+    { amount: 359, validity: '28 Days', data: '2.0 GB/Day', description: 'Hero Unlimited: 2GB/Day + Binge All Night + Weekend Rollover', category: 'Popular', tag: 'Hero' },
+    { amount: 449, validity: '28 Days', data: '3.0 GB/Day', description: 'Hero Unlimited + Binge All Night + Vi Movies & TV App', category: 'Popular', tag: 'Max Data' },
+    { amount: 719, validity: '72 Days', data: '1.5 GB/Day', description: 'Quarterly Value Pack: Unlimited Calls + Binge All Night + 100 SMS/Day', category: 'Popular', tag: 'Quarterly' },
+    { amount: 859, validity: '84 Days', data: '1.5 GB/Day', description: '84 Days Full Unlimited + Binge All Night + Weekend Rollover', category: 'Popular', tag: 'Value' },
+    { amount: 979, validity: '84 Days', data: '2.0 GB/Day', description: '84 Days 2GB/Day + Disney+ Hotstar 3 Months Free + Binge All Night', category: 'Popular', tag: 'Hotstar' },
+
+    // Truly Unlimited (Daily & Unlimited Voice)
+    { amount: 199, validity: '18 Days', data: '1 GB/Day', description: 'Unlimited Voice Calls + 100 SMS/Day + Vi Movies & TV', category: 'Truly Unlimited' },
+    { amount: 219, validity: '21 Days', data: '1 GB/Day', description: 'Unlimited Voice Calls + 100 SMS/Day', category: 'Truly Unlimited' },
+    { amount: 249, validity: '24 Days', data: '1 GB/Day', description: 'Unlimited Voice Calls + 100 SMS/Day', category: 'Truly Unlimited' },
+    { amount: 269, validity: '28 Days', data: '1 GB/Day', description: 'Unlimited Voice Calls + 100 SMS/Day', category: 'Truly Unlimited' },
+    { amount: 299, validity: '28 Days', data: '1.0 GB/Day', description: 'Unlimited Calls + 1GB/Day Data + 100 SMS/Day + Vi Movies & TV', category: 'Truly Unlimited', tag: 'Daily Data' },
+    { amount: 319, validity: 'Calendar Month', data: '1.5 GB/Day', description: 'Exact Calendar Month Validity: Unlimited Voice + 100 SMS/Day', category: 'Truly Unlimited' },
+    { amount: 399, validity: '28 Days', data: '2.5 GB/Day', description: 'Ultra High Data Pack: 2.5GB/Day + Binge All Night + 100 SMS/Day', category: 'Truly Unlimited' },
+    { amount: 479, validity: '48 Days', data: '1.5 GB/Day', description: '48 Days 1.5GB/Day: Unlimited Voice Calls + 100 SMS/Day', category: 'Truly Unlimited' },
+    { amount: 539, validity: '56 Days', data: '1.5 GB/Day', description: '56 Days 1.5GB/Day: Unlimited Voice Calls + 100 SMS/Day', category: 'Truly Unlimited' },
     { amount: 579, validity: '56 Days', data: '1.5 GB/Day', description: '56 Days Binge All Night + Weekend Data Rollover', category: 'Truly Unlimited' },
     { amount: 649, validity: '56 Days', data: '2.0 GB/Day', description: '56 Days Hero Unlimited + Weekend Rollover', category: 'Truly Unlimited' },
-    { amount: 859, validity: '84 Days', data: '1.5 GB/Day', description: '84 Days Full Unlimited + Binge All Night', category: 'Truly Unlimited', tag: 'Value' },
-    { amount: 979, validity: '84 Days', data: '2.0 GB/Day', description: '84 Days 2GB/Day + Disney+ Hotstar 3 Months Free', category: 'Truly Unlimited' },
+    { amount: 799, validity: '84 Days', data: '1.5 GB/Day', description: '84 Days 1.5GB/Day: Unlimited Calls + 100 SMS/Day', category: 'Truly Unlimited' },
+    { amount: 839, validity: '84 Days', data: '2.0 GB/Day', description: '84 Days Hero Unlimited: 2GB/Day + Binge All Night', category: 'Truly Unlimited' },
+    { amount: 999, validity: '84 Days', data: 'Hero Unlimited', description: '84 Days Hero Super Pack: Unlimited Data & Calls', category: 'Truly Unlimited' },
+    { amount: 1066, validity: '84 Days', data: '2.0 GB/Day', description: 'Disney+ Hotstar 1 Year Mobile + 2GB/Day Data', category: 'Truly Unlimited', tag: 'Hotstar 1Y' },
+    { amount: 1449, validity: '180 Days', data: '1.5 GB/Day', description: 'Half Yearly 180 Days: Unlimited Voice + 1.5GB/Day', category: 'Truly Unlimited' },
+
+    // OTT & Entertainment
+    { amount: 409, validity: '28 Days', data: '2.5 GB/Day', description: 'SonyLIV Mobile (28 Days) + 2.5GB/Day + Binge All Night', category: 'OTT Entertainment', tag: 'SonyLIV' },
+    { amount: 901, validity: '84 Days', data: '3.0 GB/Day', description: 'Disney+ Hotstar 3 Months + 3GB/Day Data + 48GB Extra Data', category: 'OTT Entertainment', tag: 'Hotstar 3M' },
+
+    // Data Add-on Packs
     { amount: 19, validity: '1 Day', data: '1 GB', description: 'Data Booster for 24 Hours', category: 'Data Add-on' },
+    { amount: 22, validity: '1 Day', data: '1 GB', description: '1 GB High Speed Data Pack', category: 'Data Add-on' },
+    { amount: 29, validity: '1 Day', data: '2 GB', description: 'High Speed 2GB Daily Data Booster', category: 'Data Add-on' },
     { amount: 39, validity: '3 Days', data: '3 GB', description: '3 Days High Speed Data Booster', category: 'Data Add-on' },
+    { amount: 49, validity: '1 Day', data: 'Unlimited', description: 'Night & Day Unlimited High Speed Data for 24 Hours', category: 'Data Add-on', tag: 'Unlimited' },
+    { amount: 58, validity: 'Existing Active Plan', data: '3 GB', description: '3 GB Validity Aligned Data Booster', category: 'Data Add-on' },
+    { amount: 65, validity: 'Existing Active Plan', data: '4 GB', description: '4 GB Validity Aligned Data Booster', category: 'Data Add-on' },
     { amount: 75, validity: '7 Days', data: '6 GB', description: '7 Days Streaming Data Booster', category: 'Data Add-on' },
-    { amount: 118, validity: '28 Days', data: '12 GB', description: '28 Days 12GB Data Voucher', category: 'Data Add-on' },
+    { amount: 118, validity: '28 Days', data: '12 GB', description: '28 Days 12GB Bulk Data Voucher', category: 'Data Add-on' },
+    { amount: 151, validity: '30 Days', data: '8 GB', description: 'Disney+ Hotstar 3 Months + 8GB High Speed Data', category: 'Data Add-on', tag: 'Hotstar' },
+    { amount: 181, validity: '30 Days', data: '30 GB (1GB/D)', description: '30 Days 1GB/Day Work From Home Data Voucher', category: 'Data Add-on' },
+
+    // Annual (365 Days)
     { amount: 1999, validity: '365 Days', data: '24 GB Total', description: 'Annual Basic: Unlimited Voice + 3600 SMS', category: 'Annual (365 Days)' },
+    { amount: 2899, validity: '365 Days', data: '1.5 GB/Day', description: 'Annual Super Saver: 1.5GB/Day + Unlimited Calls + Binge All Night', category: 'Annual (365 Days)', tag: 'Annual' },
+    { amount: 3099, validity: '365 Days', data: '2.0 GB/Day', description: 'Annual Hero: Disney+ Hotstar 1 Year + 2GB/Day + Binge All Night', category: 'Annual (365 Days)', tag: 'Hero Annual' },
     { amount: 3499, validity: '365 Days', data: '1.5 GB/Day', description: 'Annual Unlimited Binge Pack + 50GB Extra Data', category: 'Annual (365 Days)', tag: 'Annual' },
-    { amount: 3799, validity: '365 Days', data: '2.0 GB/Day', description: 'Annual Hero: Disney+ Hotstar 1 Year + 2GB/Day', category: 'Annual (365 Days)' },
+    { amount: 3799, validity: '365 Days', data: '2.0 GB/Day', description: 'Annual Hero Special: Disney+ Hotstar 1 Year + 2GB/Day', category: 'Annual (365 Days)' },
+
+    // International Roaming
+    { amount: 2997, validity: '365 Days', data: '1.5 GB', description: 'International Roaming: 1.5GB + 125 mins incoming/outgoing in 60 countries, 500 SMS', category: 'International Roaming', tag: 'Roaming' },
+
+    // Top-up (Talktime)
     { amount: 10, validity: 'Unlimited', data: 'Talktime: ₹7.47', description: 'Standard Account Balance Top-up', category: 'Top-up' },
+    { amount: 20, validity: 'Unlimited', data: 'Talktime: ₹14.95', description: 'Standard Account Balance Top-up', category: 'Top-up' },
     { amount: 50, validity: 'Unlimited', data: 'Talktime: ₹39.37', description: 'Standard Account Balance Top-up', category: 'Top-up' },
-    { amount: 100, validity: 'Unlimited', data: 'Talktime: ₹81.75', description: 'Standard Account Balance Top-up', category: 'Top-up' }
+    { amount: 100, validity: 'Unlimited', data: 'Talktime: ₹81.75', description: 'Standard Account Balance Top-up', category: 'Top-up' },
+    { amount: 500, validity: 'Unlimited', data: 'Talktime: ₹420.73', description: 'Full Value Talktime Top-up', category: 'Top-up' },
+    { amount: 1000, validity: 'Unlimited', data: 'Talktime: ₹844.46', description: 'Mega Account Balance Top-up', category: 'Top-up' }
   ],
 
   BSNL: [
