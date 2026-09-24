@@ -134,13 +134,17 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
         }
       }
       const humanMsg = humanizeErrorMessage(data?.message || data?.error || `HTTP ${res.status}`, res.status);
-      throw new Error(humanMsg);
+      const apiErr: any = new Error(humanMsg);
+      if (data?.details) apiErr.details = data.details;
+      throw apiErr;
     }
     return data;
   } catch (err: any) {
     const humanMsg = humanizeErrorMessage(err);
     console.warn(`[API NOTICE ${endpoint}]:`, humanMsg);
-    throw new Error(humanMsg);
+    const rethrowErr: any = new Error(humanMsg);
+    if (err.details) rethrowErr.details = err.details;
+    throw rethrowErr;
   }
 }
 
@@ -256,6 +260,7 @@ export const api = {
     return request<{
       success: boolean;
       message: string;
+      details?: string;
       data: {
         transaction_id: string;
         status: string;

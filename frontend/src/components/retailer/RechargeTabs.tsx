@@ -315,11 +315,13 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
           setFaceValue('');
         }
       } else {
-        setErrorMsg(res.message || 'Transaction failed');
+        const fullMsg = res.details ? `${res.message} (${res.details})` : (res.message || 'Transaction failed');
+        setErrorMsg(fullMsg);
         setIsConfirmModalOpen(false);
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Transaction failed');
+      const fullMsg = err.details ? `${err.message} (${err.details})` : (err.message || 'Transaction failed');
+      setErrorMsg(fullMsg);
       setIsConfirmModalOpen(false);
     } finally {
       setSubmitting(false);
