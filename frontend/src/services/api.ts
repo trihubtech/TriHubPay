@@ -598,11 +598,12 @@ export const api = {
     });
   },
 
-  // Admin On-Demand Transaction Status Lookup
-  async searchTransactionsLive(q: string) {
+  // On-Demand Transaction Status Lookup (Admin & User)
+  async searchTransactionsLive(q: string, isUserMode: boolean = false) {
+    const endpoint = isUserMode ? `/recharge/transactions/lookup` : `/admin/transactions/lookup`;
     return request<{
       success: boolean;
       data: any[];
-    }>(`/admin/transactions/lookup?q=${encodeURIComponent(q)}`);
+    }>(`${endpoint}?q=${encodeURIComponent(q)}`);
   }
 };

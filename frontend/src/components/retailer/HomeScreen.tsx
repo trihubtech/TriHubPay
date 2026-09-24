@@ -13,7 +13,8 @@ import {
   Share2, 
   Check, 
   RefreshCw,
-  Percent
+  Percent,
+  Search
 } from 'lucide-react';
 import { Transaction, RetailerCommissionRate, User, ServiceType } from '../../types';
 import { api } from '../../services/api';
@@ -28,6 +29,7 @@ interface HomeScreenProps {
   onNavigateToTab: (tab: 'RECHARGE' | 'PASSBOOK' | 'COMMISSIONS') => void;
   onRefreshData?: () => void;
   isRefreshing?: boolean;
+  onOpenStatusChecker?: (txId?: string) => void;
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({
@@ -37,7 +39,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onSelectService,
   onNavigateToTab,
   onRefreshData,
-  isRefreshing = false
+  isRefreshing = false,
+  onOpenStatusChecker
 }) => {
   const { t } = useLanguage();
   const [rates, setRates] = useState<RetailerCommissionRate[]>([]);
@@ -253,7 +256,18 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         </div>
 
         {/* Stat 3: Pending Recharge */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-xs transition-all flex flex-col justify-between min-w-0 overflow-hidden">
+        <div 
+          onClick={() => {
+            if (onOpenStatusChecker && todayStats.pendingCount > 0) {
+              const pendingTx = transactions.find(t => t.status === 'PENDING');
+              onOpenStatusChecker(pendingTx?.internal_tx_id);
+            } else {
+              onNavigateToTab('PASSBOOK');
+            }
+          }}
+          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-xs transition-all flex flex-col justify-between min-w-0 overflow-hidden cursor-pointer hover:border-amber-300 dark:hover:border-amber-700/50"
+          title="Click to check pending status"
+        >
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 truncate">
               {t('pendingRecharge')}
@@ -273,7 +287,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         </div>
 
         {/* Stat 4: Failed Recharge */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-xs transition-all flex flex-col justify-between min-w-0 overflow-hidden">
+        <div 
+          onClick={() => onNavigateToTab('PASSBOOK')}
+          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-xs transition-all flex flex-col justify-between min-w-0 overflow-hidden cursor-pointer hover:border-rose-300 dark:hover:border-rose-700/50"
+          title="Click to view transaction passbook"
+        >
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 truncate">
               {t('failedRecharge')}
@@ -299,9 +317,22 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <h2 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
             {t('rechargeServices')}
           </h2>
-          <span className="text-[9px] sm:text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full shrink-0">
-            ● {t('liveInstant')}
-          </span>
+          <div className="flex items-center gap-1.5">
+            {onOpenStatusChecker && (
+              <button
+                type="button"
+                onClick={() => onOpenStatusChecker()}
+                className="text-[10px] sm:text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 border border-blue-200 dark:border-blue-500/30 px-2 py-0.5 rounded-full flex items-center gap-1 transition-colors"
+                title="Verify transaction status live from operator"
+              >
+                <Search className="w-3 h-3" />
+                <span>Check Status</span>
+              </button>
+            )}
+            <span className="text-[9px] sm:text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full shrink-0">
+              ● {t('liveInstant')}
+            </span>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2 sm:gap-3">

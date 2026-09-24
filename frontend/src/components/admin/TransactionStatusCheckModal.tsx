@@ -21,13 +21,15 @@ interface TransactionStatusCheckModalProps {
   onClose: () => void;
   onStatusUpdated?: () => void;
   prefilledTxId?: string;
+  isUserMode?: boolean;
 }
 
 export const TransactionStatusCheckModal: React.FC<TransactionStatusCheckModalProps> = ({
   isOpen,
   onClose,
   onStatusUpdated,
-  prefilledTxId = ''
+  prefilledTxId = '',
+  isUserMode = false
 }) => {
   const [searchQuery, setSearchQuery] = useState<string>(prefilledTxId);
   const [isSearching, setIsSearching] = useState<boolean>(false);
@@ -61,7 +63,7 @@ export const TransactionStatusCheckModal: React.FC<TransactionStatusCheckModalPr
     setErrorMsg('');
     setLiveResult(null);
     try {
-      const res = await api.searchTransactionsLive(q);
+      const res = await api.searchTransactionsLive(q, isUserMode);
       if (res.success) {
         setSearchResults(res.data);
         if (res.data.length === 1) {
@@ -82,7 +84,9 @@ export const TransactionStatusCheckModal: React.FC<TransactionStatusCheckModalPr
     setIsCheckingLive(true);
     setErrorMsg('');
     try {
-      const res = await api.checkTransactionStatus(txId);
+      const res = isUserMode
+        ? await api.checkRetailerTransactionStatus(txId)
+        : await api.checkTransactionStatus(txId);
       if (res.success) {
         setLiveResult(res);
         if (selectedTx) {
@@ -114,10 +118,12 @@ export const TransactionStatusCheckModal: React.FC<TransactionStatusCheckModalPr
             </div>
             <div>
               <h3 className="font-bold text-slate-900 dark:text-white text-sm sm:text-base">
-                On-Demand Upstream Status Checker
+                {isUserMode ? 'Check Live Transaction Status' : 'On-Demand Upstream Status Checker'}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Live telecom gateway status verification &amp; instant refund sync
+                {isUserMode 
+                  ? 'Verify live status from operator & check instant refund updates' 
+                  : 'Live telecom gateway status verification & instant refund sync'}
               </p>
             </div>
           </div>
@@ -246,37 +252,64 @@ export const TransactionStatusCheckModal: React.FC<TransactionStatusCheckModalPr
                   </span>
                 </div>
 
-                <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800">
-                  <span className="text-[10px] text-slate-400 font-sans block">Retailer User</span>
-                  <span className="font-semibold text-slate-900 dark:text-white truncate block">
-                    {selectedTx.owner_name || selectedTx.organization_name || 'Retailer'}
-                  </span>
-                </div>
+                {!isUserMode ? (
+                  <>
+                    <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800">
+                      <span className="text-[10px] text-slate-400 font-sans block">Retailer User</span>
+                      <span className="font-semibold text-slate-900 dark:text-white truncate block">
+                        {selectedTx.owner_name || selectedTx.organization_name || 'Retailer'}
+                      </span>
+                    </div>
 
-                <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800">
-                  <span className="text-[10px] text-slate-400 font-sans block">Retailer Cashback</span>
-                  <span className="font-bold text-blue-600 dark:text-blue-400 block">
-                    +₹{parseFloat(selectedTx.retailer_commission || '0').toFixed(2)}
-                  </span>
-                </div>
+                    <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800">
+                      <span className="text-[10px] text-slate-400 font-sans block">Retailer Cashback</span>
+                      <span className="font-bold text-blue-600 dark:text-blue-400 block">
+                        +₹{parseFloat(selectedTx.retailer_commission || '0').toFixed(2)}
+                      </span>
+                    </div>
 
-                <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800">
-                  <span className="text-[10px] text-slate-400 font-sans block">Admin Profit</span>
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400 block">
-                    +₹{parseFloat(selectedTx.admin_commission || '0').toFixed(2)}
-                  </span>
-                </div>
+                    <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800">
+                      <span className="text-[10px] text-slate-400 font-sans block">Admin Profit</span>
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400 block">
+                        +₹{parseFloat(selectedTx.admin_commission || '0').toFixed(2)}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800">
+                      <span className="text-[10px] text-slate-400 font-sans block">Cashback / Margin</span>
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400 block">
+                        +₹{parseFloat(selectedTx.retailer_commission || '0').toFixed(2)}
+                      </span>
+                    </div>
+
+                    <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800">
+                      <span className="text-[10px] text-slate-400 font-sans block">Final Amount Paid</span>
+                      <span className="font-bold text-slate-900 dark:text-white block">
+                        ₹{(parseFloat(selectedTx.final_cost_billed || selectedTx.face_value || '0')).toFixed(2)}
+                      </span>
+                    </div>
+
+                    <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800">
+                      <span className="text-[10px] text-slate-400 font-sans block">Date & Time</span>
+                      <span className="font-semibold text-slate-700 dark:text-slate-300 truncate block">
+                        {new Date(selectedTx.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}
+                      </span>
+                    </div>
+                  </>
+                )}
 
                 <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800">
                   <span className="text-[10px] text-slate-400 font-sans block">Gateway Route</span>
-                  <span className="font-semibold text-slate-700 dark:text-slate-300 block">{selectedTx.upstream_api_used}</span>
+                  <span className="font-semibold text-slate-700 dark:text-slate-300 block">{selectedTx.upstream_api_used || 'NEROPAY'}</span>
                 </div>
               </div>
 
               {/* Action Button: Check Live Upstream Gateway */}
               <button
                 type="button"
-                onClick={() => handleLiveStatusCheck(selectedTx.id)}
+                onClick={() => handleLiveStatusCheck(selectedTx.id || selectedTx.internal_tx_id)}
                 disabled={isCheckingLive}
                 className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-blue-600/20 transition-all flex items-center justify-center gap-2"
               >

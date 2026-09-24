@@ -167,7 +167,7 @@ export async function updateFeedbackStatus(req: Request, res: Response) {
 }
 
 /**
- * 4. ADMIN ON-DEMAND TRANSACTION STATUS LOOKUP
+ * 4. ADMIN & RETAILER ON-DEMAND TRANSACTION STATUS LOOKUP
  */
 export async function searchTransactionsForLookup(req: Request, res: Response) {
   try {
@@ -194,6 +194,63 @@ export async function searchTransactionsForLookup(req: Request, res: Response) {
       [`%${q}%`]
     );
 
+    return res.json({ success: true, data: txRes.rows });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export async function searchRetailerTransactionsForLookup(req: Request, res: Response) {
+  try {
+    const q = (req.query.q as string || '').trim();
+    const userId = req.user!.id;
+    const role = req.user!.role;
+
+    if (!q) {
+      return res.json({ success: true, data: [] });
+    }
+
+    let queryText = '';
+    let params: any[] = [];
+
+    if (role === 'ADMIN') {
+      queryText = `SELECT 
+        t.id, t.internal_tx_id, t.service_type, t.operator_code, t.target_account_number,
+        t.face_value, t.retailer_commission, t.admin_commission, t.final_cost_billed,
+        t.upstream_api_used, t.upstream_operator_ref, t.status, t.failure_reason, t.created_at,
+        u.organization_name, u.owner_name, u.phone as retailer_phone
+      FROM transactions t
+      LEFT JOIN users u ON t.retailer_id = u.id
+      WHERE 
+        t.internal_tx_id ILIKE $1 
+        OR t.target_account_number ILIKE $1 
+        OR t.upstream_operator_ref ILIKE $1
+        OR t.id::text ILIKE $1
+      ORDER BY t.created_at DESC
+      LIMIT 20`;
+      params = [`%${q}%`];
+    } else {
+      queryText = `SELECT 
+        t.id, t.internal_tx_id, t.service_type, t.operator_code, t.target_account_number,
+        t.face_value, t.retailer_commission, t.admin_commission, t.final_cost_billed,
+        t.upstream_api_used, t.upstream_operator_ref, t.status, t.failure_reason, t.created_at,
+        u.organization_name, u.owner_name, u.phone as retailer_phone
+      FROM transactions t
+      LEFT JOIN users u ON t.retailer_id = u.id
+      WHERE 
+        t.retailer_id = $2
+        AND (
+          t.internal_tx_id ILIKE $1 
+          OR t.target_account_number ILIKE $1 
+          OR t.upstream_operator_ref ILIKE $1
+          OR t.id::text ILIKE $1
+        )
+      ORDER BY t.created_at DESC
+      LIMIT 20`;
+      params = [`%${q}%`, userId];
+    }
+
+    const txRes = await query(queryText, params);
     return res.json({ success: true, data: txRes.rows });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });

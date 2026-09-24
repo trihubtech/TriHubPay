@@ -89,7 +89,13 @@ export function App() {
   const [selectedShopForOverrides, setSelectedShopForOverrides] = useState<User | null>(null);
   const [isOnboardModalOpen, setIsOnboardModalOpen] = useState<boolean>(false);
   const [isStatusCheckModalOpen, setIsStatusCheckModalOpen] = useState<boolean>(false);
+  const [statusCheckPrefillTxId, setStatusCheckPrefillTxId] = useState<string>('');
   const [adminSubTab, setAdminSubTab] = useState<'OVERVIEW' | 'REPORTS' | 'SHOPS' | 'MATRIX' | 'NOTIFICATIONS' | 'FEEDBACK' | 'FAILOVER' | 'TRANSACTIONS' | 'DEPOSITS'>('OVERVIEW');
+
+  const handleOpenStatusChecker = (txId?: string) => {
+    setStatusCheckPrefillTxId(txId || '');
+    setIsStatusCheckModalOpen(true);
+  };
 
   // Check saved session on load (route-aware token isolation)
   useEffect(() => {
@@ -545,6 +551,7 @@ export function App() {
                   onNavigateToTab={(tab) => setRetailerTab(tab)}
                   onRefreshData={loadRetailerData}
                   isRefreshing={isRefreshingRetailer}
+                  onOpenStatusChecker={handleOpenStatusChecker}
                 />
               )}
               {retailerTab === 'RECHARGE' && (
@@ -560,6 +567,7 @@ export function App() {
                     transactions={retailerTransactions.slice(0, 8)}
                     currentUser={currentUser}
                     onRefreshTransactions={loadRetailerData}
+                    onOpenStatusChecker={handleOpenStatusChecker}
                     onViewReceipt={(tx) => {
                       setReceiptTx(tx);
                       setIsReceiptOpen(true);
@@ -572,6 +580,7 @@ export function App() {
                   transactions={retailerTransactions}
                   currentUser={currentUser}
                   onRefreshTransactions={loadRetailerData}
+                  onOpenStatusChecker={handleOpenStatusChecker}
                   onViewReceipt={(tx) => {
                     setReceiptTx(tx);
                     setIsReceiptOpen(true);
@@ -609,6 +618,7 @@ export function App() {
                   onNavigateToTab={(tab) => setRetailerTab(tab)}
                   onRefreshData={loadRetailerData}
                   isRefreshing={isRefreshingRetailer}
+                  onOpenStatusChecker={handleOpenStatusChecker}
                 />
               )}
 
@@ -641,6 +651,7 @@ export function App() {
                   transactions={retailerTransactions}
                   currentUser={currentUser}
                   onRefreshTransactions={loadRetailerData}
+                  onOpenStatusChecker={handleOpenStatusChecker}
                   onViewReceipt={(tx) => {
                     setReceiptTx(tx);
                     setIsReceiptOpen(true);
@@ -944,13 +955,21 @@ export function App() {
         onClose={() => setIsFaqModalOpen(false)}
       />
 
-      {/* Admin Live Transaction Upstream Status Check Modal */}
+      {/* Live Transaction Upstream Status Check Modal (Available for Admin & Retailer/Consumer) */}
       <TransactionStatusCheckModal
         isOpen={isStatusCheckModalOpen}
-        onClose={() => setIsStatusCheckModalOpen(false)}
+        prefilledTxId={statusCheckPrefillTxId}
+        isUserMode={currentUser?.role !== 'ADMIN'}
+        onClose={() => {
+          setIsStatusCheckModalOpen(false);
+          setStatusCheckPrefillTxId('');
+        }}
         onStatusUpdated={() => {
-          loadAdminData();
-          loadRetailerData();
+          if (currentUser?.role === 'ADMIN') {
+            loadAdminData();
+          } else {
+            loadRetailerData();
+          }
         }}
       />
     </div>

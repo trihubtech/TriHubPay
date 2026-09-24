@@ -59,6 +59,7 @@ router.get('/recharge/my-commissions', authenticate, rechargeController.getMyCom
 router.get('/recharge/my-insights', authenticate, rechargeController.getMyInsights);
 router.get('/recharge/reports', authenticate, rechargeController.getRetailerReports);
 router.get('/recharge/transactions', authenticate, rechargeController.getRetailerTransactions);
+router.get('/recharge/transactions/lookup', authenticate, engagementController.searchRetailerTransactionsForLookup);
 router.post('/recharge/transactions/:id/check-status', authenticate, rechargeController.checkRetailerTransactionStatus);
 router.get('/recharge/notifications', authenticate, engagementController.getRetailerNotifications);
 router.post('/recharge/feedback', authenticate, engagementController.submitRetailerFeedback);

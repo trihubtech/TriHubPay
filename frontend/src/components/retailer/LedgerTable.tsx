@@ -16,7 +16,8 @@ import {
   Wallet,
   Copy,
   Check,
-  MessageCircle
+  MessageCircle,
+  Search
 } from 'lucide-react';
 import { OperatorIcon } from '../common/OperatorIcon';
 import { api } from '../../services/api';
@@ -26,13 +27,15 @@ interface LedgerTableProps {
   onViewReceipt: (tx: Transaction) => void;
   currentUser?: User | null;
   onRefreshTransactions?: () => void;
+  onOpenStatusChecker?: (txId?: string) => void;
 }
 
 export const LedgerTable: React.FC<LedgerTableProps> = ({ 
   transactions, 
   onViewReceipt,
   currentUser,
-  onRefreshTransactions
+  onRefreshTransactions,
+  onOpenStatusChecker
 }) => {
   const [activeTab, setActiveTab] = useState<'RECHARGES' | 'LEDGER' | 'DEPOSITS'>('RECHARGES');
   const [deposits, setDeposits] = useState<DepositRequest[]>([]);
@@ -226,18 +229,44 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({
           </button>
         </div>
 
-        {/* Refresh Action */}
-        {(activeTab === 'DEPOSITS' || activeTab === 'LEDGER') && (
-          <button
-            type="button"
-            onClick={activeTab === 'DEPOSITS' ? fetchDeposits : fetchLedger}
-            disabled={loadingDeposits || loadingLedger}
-            title="Refresh List"
-            className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 shrink-0 transition-colors"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loadingDeposits || loadingLedger ? 'animate-spin text-brand-500' : ''}`} />
-          </button>
-        )}
+        {/* Action Buttons: Status Checker & Refresh */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {onOpenStatusChecker && (
+            <button
+              type="button"
+              onClick={() => onOpenStatusChecker()}
+              title="Check Live Status from Telecom Gateway"
+              className="px-2.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/30 text-xs font-bold transition-all shadow-xs flex items-center gap-1.5"
+            >
+              <Search className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Check Status</span>
+            </button>
+          )}
+
+          {/* Refresh Action */}
+          {(activeTab === 'DEPOSITS' || activeTab === 'LEDGER') ? (
+            <button
+              type="button"
+              onClick={activeTab === 'DEPOSITS' ? fetchDeposits : fetchLedger}
+              disabled={loadingDeposits || loadingLedger}
+              title="Refresh List"
+              className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 shrink-0 transition-colors"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loadingDeposits || loadingLedger ? 'animate-spin text-brand-500' : ''}`} />
+            </button>
+          ) : (
+            onRefreshTransactions && (
+              <button
+                type="button"
+                onClick={onRefreshTransactions}
+                title="Refresh Recharges"
+                className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 shrink-0 transition-colors"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+              </button>
+            )
+          )}
+        </div>
       </div>
 
       {/* ─── TAB CONTENT ─── */}
@@ -502,7 +531,23 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({
                     </div>
                   </div>
 
-                  {tx.status === 'PENDING' && (
+                  {onOpenStatusChecker ? (
+                    <button
+                      type="button"
+                      onClick={() => onOpenStatusChecker(tx.internal_tx_id)}
+                      className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border text-[11px] font-bold flex items-center gap-1 transition-colors ${
+                        tx.status === 'PENDING'
+                          ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                          : tx.status === 'FAILED'
+                          ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                          : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                      }`}
+                      title="Verify Live Status from Telecom Gateway"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5 text-blue-500" />
+                      <span className="hidden sm:inline">Check</span>
+                    </button>
+                  ) : tx.status === 'PENDING' ? (
                     <button
                       type="button"
                       onClick={() => handleCheckStatus(tx)}
@@ -513,7 +558,7 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({
                       <RefreshCw className={`w-3.5 h-3.5 ${checkingStatusId === txId ? 'animate-spin' : ''}`} />
                       <span className="hidden sm:inline">Check</span>
                     </button>
-                  )}
+                  ) : null}
 
                   <button
                     type="button"

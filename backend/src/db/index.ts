@@ -799,7 +799,7 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
   // 17c. SELECT ... FROM transactions WHERE t.internal_tx_id ILIKE $1 ... (On-Demand Lookup)
   else if (/SELECT .* FROM transactions.*ILIKE/i.test(cleanSql)) {
     const searchRaw = String(params[0] || '').replace(/%/g, '').toLowerCase().trim();
-    rows = memoryStore.transactions.filter(t => {
+    let matches = memoryStore.transactions.filter(t => {
       if (!searchRaw) return true;
       return (
         (t.internal_tx_id && t.internal_tx_id.toLowerCase().includes(searchRaw)) ||
@@ -807,7 +807,11 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
         (t.upstream_operator_ref && t.upstream_operator_ref.toLowerCase().includes(searchRaw)) ||
         (t.id && String(t.id).toLowerCase().includes(searchRaw))
       );
-    }).map(t => {
+    });
+    if (params.length >= 2 && params[1]) {
+      matches = matches.filter(t => t.retailer_id === params[1]);
+    }
+    rows = matches.map(t => {
       const u = memoryStore.users.find(usr => usr.id === t.retailer_id);
       return {
         ...t,
