@@ -51,23 +51,24 @@ async function reconcile() {
     );
     console.log(`✅ Transaction status updated to SUCCESS with ref: ${operatorRef}`);
 
-    // 3. If transaction was FAILED, it was refunded to the retailer's wallet.
-    // Re-debit the billed cost from the retailer's balance.
-    if (tx.status === 'FAILED' && billedCost > 0) {
-      const userRes = await query('SELECT current_balance, wallet_balance, full_name, store_name FROM users WHERE id = $1', [userId]);
+    // 3. Re-debit the billed cost from retailer wallet if it had been refunded
+    const shouldDebit = process.argv.includes('--debit') || tx.status !== 'SUCCESS' || tx.status.includes('FAIL');
+    
+    if (shouldDebit && billedCost > 0) {
+      const userRes = await query('SELECT current_balance, wallet_balance, organization_name, owner_name FROM users WHERE id = $1', [userId]);
       if (userRes.rows.length > 0) {
         const user = userRes.rows[0];
         const curBal = parseFloat(user.current_balance !== undefined ? user.current_balance : (user.wallet_balance || 0));
         const newBal = Number((curBal - billedCost).toFixed(4));
 
-        await query('UPDATE users SET current_balance = $1, wallet_balance = $1, updated_at = NOW() WHERE id = $2', [newBal, userId]);
-        console.log(`💰 Retailer wallet reconciled for ${user.full_name || user.store_name || userId}:`);
+        await query('UPDATE users SET current_balance = $1 WHERE id = $2', [newBal, userId]);
+        console.log(`💰 Retailer wallet reconciled for ${user.owner_name || user.organization_name || userId}:`);
         console.log(`   - Previous Balance: ₹${curBal}`);
         console.log(`   - Debited Amount:   -₹${billedCost}`);
         console.log(`   - New Balance:      ₹${newBal}`);
       }
     } else {
-      console.log(`ℹ️ Wallet adjustment not needed (previous status was ${tx.status}).`);
+      console.log(`ℹ️ Wallet adjustment already processed or not required.`);
     }
 
     console.log(`\n🎉 Reconciliation completed successfully!\n`);
