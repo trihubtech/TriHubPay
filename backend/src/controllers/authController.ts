@@ -243,7 +243,8 @@ export async function registerRetailer(req: Request, res: Response) {
       organization_name = account_type === 'CONSUMER' ? `${owner_name} (Personal)` : `${owner_name}'s Store`;
     }
 
-    // Verify Mobile OTP if submitted
+    // Mobile OTP verification (bypassed per request)
+    /*
     if (otp) {
       const cached = mobileOtpCache.get(phone);
       const isMasterOtp = otp === '123456';
@@ -255,6 +256,7 @@ export async function registerRetailer(req: Request, res: Response) {
         });
       }
     }
+    */
 
     // Check duplicate phone or email
     const existing = await query('SELECT id FROM users WHERE phone = $1 OR email = $2', [phone, email.toLowerCase()]);

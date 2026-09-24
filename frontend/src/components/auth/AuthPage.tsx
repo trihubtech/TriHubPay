@@ -180,11 +180,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
       return;
     }
 
-    if (isOtpSent && !isOtpVerified && !regOtp) {
-      setErrorMsg('Please enter the 6-digit OTP to verify your mobile number.');
-      return;
-    }
-
     setLoading(true);
     try {
       const org = accountType === 'CONSUMER' ? (ownerName + ' (Personal)') : (shopName || (ownerName + "'s Store"));
@@ -194,8 +189,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
         owner_name: ownerName,
         phone: phone,
         email: email,
-        password: regPassword,
-        otp: regOtp.trim() || undefined
+        password: regPassword
       });
 
       if (res.success) {
@@ -523,9 +517,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
                   : 'bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-200'
               }`}>
                 {accountType === 'CONSUMER' ? (
-                  <span>🎁 <strong>Personal Account:</strong> Get instant cashback, savings &amp; promo offers on all your mobile and DTH recharges.</span>
+                  <span>📱 <strong>Personal Account:</strong> Fast &amp; simple mobile and DTH recharge payments.</span>
                 ) : (
-                  <span>💼 <strong>Retailer Store Account:</strong> Earn wholesale commissions &amp; business margins on all customer transactions.</span>
+                  <span>🏪 <strong>Shop / Retailer Account:</strong> Multi-recharge portal for retail shops and stores.</span>
                 )}
               </div>
 
@@ -569,68 +563,21 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
                 </div>
               )}
 
-              {/* Mobile Number & OTP Verification */}
+              {/* Mobile Number */}
               <div>
                 <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
                   MOBILE NUMBER (10 DIGITS)
                 </label>
-                <div className="flex gap-2">
-                  <input
-                    type="tel"
-                    required
-                    maxLength={10}
-                    value={phone}
-                    onChange={(e) => {
-                      setPhone(e.target.value.replace(/\D/g, ''));
-                      setIsOtpVerified(false);
-                    }}
-                    placeholder="9876543210"
-                    className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-950 focus:outline-none focus:border-brand-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleSendRegOtp}
-                    disabled={sendingRegOtp || phone.length !== 10 || regOtpCountdown > 0}
-                    className="px-3 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 disabled:opacity-50 shrink-0 transition-colors"
-                  >
-                    {sendingRegOtp ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : regOtpCountdown > 0 ? `${regOtpCountdown}s` : isOtpSent ? 'Resend' : 'Get OTP'}
-                  </button>
-                </div>
+                <input
+                  type="tel"
+                  required
+                  maxLength={10}
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                  placeholder="9876543210"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-950 focus:outline-none focus:border-brand-500"
+                />
               </div>
-
-              {/* OTP Input Field */}
-              {isOtpSent && (
-                <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="font-semibold text-slate-700 dark:text-slate-300">Enter 6-Digit Mobile OTP:</span>
-                    {isOtpVerified && (
-                      <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
-                        <Check className="w-3 h-3" /> Verified
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      maxLength={6}
-                      value={regOtp}
-                      onChange={(e) => setRegOtp(e.target.value.replace(/\D/g, ''))}
-                      placeholder="123456"
-                      className="flex-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono tracking-widest text-center text-slate-900 dark:text-white focus:outline-none focus:border-brand-500"
-                    />
-                    {!isOtpVerified && (
-                      <button
-                        type="button"
-                        onClick={handleVerifyRegOtp}
-                        disabled={verifyingRegOtp || regOtp.length !== 6}
-                        className="px-3 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 shrink-0 transition-colors"
-                      >
-                        {verifyingRegOtp ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Verify'}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
 
               <div>
                 <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">EMAIL ADDRESS</label>
