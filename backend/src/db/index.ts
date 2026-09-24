@@ -377,8 +377,8 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
   const cleanSql = sql.trim().replace(/\s+/g, ' ');
   let rows: any[] = [];
 
-  // 1. SELECT current_balance FROM users WHERE id = $1
-  if (/SELECT .* FROM users WHERE id = \$1/i.test(cleanSql)) {
+  // 1. SELECT current_balance FROM users WHERE id = $1 (exact single user lookup)
+  if (/SELECT .* FROM users WHERE id = \$1(\s+FOR UPDATE|\s+LIMIT 1)?$/i.test(cleanSql)) {
     const user = memoryStore.users.find(u => u.id === params[0]);
     rows = user ? [user] : [];
   }
@@ -396,17 +396,18 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
     );
     rows = conflict ? [{ id: conflict.id }] : [];
   }
-  // 2. SELECT id, ... FROM users WHERE email = $1 OR phone = $1 / WHERE phone = $1 OR email = $2
-  else if (/SELECT .* FROM users WHERE .*?(email|phone)/i.test(cleanSql) && !/ORDER BY/i.test(cleanSql)) {
-    const term1 = String(params[0] || '').toLowerCase().trim();
-    const term2 = String(params[1] || params[0] || '').toLowerCase().trim();
-    const user = memoryStore.users.find(u => 
-      (u.email && u.email.toLowerCase().trim() === term1) || 
-      (u.phone && u.phone.trim() === term1) ||
-      (u.email && u.email.toLowerCase().trim() === term2) || 
-      (u.phone && u.phone.trim() === term2)
+  // 2a. SELECT ... FROM users WHERE id = $1 OR owner_name ILIKE ... OR phone = $1
+  else if (/SELECT .* FROM users WHERE .*?(ILIKE|phone|owner_name|organization_name)/i.test(cleanSql) && !/ORDER BY/i.test(cleanSql)) {
+    const term = String(params[0] || '').replace(/%/g, '').toLowerCase().trim();
+    const term2 = String(params[1] || params[0] || '').replace(/%/g, '').toLowerCase().trim();
+    const matches = memoryStore.users.filter(u => 
+      (u.id && u.id.toLowerCase() === term) ||
+      (u.phone && u.phone.trim() === term) ||
+      (u.email && u.email.toLowerCase().trim() === term) ||
+      (u.owner_name && (u.owner_name.toLowerCase().includes(term) || u.owner_name.toLowerCase().includes(term2))) ||
+      (u.organization_name && (u.organization_name.toLowerCase().includes(term) || u.organization_name.toLowerCase().includes(term2)))
     );
-    rows = user ? [user] : [];
+    rows = matches;
   }
   // 2b. Aggregate query for retailer counts and float liability:
   else if (/SELECT .*?total_retailers.*?FROM users/i.test(cleanSql) || /SELECT .*?total_retailer_wallet_float/i.test(cleanSql)) {
@@ -504,7 +505,7 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
   // 4b. UPDATE users SET current_balance = 0... WHERE id = $1
   else if (/UPDATE users SET (current_balance|wallet_balance)\s*=\s*0.*?WHERE\s+id\s*=\s*\$1/i.test(cleanSql)) {
     const targetId = params[0];
-    const user = memoryStore.users.find(u => u.id === targetId);
+    const user = memoryStore.users.find(u => u.id === targetId || u.phone === targetId);
     if (user) {
       user.current_balance = '0.0000';
       (user as any).wallet_balance = '0.0000';
@@ -512,12 +513,16 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
     }
     rows = [];
   }
-  // 4c. UPDATE users SET current_balance = $1.* WHERE id = $2 (or SET current_balance = $1, wallet_balance = $1 WHERE id = $2)
-  else if (/UPDATE users SET (current_balance|wallet_balance).*?WHERE\s+id\s*=\s*(\$2|\$1)/i.test(cleanSql)) {
-    const targetId = params.length >= 2 ? params[1] : params[0];
-    const user = memoryStore.users.find(u => u.id === targetId);
+  // 4c. UPDATE users SET current_balance = ... WHERE id = ...
+  else if (/UPDATE users SET .*?(current_balance|wallet_balance)/i.test(cleanSql) && /WHERE\s+id\s*=\s*\$(\d+)/i.test(cleanSql)) {
+    const idMatch = cleanSql.match(/WHERE\s+id\s*=\s*\$(\d+)/i);
+    const valMatch = cleanSql.match(/(current_balance|wallet_balance)\s*=\s*\$(\d+)/i);
+    const idParamIdx = idMatch ? parseInt(idMatch[1], 10) - 1 : (params.length >= 2 ? 1 : 0);
+    const valParamIdx = valMatch ? parseInt(valMatch[2], 10) - 1 : 0;
+    const targetId = params[idParamIdx];
+    const user = memoryStore.users.find(u => u.id === targetId || u.phone === targetId);
     if (user) {
-      const val = Number(params[0] || 0).toFixed(4);
+      const val = Number(params[valParamIdx] !== undefined ? params[valParamIdx] : 0).toFixed(4);
       user.current_balance = val;
       (user as any).wallet_balance = val;
       savePersistentStore();
@@ -713,9 +718,29 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
     savePersistentStore();
     rows = [];
   }
-  // 14. SELECT ... FROM wallet_ledger WHERE user_id = $1
-  else if (/SELECT .* FROM wallet_ledger WHERE user_id = \$1/i.test(cleanSql)) {
-    rows = memoryStore.wallet_ledger.filter(l => l.user_id === params[0]);
+  // 14. SELECT ... FROM wallet_ledger
+  else if (/SELECT .* FROM wallet_ledger/i.test(cleanSql)) {
+    if (/reference_id/i.test(cleanSql)) {
+      const refParam = params[0];
+      rows = memoryStore.wallet_ledger.filter(l => {
+        const matchesRef = l.reference_id === refParam || (params.length > 1 && l.reference_id === params[1]);
+        if (!matchesRef) return false;
+        if (/transaction_type\s*IN\s*\('CREDIT',\s*'REFUND'\)/i.test(cleanSql)) {
+          return l.transaction_type === 'CREDIT' || l.transaction_type === 'REFUND';
+        }
+        if (/transaction_type\s*=\s*'CREDIT'/i.test(cleanSql)) {
+          return l.transaction_type === 'CREDIT';
+        }
+        if (/transaction_type\s*=\s*'DEBIT'/i.test(cleanSql)) {
+          return l.transaction_type === 'DEBIT';
+        }
+        return true;
+      });
+    } else if (/user_id = \$1/i.test(cleanSql)) {
+      rows = memoryStore.wallet_ledger.filter(l => l.user_id === params[0]);
+    } else {
+      rows = memoryStore.wallet_ledger;
+    }
   }
   // 15. INSERT INTO transactions
   else if (/INSERT INTO transactions/i.test(cleanSql)) {

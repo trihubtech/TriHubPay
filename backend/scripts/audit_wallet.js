@@ -12,7 +12,7 @@ async function audit() {
   console.log(`   TRIHUBPAY COMPREHENSIVE WALLET & AUDIT INSPECTOR   `);
   console.log(`======================================================\n`);
 
-  const searchTarget = process.argv.find(a => !a.startsWith('--') && !a.endsWith('.js')) || 'usr-1789919612662';
+  const searchTarget = process.argv.slice(2).find(a => !a.startsWith('--')) || 'usr-1789919612662';
 
   try {
     // 1. Locate user Ferose

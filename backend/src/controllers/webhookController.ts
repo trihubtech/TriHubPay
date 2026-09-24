@@ -60,35 +60,56 @@ export async function handleUpstreamWebhook(req: Request, res: Response) {
       const billedAmount = parseFloat(tx.final_cost_billed);
 
       await withTransaction(async (client) => {
-        // Lock user balance
-        const uRes = await client.query(
-          'SELECT current_balance FROM users WHERE id = $1 FOR UPDATE',
-          [tx.retailer_id]
+        // Idempotency check: has this transaction already been refunded?
+        const creditCheck = await client.query(
+          `SELECT id FROM wallet_ledger WHERE (reference_id = $1 OR reference_id = $2) AND transaction_type IN ('CREDIT', 'REFUND')`,
+          [tx.internal_tx_id, `REFUND_${tx.internal_tx_id}`]
         );
-        const curBal = parseFloat(uRes.rows[0].current_balance);
-        const newBal = Number((curBal + billedAmount).toFixed(4));
+        if (creditCheck.rows.length > 0) {
+          console.warn(`[WEBHOOK REFUND GUARD] Tx ${tx.internal_tx_id} already refunded. Skipping.`);
+          return;
+        }
 
-        // Credit wallet back
-        await client.query(
-          'UPDATE users SET current_balance = $1, updated_at = clock_timestamp() WHERE id = $2',
-          [newBal, tx.retailer_id]
+        // Debit verification check: did we actually debit this transaction?
+        const debitCheck = await client.query(
+          `SELECT id, balance_before, balance_after, amount FROM wallet_ledger WHERE reference_id = $1 AND transaction_type = 'DEBIT'`,
+          [tx.internal_tx_id]
         );
 
-        // Record credit ledger entry
-        await client.query(
-          `INSERT INTO wallet_ledger (
-            user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-          [
-            tx.retailer_id,
-            billedAmount,
-            'CREDIT',
-            curBal,
-            newBal,
-            clientRefId,
-            `ASYNC REFUND: Webhook reported upstream failure (${failureReason})`
-          ]
-        );
+        if (debitCheck.rows.length > 0) {
+          // Lock user balance
+          const uRes = await client.query(
+            'SELECT current_balance FROM users WHERE id = $1 FOR UPDATE',
+            [tx.retailer_id]
+          );
+          if (uRes.rows.length > 0) {
+            const curBal = parseFloat(uRes.rows[0].current_balance);
+            const origBefore = parseFloat(debitCheck.rows[0].balance_before);
+            const newBal = Number(Math.min(curBal + billedAmount, Math.max(curBal, origBefore)).toFixed(4));
+
+            // Credit wallet back
+            await client.query(
+              'UPDATE users SET current_balance = $1, updated_at = clock_timestamp() WHERE id = $2',
+              [newBal, tx.retailer_id]
+            );
+
+            // Record credit ledger entry
+            await client.query(
+              `INSERT INTO wallet_ledger (
+                user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+              [
+                tx.retailer_id,
+                billedAmount,
+                'CREDIT',
+                curBal,
+                newBal,
+                clientRefId,
+                `ASYNC REFUND: Webhook reported upstream failure (${failureReason})`
+              ]
+            );
+          }
+        }
 
         // Update transaction status to REFUNDED
         await client.query(
@@ -224,35 +245,56 @@ export async function handleNeroPayWebhook(req: Request, res: Response) {
       const billedAmount = parseFloat(tx.final_cost_billed);
 
       await withTransaction(async (client) => {
-        // Row lock
-        const uRes = await client.query(
-          'SELECT current_balance FROM users WHERE id = $1 FOR UPDATE',
-          [tx.retailer_id]
+        // Idempotency check: has this transaction already been refunded?
+        const creditCheck = await client.query(
+          `SELECT id FROM wallet_ledger WHERE (reference_id = $1 OR reference_id = $2) AND transaction_type IN ('CREDIT', 'REFUND')`,
+          [tx.internal_tx_id, `REFUND_${tx.internal_tx_id}`]
         );
-        const curBal = parseFloat(uRes.rows[0].current_balance);
-        const newBal = Number((curBal + billedAmount).toFixed(4));
+        if (creditCheck.rows.length > 0) {
+          console.warn(`[NEROPAY CALLBACK REFUND GUARD] Tx ${tx.internal_tx_id} already refunded. Skipping.`);
+          return;
+        }
 
-        // Credit balance
-        await client.query(
-          'UPDATE users SET current_balance = $1, updated_at = clock_timestamp() WHERE id = $2',
-          [newBal, tx.retailer_id]
+        // Debit verification check: did we actually debit this transaction?
+        const debitCheck = await client.query(
+          `SELECT id, balance_before, balance_after, amount FROM wallet_ledger WHERE reference_id = $1 AND transaction_type = 'DEBIT'`,
+          [tx.internal_tx_id]
         );
 
-        // Record ledger
-        await client.query(
-          `INSERT INTO wallet_ledger (
-            user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-          [
-            tx.retailer_id,
-            billedAmount,
-            'CREDIT',
-            curBal,
-            newBal,
-            tx.internal_tx_id,
-            `NEROPAY CALLBACK REFUND: Upstream reported ${rawStatus} (${message || 'Transaction Failed'})`
-          ]
-        );
+        if (debitCheck.rows.length > 0) {
+          // Row lock
+          const uRes = await client.query(
+            'SELECT current_balance FROM users WHERE id = $1 FOR UPDATE',
+            [tx.retailer_id]
+          );
+          if (uRes.rows.length > 0) {
+            const curBal = parseFloat(uRes.rows[0].current_balance);
+            const origBefore = parseFloat(debitCheck.rows[0].balance_before);
+            const newBal = Number(Math.min(curBal + billedAmount, Math.max(curBal, origBefore)).toFixed(4));
+
+            // Credit balance
+            await client.query(
+              'UPDATE users SET current_balance = $1, updated_at = clock_timestamp() WHERE id = $2',
+              [newBal, tx.retailer_id]
+            );
+
+            // Record ledger
+            await client.query(
+              `INSERT INTO wallet_ledger (
+                user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+              [
+                tx.retailer_id,
+                billedAmount,
+                'CREDIT',
+                curBal,
+                newBal,
+                tx.internal_tx_id,
+                `NEROPAY CALLBACK REFUND: Upstream reported ${rawStatus} (${message || 'Transaction Failed'})`
+              ]
+            );
+          }
+        }
 
         // Mark transaction REFUNDED
         await client.query(

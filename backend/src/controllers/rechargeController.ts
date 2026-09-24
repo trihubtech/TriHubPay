@@ -379,12 +379,12 @@ export async function executeRecharge(req: Request, res: Response) {
       // ONLY when NeroPay confirms FAILED, execute refund safely with idempotency check
       console.warn(`[EXPLICIT UPSTREAM FAILURE] ${internalTxId} is confirmed FAILED. Initiating safe wallet refund...`);
 
-      let refundedBalance: number = balanceAfter;
+      let refundedBalance: number = balanceBefore;
 
       await withTransaction(async (rollbackClient) => {
         // Check transaction status and wallet ledger to prevent any duplicate refunds
         const ledgerCheck = await rollbackClient.query(
-          `SELECT id FROM wallet_ledger WHERE reference_id = $1 AND transaction_type = 'CREDIT'`,
+          `SELECT id FROM wallet_ledger WHERE reference_id = $1 AND transaction_type IN ('CREDIT', 'REFUND')`,
           [internalTxId]
         );
         if (ledgerCheck.rows.length > 0) {
@@ -396,37 +396,53 @@ export async function executeRecharge(req: Request, res: Response) {
           'SELECT status FROM transactions WHERE id = $1',
           [transactionDbId]
         );
-        if (txCheck.rows.length > 0 && txCheck.rows[0].status === 'REFUNDED') {
-          console.warn(`[REFUND GUARD] Transaction ${internalTxId} was already refunded. Skipping duplicate refund.`);
+        if (txCheck.rows.length > 0 && (txCheck.rows[0].status === 'REFUNDED' || txCheck.rows[0].status === 'FAILED')) {
+          console.warn(`[REFUND GUARD] Transaction ${internalTxId} was already finalized as ${txCheck.rows[0].status}. Skipping duplicate refund.`);
           return;
         }
+
+        // Verify if debit actually occurred for this transaction
+        const debitCheck = await rollbackClient.query(
+          `SELECT id, amount, balance_before, balance_after FROM wallet_ledger WHERE reference_id = $1 AND transaction_type = 'DEBIT'`,
+          [internalTxId]
+        );
+        const didDebit = debitCheck.rows.length > 0;
 
         const uLock = await rollbackClient.query(
           'SELECT current_balance FROM users WHERE id = $1 FOR UPDATE',
           [retailerId]
         );
         const curBal = parseFloat(uLock.rows[0].current_balance);
-        refundedBalance = Number((curBal + billedCost).toFixed(4));
 
-        await rollbackClient.query(
-          'UPDATE users SET current_balance = $1, updated_at = clock_timestamp() WHERE id = $2',
-          [refundedBalance, retailerId]
-        );
+        if (didDebit) {
+          // MATHEMATICAL INTEGRITY INVARIANT:
+          // A refund on a failed transaction CANNOT exceed balanceBefore!
+          // If curBal was already at balanceBefore (i.e. debit never took effect), we do NOT add phantom money!
+          refundedBalance = Number(balanceBefore.toFixed(4));
 
-        await rollbackClient.query(
-          `INSERT INTO wallet_ledger (
-            user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-          [
-            retailerId,
-            billedCost,
-            'CREDIT',
-            curBal,
-            refundedBalance,
-            internalTxId,
-            `AUTO-REFUND: Upstream rejected recharge on ${target_account_number} (${upstreamError.message || 'Operator rejected'})`
-          ]
-        );
+          await rollbackClient.query(
+            'UPDATE users SET current_balance = $1, updated_at = clock_timestamp() WHERE id = $2',
+            [refundedBalance, retailerId]
+          );
+
+          await rollbackClient.query(
+            `INSERT INTO wallet_ledger (
+              user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [
+              retailerId,
+              billedCost,
+              'CREDIT',
+              curBal,
+              refundedBalance,
+              internalTxId,
+              `AUTO-REFUND: Upstream rejected recharge on ${target_account_number} (${upstreamError.message || 'Operator rejected'})`
+            ]
+          );
+        } else {
+          console.warn(`[REFUND GUARD] No debit recorded for ${internalTxId}. Skipping ledger credit to prevent phantom balance.`);
+          refundedBalance = curBal;
+        }
 
         await rollbackClient.query(
           `UPDATE transactions SET 
@@ -840,26 +856,47 @@ export async function checkRetailerTransactionStatus(req: Request, res: Response
       let wasRefunded = false;
       if (tx.status !== 'FAILED' && tx.status !== 'REFUNDED') {
         await withTransaction(async (client) => {
-          const uRes = await client.query('SELECT current_balance FROM users WHERE id = $1 FOR UPDATE', [tx.retailer_id]);
-          if (uRes.rows.length > 0) {
-            const curBal = parseFloat(uRes.rows[0].current_balance);
-            const refundAmount = parseFloat(tx.final_cost_billed);
-            const newBal = curBal + refundAmount;
+          // Idempotency check: has this transaction already been refunded?
+          const creditCheck = await client.query(
+            `SELECT id FROM wallet_ledger WHERE (reference_id = $1 OR reference_id = $2) AND transaction_type IN ('CREDIT', 'REFUND')`,
+            [tx.internal_tx_id, `REFUND_${tx.internal_tx_id}`]
+          );
+          if (creditCheck.rows.length > 0) {
+            console.warn(`[STATUS REFUND GUARD] Tx ${tx.internal_tx_id} already refunded. Skipping.`);
+            return;
+          }
 
-            await client.query('UPDATE users SET current_balance = $1, updated_at = clock_timestamp() WHERE id = $2', [newBal, tx.retailer_id]);
-            await client.query(`
-              INSERT INTO wallet_ledger (
-                user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
-              ) VALUES ($1, $2, 'REFUND', $3, $4, $5, $6)
-            `, [
-              tx.retailer_id,
-              refundAmount,
-              curBal,
-              newBal,
-              `REFUND_${tx.internal_tx_id}`,
-              `Live Status: Upstream failure refund for ${tx.target_account_number}`
-            ]);
-            wasRefunded = true;
+          // Debit verification check: did we actually debit this transaction?
+          const debitCheck = await client.query(
+            `SELECT id, balance_before, balance_after, amount FROM wallet_ledger WHERE reference_id = $1 AND transaction_type = 'DEBIT'`,
+            [tx.internal_tx_id]
+          );
+
+          if (debitCheck.rows.length > 0) {
+            const uRes = await client.query('SELECT current_balance FROM users WHERE id = $1 FOR UPDATE', [tx.retailer_id]);
+            if (uRes.rows.length > 0) {
+              const curBal = parseFloat(uRes.rows[0].current_balance);
+              const refundAmount = parseFloat(tx.final_cost_billed);
+              const origBefore = parseFloat(debitCheck.rows[0].balance_before);
+              
+              // Safe restoration: cannot exceed original balance before debit
+              const newBal = Number(Math.min(curBal + refundAmount, Math.max(curBal, origBefore)).toFixed(4));
+
+              await client.query('UPDATE users SET current_balance = $1, updated_at = clock_timestamp() WHERE id = $2', [newBal, tx.retailer_id]);
+              await client.query(`
+                INSERT INTO wallet_ledger (
+                  user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
+                ) VALUES ($1, $2, 'CREDIT', $3, $4, $5, $6)
+              `, [
+                tx.retailer_id,
+                refundAmount,
+                curBal,
+                newBal,
+                `REFUND_${tx.internal_tx_id}`,
+                `Live Status: Upstream failure refund for ${tx.target_account_number}`
+              ]);
+              wasRefunded = true;
+            }
           }
 
           await client.query(
