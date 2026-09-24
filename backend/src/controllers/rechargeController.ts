@@ -51,6 +51,19 @@ export async function executeRecharge(req: Request, res: Response) {
     const idempotencyKey = parsed.data.idempotency_key || `IDEMP_${uuidv4()}`;
     const internalTxId = `TXN_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
 
+    // 1a. MOBILE NUMBER VALIDATION (10 DIGITS, STARTING WITH 6, 7, 8, OR 9)
+    if (service_type === 'MOBILE') {
+      const cleanMobile = target_account_number.trim();
+      if (!/^[6-9]\d{9}$/.test(cleanMobile)) {
+        if (dedupKey) releaseDedupKey(dedupKey);
+        return res.status(400).json({
+          success: false,
+          code: 'INVALID_MOBILE_NUMBER',
+          message: 'Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.'
+        });
+      }
+    }
+
     // 1b. PRE-FLIGHT PLAN & WRONG AMOUNT VALIDATION
     // If the operator has a known catalog of valid plans (Mobile & DTH), ensure the entered amount is an active valid plan.
     // E.g. ₹300 for Tata Play is NOT a valid plan, so reject UPFRONT before wallet debit!
@@ -727,3 +740,159 @@ export async function getMyInsights(req: Request, res: Response) {
 }
 
 export const getRetailerReports = getMyInsights;
+
+/**
+ * On-Demand Live Status Checker for Retailers & Users
+ * Allows checking live telecom switch status for pending/recent transactions
+ */
+export async function checkRetailerTransactionStatus(req: Request, res: Response) {
+  try {
+    const txId = req.params.id;
+    const userId = req.user!.id;
+    const userRole = req.user!.role;
+
+    const txRes = await query(
+      `SELECT t.*, u.current_balance as retailer_balance
+       FROM transactions t
+       JOIN users u ON u.id = t.retailer_id
+       WHERE (t.id::text = $1 OR t.internal_tx_id = $1)
+       LIMIT 1`,
+      [txId]
+    );
+
+    if (txRes.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Transaction not found' });
+    }
+
+    const tx = txRes.rows[0];
+
+    // Enforce ownership: retailer/consumer can only query their own transaction
+    if (userRole !== 'ADMIN' && tx.retailer_id !== userId) {
+      return res.status(403).json({ success: false, message: 'Access denied to this transaction' });
+    }
+
+    const neroClient = new NeroPayClient();
+    const queryRef = tx.internal_tx_id || tx.upstream_operator_ref;
+    const statusRes = await neroClient.checkStatus(queryRef);
+
+    // CASE 1: Operator reports SUCCESS
+    if (statusRes.status === 'SUCCESS' && !neroClient.isSandbox) {
+      const billedCost = parseFloat(tx.final_cost_billed || tx.face_value || '0');
+      let debitedBack = false;
+
+      if ((tx.status === 'FAILED' || tx.status === 'REFUNDED') && billedCost > 0) {
+        await withTransaction(async (client) => {
+          const uRes = await client.query('SELECT current_balance FROM users WHERE id = $1 FOR UPDATE', [tx.retailer_id]);
+          if (uRes.rows.length > 0) {
+            const curBal = parseFloat(uRes.rows[0].current_balance);
+            const newBal = Number((curBal - billedCost).toFixed(4));
+            await client.query('UPDATE users SET current_balance = $1, updated_at = clock_timestamp() WHERE id = $2', [newBal, tx.retailer_id]);
+            await client.query(
+              `INSERT INTO wallet_ledger (
+                user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
+              ) VALUES ($1, $2, 'DEBIT', $3, $4, $5, $6)`,
+              [
+                tx.retailer_id,
+                billedCost,
+                curBal,
+                newBal,
+                `RECON_${tx.internal_tx_id}`,
+                `Reconciliation debit: Upstream confirmed SUCCESS (Ref: ${statusRes.upstreamRef || tx.upstream_operator_ref})`
+              ]
+            );
+            debitedBack = true;
+          }
+
+          await client.query(
+            `UPDATE transactions SET 
+              status = 'SUCCESS',
+              upstream_operator_ref = COALESCE($1, upstream_operator_ref),
+              failure_reason = NULL,
+              updated_at = clock_timestamp()
+             WHERE id = $2`,
+            [statusRes.upstreamRef || null, tx.id]
+          );
+        });
+      } else {
+        await query(
+          `UPDATE transactions SET 
+            status = 'SUCCESS',
+            upstream_operator_ref = COALESCE($1, upstream_operator_ref),
+            failure_reason = NULL,
+            updated_at = clock_timestamp()
+           WHERE id = $2`,
+          [statusRes.upstreamRef || null, tx.id]
+        );
+      }
+
+      return res.json({
+        success: true,
+        status: 'SUCCESS',
+        message: 'Recharge was successfully completed by the telecom operator.',
+        upstream_ref: statusRes.upstreamRef || tx.upstream_operator_ref,
+        refunded: false
+      });
+    }
+
+    // CASE 2: Operator reports FAILED
+    if (statusRes.status === 'FAILED') {
+      let wasRefunded = false;
+      if (tx.status !== 'FAILED' && tx.status !== 'REFUNDED') {
+        await withTransaction(async (client) => {
+          const uRes = await client.query('SELECT current_balance FROM users WHERE id = $1 FOR UPDATE', [tx.retailer_id]);
+          if (uRes.rows.length > 0) {
+            const curBal = parseFloat(uRes.rows[0].current_balance);
+            const refundAmount = parseFloat(tx.final_cost_billed);
+            const newBal = curBal + refundAmount;
+
+            await client.query('UPDATE users SET current_balance = $1, updated_at = clock_timestamp() WHERE id = $2', [newBal, tx.retailer_id]);
+            await client.query(`
+              INSERT INTO wallet_ledger (
+                user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
+              ) VALUES ($1, $2, 'REFUND', $3, $4, $5, $6)
+            `, [
+              tx.retailer_id,
+              refundAmount,
+              curBal,
+              newBal,
+              `REFUND_${tx.internal_tx_id}`,
+              `Live Status: Upstream failure refund for ${tx.target_account_number}`
+            ]);
+            wasRefunded = true;
+          }
+
+          await client.query(
+            `UPDATE transactions SET 
+              status = 'FAILED',
+              failure_reason = $1,
+              updated_at = clock_timestamp()
+             WHERE id = $2`,
+            [statusRes.message || 'Operator declined recharge', tx.id]
+          );
+        });
+      }
+
+      return res.json({
+        success: true,
+        status: 'FAILED',
+        message: wasRefunded 
+          ? `Operator confirmed recharge was declined. ₹${parseFloat(tx.final_cost_billed).toFixed(2)} has been safely refunded to your wallet.`
+          : 'Operator confirmed recharge was declined.',
+        upstream_ref: statusRes.upstreamRef,
+        refunded: wasRefunded
+      });
+    }
+
+    // CASE 3: Still PENDING
+    return res.json({
+      success: true,
+      status: 'PENDING',
+      message: 'Recharge is currently processing at the telecom operator switch. Please check again in a few moments.',
+      upstream_ref: statusRes.upstreamRef || tx.upstream_operator_ref,
+      refunded: false
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+

@@ -232,11 +232,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </div>
         </div>
 
-        {/* Stat 2: Today's Commission */}
+        {/* Stat 2: Today's Commission / Cashback */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-xs transition-all flex flex-col justify-between min-w-0 overflow-hidden">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 truncate">
-              {t('todayCommission')}
+              {currentUser?.account_type === 'CONSUMER' ? "Today's Cashback" : t('todayCommission')}
             </span>
             <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
               <Gift className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -247,7 +247,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               ₹ {Number(todayStats?.totalCommission ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             <div className="text-[9px] sm:text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5 truncate">
-              {t('netProfitCredited')}
+              {currentUser?.account_type === 'CONSUMER' ? 'Saved Instantly' : t('netProfitCredited')}
             </div>
           </div>
         </div>
@@ -398,7 +398,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               <Percent className="w-3 h-3" />
             </div>
             <h2 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
-              {t('commission')}
+              {currentUser?.account_type === 'CONSUMER' ? 'Cashback & Offers' : t('commission')}
             </h2>
           </div>
 
@@ -433,7 +433,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                   {Number(rateVal).toFixed(2)}%
                 </div>
                 <div className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">
-                  Margin
+                  {currentUser?.account_type === 'CONSUMER' ? 'Cashback' : 'Margin'}
                 </div>
               </button>
             );

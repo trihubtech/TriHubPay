@@ -24,6 +24,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [showLoginPassword, setShowLoginPassword] = useState<boolean>(false);
 
   // Register form (Shop Owner Direct Self-Onboarding)
+  const [accountType, setAccountType] = useState<'CONSUMER' | 'RETAILER'>('CONSUMER');
   const [shopName, setShopName] = useState<string>('');
   const [ownerName, setOwnerName] = useState<string>('');
   const [phone, setPhone] = useState<string>('');
@@ -65,8 +66,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     setLoading(true);
     try {
+      const org = accountType === 'CONSUMER' ? `${ownerName} (Personal)` : (shopName || `${ownerName}'s Store`);
       const res = await api.register({
-        organization_name: shopName,
+        account_type: accountType,
+        organization_name: org,
         owner_name: ownerName,
         phone: phone,
         email: email,
@@ -249,21 +252,61 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           {/* TAB 2: NEW SHOP DIRECT SELF-ONBOARDING */}
           {tab === 'REGISTER' && (
             <form onSubmit={handleRegisterSubmit} className="space-y-3">
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-400 mb-1">MOBILE SHOP / BUSINESS NAME</label>
-                <input
-                  type="text"
-                  required
-                  value={shopName}
-                  onChange={(e) => setShopName(e.target.value)}
-                  placeholder="e.g. Sai Krishna Telecom"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-brand-500"
-                />
+              {/* Account Type Toggle */}
+              <div className="flex p-1 bg-slate-950 border border-slate-800 rounded-xl gap-1">
+                <button
+                  type="button"
+                  onClick={() => setAccountType('CONSUMER')}
+                  className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                    accountType === 'CONSUMER'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span>Personal (User)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAccountType('RETAILER')}
+                  className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                    accountType === 'RETAILER'
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Store className="w-3.5 h-3.5" />
+                  <span>Shop / Retailer</span>
+                </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-2.5">
+              {accountType === 'RETAILER' ? (
+                <>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-400 mb-1">MOBILE SHOP / BUSINESS NAME</label>
+                    <input
+                      type="text"
+                      required
+                      value={shopName}
+                      onChange={(e) => setShopName(e.target.value)}
+                      placeholder="e.g. Sai Krishna Telecom"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-brand-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-400 mb-1">OWNER NAME</label>
+                    <input
+                      type="text"
+                      required
+                      value={ownerName}
+                      onChange={(e) => setOwnerName(e.target.value)}
+                      placeholder="e.g. Anand Kumar"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-brand-500"
+                    />
+                  </div>
+                </>
+              ) : (
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">OWNER NAME</label>
+                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">YOUR FULL NAME</label>
                   <input
                     type="text"
                     required
@@ -273,6 +316,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-brand-500"
                   />
                 </div>
+              )}
 
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-400 mb-1">PHONE NUMBER (10 DIGITS)</label>
@@ -286,7 +330,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs font-mono text-white focus:outline-none focus:border-brand-500"
                   />
                 </div>
-              </div>
 
               <div>
                 <label className="block text-[11px] font-semibold text-slate-400 mb-1">EMAIL ADDRESS</label>

@@ -22,12 +22,14 @@ interface RetailerInsightsCardProps {
   transactions?: Transaction[];
   onNavigateToCommissions?: () => void;
   onNavigateToPassbook?: () => void;
+  accountType?: 'RETAILER' | 'CONSUMER';
 }
 
 export const RetailerInsightsCard: React.FC<RetailerInsightsCardProps> = ({
   transactions = [],
   onNavigateToCommissions,
-  onNavigateToPassbook
+  onNavigateToPassbook,
+  accountType = 'RETAILER'
 }) => {
   const [period, setPeriod] = useState<InsightsPeriod>('today');
   const [insights, setInsights] = useState<RetailerInsights | null>(null);
@@ -220,8 +222,8 @@ export const RetailerInsightsCard: React.FC<RetailerInsightsCardProps> = ({
             </div>
             <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
               {isOpen
-                ? 'Tap to hide your earnings dashboard'
-                : 'Tap to see your margin rates & earnings summary'}
+                ? (accountType === 'CONSUMER' ? 'Tap to hide your savings dashboard' : 'Tap to hide your earnings dashboard')
+                : (accountType === 'CONSUMER' ? 'Tap to see your cashback rates & savings summary' : 'Tap to see your margin rates & earnings summary')}
             </div>
           </div>
         </div>
@@ -336,7 +338,7 @@ export const RetailerInsightsCard: React.FC<RetailerInsightsCardProps> = ({
                 <div className="bg-gradient-to-br from-emerald-50/50 to-emerald-100/30 dark:from-emerald-950/20 dark:to-emerald-900/10 border border-emerald-200/80 dark:border-emerald-500/20 rounded-2xl p-3.5 sm:p-4">
                   <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-1.5">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
-                      {periodLabels[period]} Earnings
+                      {periodLabels[period]} {accountType === 'CONSUMER' ? 'Savings' : 'Earnings'}
                     </span>
                     <div className="w-6 h-6 rounded-lg bg-emerald-500/15 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                       <DollarSign className="w-3.5 h-3.5" />
@@ -346,7 +348,7 @@ export const RetailerInsightsCard: React.FC<RetailerInsightsCardProps> = ({
                     ₹{insights ? Number(insights.total_commission || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
                   </div>
                   <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-1 font-medium">
-                    Net profit added to your balance
+                    {accountType === 'CONSUMER' ? 'Net cashback discounted instantly' : 'Net profit added to your balance'}
                   </div>
                 </div>
 

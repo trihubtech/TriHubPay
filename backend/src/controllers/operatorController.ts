@@ -105,6 +105,7 @@ export const STANDARD_PLANS: Record<string, PlanItem[]> = {
     { amount: 649, validity: '56 Days', data: '2.0 GB/Day', description: '56 Days Unlimited Calls + 100 SMS/Day + Unlimited 5G', category: 'Truly Unlimited' },
     { amount: 859, validity: '84 Days', data: '1.5 GB/Day', description: '84 Days Unlimited Calls + 1.5GB/Day Data', category: 'Truly Unlimited' },
     { amount: 979, validity: '84 Days', data: '2.0 GB/Day', description: '84 Days 2GB/Day + Unlimited 5G Data + Hotstar', category: 'Truly Unlimited' },
+    { amount: 999, validity: '84 Days', data: '2.5 GB/Day', description: '84 Days Unlimited Calls + 2.5GB/Day + Disney+ Hotstar Mobile', category: 'Truly Unlimited', tag: 'Hero Pack' },
     { amount: 1199, validity: '84 Days', data: '2.5 GB/Day', description: 'Unlimited 5G Data + Amazon Prime Membership Included', category: 'Truly Unlimited', tag: 'Prime Pack' },
 
     // OTT Entertainment
@@ -204,8 +205,10 @@ export const STANDARD_PLANS: Record<string, PlanItem[]> = {
     { amount: 187, validity: '28 Days', data: '2 GB/Day', description: 'Unlimited Voice Calls + 100 SMS/Day + Free PRBT', category: 'Truly Unlimited' },
     { amount: 197, validity: '70 Days', data: '2 GB/Day (first 15 days)', description: 'Unlimited Calls for 15 days + Validity 70 days', category: 'Popular', tag: 'Long Validity' },
     { amount: 239, validity: '30 Days', data: '2 GB/Day', description: 'Unlimited Calls + 100 SMS/Day + ₹10 Talktime', category: 'Truly Unlimited' },
+    { amount: 299, validity: '30 Days', data: '3 GB/Day', description: 'Unlimited Calls + 3GB/Day + 100 SMS/Day + Zing Entertainment', category: 'Truly Unlimited', tag: 'Best Seller' },
     { amount: 397, validity: '150 Days', data: '2 GB/Day (first 30 days)', description: 'Super Saver 150 Days Validity Pack', category: 'Long Validity', tag: 'Super Saver' },
     { amount: 797, validity: '300 Days', data: '2 GB/Day (first 60 days)', description: '300 Days National Roaming + High Speed Data', category: 'Annual (365 Days)', tag: 'Bestseller' },
+    { amount: 999, validity: '200 Days', data: 'Unlimited Calls', description: '200 Days Truly Unlimited Voice Calling + PRBT', category: 'Long Validity', tag: 'Long Validity' },
     { amount: 1198, validity: '365 Days', data: '3 GB/Month', description: '365 Days Basic Calling: 300 Mins/Month Free', category: 'Annual (365 Days)' },
     { amount: 1999, validity: '365 Days', data: '600 GB Total', description: 'Full Year Unlimited Calls + 600GB High Speed Data', category: 'Annual (365 Days)' },
     { amount: 2399, validity: '395 Days', data: '2 GB/Day', description: '395 Days Super Annual Pack: Unlimited Calls + 2GB/Day', category: 'Annual (365 Days)', tag: '395 Days' },

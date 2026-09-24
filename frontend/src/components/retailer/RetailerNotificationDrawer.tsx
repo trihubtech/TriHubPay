@@ -25,13 +25,42 @@ export const RetailerNotificationDrawer: React.FC<RetailerNotificationDrawerProp
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
-  const fetchNotifs = async () => {
+  const getReadNotificationIds = (): Set<string> => {
+    try {
+      const stored = localStorage.getItem('trihub_read_notification_ids');
+      return new Set(stored ? JSON.parse(stored) : []);
+    } catch {
+      return new Set();
+    }
+  };
+
+  const markAllNotificationsRead = (notifs: any[]) => {
+    try {
+      const existing = getReadNotificationIds();
+      notifs.forEach(n => existing.add(String(n.id)));
+      localStorage.setItem('trihub_read_notification_ids', JSON.stringify(Array.from(existing)));
+      if (onUnreadCountChange) onUnreadCountChange(0);
+    } catch (e) {
+      console.error('Failed to save read notifications', e);
+    }
+  };
+
+  const fetchNotifs = async (isDrawerOpen = false) => {
     setLoading(true);
     try {
       const res = await api.getRetailerNotifications();
       if (res.success) {
         setNotifications(res.data);
-        if (onUnreadCountChange) onUnreadCountChange(res.data.length);
+        const readSet = getReadNotificationIds();
+        const unreadList = (res.data || []).filter((n: any) => !readSet.has(String(n.id)));
+        
+        if (isDrawerOpen) {
+          // If the user currently opened the drawer, automatically mark everything as read
+          markAllNotificationsRead(res.data || []);
+        } else {
+          // Otherwise, report true unread count
+          if (onUnreadCountChange) onUnreadCountChange(unreadList.length);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -41,14 +70,18 @@ export const RetailerNotificationDrawer: React.FC<RetailerNotificationDrawerProp
   };
 
   useEffect(() => {
-    fetchNotifs();
+    fetchNotifs(false);
   }, []);
 
   useEffect(() => {
     if (isOpen) {
-      fetchNotifs();
+      fetchNotifs(true);
     }
   }, [isOpen]);
+
+  const handleManualMarkAllRead = () => {
+    markAllNotificationsRead(notifications);
+  };
 
   if (!isOpen) return null;
 
@@ -70,12 +103,25 @@ export const RetailerNotificationDrawer: React.FC<RetailerNotificationDrawerProp
               </p>
             </div>
           </div>
-          <button 
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            {notifications.length > 0 && (
+              <button
+                type="button"
+                onClick={handleManualMarkAllRead}
+                className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors"
+                title="Mark all notifications as read"
+              >
+                Mark all read
+              </button>
+            )}
+            <button 
+              onClick={onClose}
+              className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg"
+              title="Close drawer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         <div className="p-4 space-y-3 max-h-[480px] overflow-y-auto">

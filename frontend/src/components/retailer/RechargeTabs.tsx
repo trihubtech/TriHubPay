@@ -18,7 +18,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { api } from '../../services/api';
-import { Operator, Plan, CommissionPreview, ElectricityBillDetails, ServiceType } from '../../types';
+import { Operator, Plan, CommissionPreview, ElectricityBillDetails, ServiceType, User } from '../../types';
 import { BrowsePlansModal } from './BrowsePlansModal';
 import { PlanDetailsModal } from './PlanDetailsModal';
 import { OperatorIcon } from '../common/OperatorIcon';
@@ -31,6 +31,7 @@ interface RechargeTabsProps {
   walletBalance: number;
   initialService?: ServiceType;
   onBackToHome?: () => void;
+  currentUser?: User | null;
 }
 
 const getServiceTitle = (service: ServiceType) => {
@@ -91,7 +92,8 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
   onSuccess, 
   walletBalance, 
   initialService,
-  onBackToHome 
+  onBackToHome,
+  currentUser
 }) => {
   const [activeTab, setActiveTab] = useState<ServiceType>(initialService || 'MOBILE');
 
@@ -265,8 +267,14 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
     }
 
     const val = parseFloat(faceValue);
-    if (!accountNumber || accountNumber.length < (activeTab === 'MOBILE' ? 10 : 4)) {
-      setErrorMsg(activeTab === 'MOBILE' ? 'Please enter a valid 10-digit mobile number' : 'Please enter a valid account or consumer number');
+    if (activeTab === 'MOBILE') {
+      const cleanPhone = accountNumber.trim();
+      if (cleanPhone.length !== 10 || !/^[6-9]\d{9}$/.test(cleanPhone)) {
+        setErrorMsg('Please enter a valid 10-digit Indian mobile number (e.g. 9876543210 starting with 6, 7, 8, or 9).');
+        return;
+      }
+    } else if (!accountNumber || accountNumber.trim().length < 4) {
+      setErrorMsg('Please enter a valid account or consumer number');
       return;
     }
     if (isNaN(val) || val <= 0) {
@@ -386,7 +394,7 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
           {currentOp?.retailer_pass_down_rate !== undefined && currentOp.retailer_pass_down_rate > 0 && (
             <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800/40">
               <Sparkles className="w-3 h-3" />
-              <span>{currentOp.retailer_pass_down_rate}% Margin</span>
+              <span>{currentOp.retailer_pass_down_rate}% {currentUser?.account_type === 'CONSUMER' ? 'Cashback' : 'Margin'}</span>
             </span>
           )}
         </div>
@@ -786,6 +794,7 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
         finalCostBilled={commissionPreview?.final_cost_billed ?? (parseFloat(faceValue) || 0)}
         walletBalance={walletBalance}
         planDetails={matchedPlan}
+        accountType={currentUser?.account_type}
       />
 
       {/* Browse Plans Modal (Categorized & Searchable like GPay / PhonePe) */}

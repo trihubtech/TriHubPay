@@ -16,7 +16,13 @@ import {
 import { OperatorIcon } from '../common/OperatorIcon';
 import { formatOperatorName } from '../../utils/formatters';
 
-export const MyCommissionsTable: React.FC = () => {
+interface MyCommissionsTableProps {
+  accountType?: 'RETAILER' | 'CONSUMER';
+}
+
+export const MyCommissionsTable: React.FC<MyCommissionsTableProps> = ({
+  accountType = 'RETAILER'
+}) => {
   const [rates, setRates] = useState<RetailerCommissionRate[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
@@ -75,10 +81,12 @@ export const MyCommissionsTable: React.FC = () => {
           <div>
             <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
               <Percent className="w-5 h-5 text-brand-500" />
-              <span>My Commission Structure</span>
+              <span>{accountType === 'CONSUMER' ? 'My Offers & Cashback' : 'My Commission Structure'}</span>
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Your instant earnings rate on every successful recharge.
+              {accountType === 'CONSUMER'
+                ? 'Your instant discount savings on every mobile and DTH recharge.'
+                : 'Your instant earnings rate on every successful recharge.'}
             </p>
           </div>
 
@@ -209,7 +217,9 @@ export const MyCommissionsTable: React.FC = () => {
                         </span>
                       </div>
                       <div>
-                        <span className="text-[9px] text-slate-400 uppercase font-semibold block">Payout</span>
+                        <span className="text-[9px] text-slate-400 uppercase font-semibold block">
+                          {accountType === 'CONSUMER' ? 'Discount' : 'Payout'}
+                        </span>
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
                           <CheckCircle2 className="w-3 h-3 text-emerald-500" />
                           <span>Instant</span>
@@ -231,10 +241,10 @@ export const MyCommissionsTable: React.FC = () => {
                 <tr>
                   <th className="py-3 px-4">Operator / Biller</th>
                   <th className="py-3 px-4">Category</th>
-                  <th className="py-3 px-4 text-center">Your Commission Rate</th>
-                  <th className="py-3 px-4 text-right">Earn on ₹500</th>
-                  <th className="py-3 px-4 text-right">Earn on ₹1,000</th>
-                  <th className="py-3 px-4 text-center">Payout</th>
+                  <th className="py-3 px-4 text-center">{accountType === 'CONSUMER' ? 'Cashback Rate' : 'Your Commission Rate'}</th>
+                  <th className="py-3 px-4 text-right">{accountType === 'CONSUMER' ? 'Save on ₹500' : 'Earn on ₹500'}</th>
+                  <th className="py-3 px-4 text-right">{accountType === 'CONSUMER' ? 'Save on ₹1,000' : 'Earn on ₹1,000'}</th>
+                  <th className="py-3 px-4 text-center">{accountType === 'CONSUMER' ? 'Discount' : 'Payout'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">

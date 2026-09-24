@@ -28,6 +28,7 @@ interface RechargeConfirmModalProps {
   finalCostBilled: number;
   walletBalance: number;
   planDetails?: Plan | null;
+  accountType?: 'RETAILER' | 'CONSUMER';
 }
 
 export const RechargeConfirmModal: React.FC<RechargeConfirmModalProps> = ({
@@ -43,7 +44,8 @@ export const RechargeConfirmModal: React.FC<RechargeConfirmModalProps> = ({
   cashbackEarned,
   finalCostBilled,
   walletBalance,
-  planDetails
+  planDetails,
+  accountType = 'RETAILER'
 }) => {
   if (!isOpen) return null;
 
@@ -145,7 +147,7 @@ export const RechargeConfirmModal: React.FC<RechargeConfirmModalProps> = ({
               <div className="flex items-center justify-between text-xs text-emerald-600 dark:text-emerald-400">
                 <span className="flex items-center gap-1 font-semibold">
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>Retailer Commission (Instant Off)</span>
+                  <span>{accountType === 'CONSUMER' ? 'Instant Cashback / Offer' : 'Retailer Commission (Instant Off)'}</span>
                 </span>
                 <span className="font-mono font-bold">
                   - ₹{cashbackEarned.toFixed(2)}

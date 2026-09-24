@@ -8,12 +8,14 @@ interface RetailerBottomNavProps {
   currentTab: RetailerNavTab;
   onSelectTab: (tab: RetailerNavTab) => void;
   onOpenShopInfo: () => void;
+  accountType?: 'RETAILER' | 'CONSUMER';
 }
 
 export const RetailerBottomNav: React.FC<RetailerBottomNavProps> = ({
   currentTab,
   onSelectTab,
-  onOpenShopInfo
+  onOpenShopInfo,
+  accountType = 'RETAILER'
 }) => {
   const { t } = useLanguage();
 
@@ -80,7 +82,7 @@ export const RetailerBottomNav: React.FC<RetailerBottomNavProps> = ({
         <div className={`p-1 rounded-xl transition-colors ${currentTab === 'COMMISSIONS' ? 'bg-emerald-500/15 dark:bg-emerald-500/20' : ''}`}>
           <Percent className="w-4.5 h-4.5" />
         </div>
-        <span className="text-[10px] tracking-tight">{t('commission')}</span>
+        <span className="text-[10px] tracking-tight">{accountType === 'CONSUMER' ? 'Offers' : t('commission')}</span>
       </button>
 
       {/* Tab 4: Account / Profile */}

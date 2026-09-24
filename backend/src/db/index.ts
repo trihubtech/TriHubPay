@@ -274,6 +274,7 @@ export async function query<T extends QueryResultRow = any>(
     if (isPostgresAvailable) {
       console.log('✅ [DATABASE ENGINE] Connected to live PostgreSQL server.');
       pool.query(`ALTER TABLE wallet_topups ADD COLUMN IF NOT EXISTS admin_remarks TEXT;`).catch(() => {});
+      pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS account_type VARCHAR(20) DEFAULT 'RETAILER';`).catch(() => {});
       pool.query(`
         CREATE TABLE IF NOT EXISTS password_reset_otps (
           id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -454,6 +455,11 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
         passwordHash = String(params[4] || 'hash');
       }
 
+      let accountType = 'RETAILER';
+      if (params.includes('CONSUMER')) {
+        accountType = 'CONSUMER';
+      }
+
       const newUser = {
         id: explicitId,
         organization_name: orgName,
@@ -462,6 +468,7 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
         email: email,
         password_hash: passwordHash,
         role: 'RETAILER' as any,
+        account_type: accountType,
         current_balance: initialBal,
         locked_balance: '0.0000',
         api_key: `trihub-retailer-${Date.now()}`,
@@ -477,6 +484,7 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
         phone: newUser.phone,
         email: newUser.email,
         role: newUser.role,
+        account_type: (newUser as any).account_type || 'RETAILER',
         current_balance: parseFloat(initialBal),
         api_key: newUser.api_key
       }];

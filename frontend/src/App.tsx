@@ -518,7 +518,7 @@ export function App() {
                   }`}
                 >
                   <Percent className="w-3.5 h-3.5 text-emerald-400" />
-                  {t('commission')}
+                  {currentUser.account_type === 'CONSUMER' ? 'Offers & Cashback' : t('commission')}
                 </button>
               </div>
 
@@ -527,7 +527,7 @@ export function App() {
                 {retailerTab === 'RECHARGE' && 'Instant 0.8s Lapu / BBPS Dispatch'}
                 {retailerTab === 'PASSBOOK' && `${retailerTransactions.length} Total Transactions`}
                 {retailerTab === 'REPORTS' && 'Turnover & Earnings Breakdown'}
-                {retailerTab === 'COMMISSIONS' && 'Your Allocated Commission Margins'}
+                {retailerTab === 'COMMISSIONS' && (currentUser.account_type === 'CONSUMER' ? 'Your Instant Cashback Rates' : 'Your Allocated Commission Margins')}
               </div>
             </div>
 
@@ -551,12 +551,15 @@ export function App() {
                 <>
                   <RechargeTabs
                     initialService={selectedRechargeService}
+                    currentUser={currentUser}
                     onSuccess={handleRechargeSuccess}
                     walletBalance={currentUser.current_balance}
                     onBackToHome={() => setRetailerTab('HOME')}
                   />
                   <LedgerTable
                     transactions={retailerTransactions.slice(0, 8)}
+                    currentUser={currentUser}
+                    onRefreshTransactions={loadRetailerData}
                     onViewReceipt={(tx) => {
                       setReceiptTx(tx);
                       setIsReceiptOpen(true);
@@ -567,6 +570,8 @@ export function App() {
               {retailerTab === 'PASSBOOK' && (
                 <LedgerTable
                   transactions={retailerTransactions}
+                  currentUser={currentUser}
+                  onRefreshTransactions={loadRetailerData}
                   onViewReceipt={(tx) => {
                     setReceiptTx(tx);
                     setIsReceiptOpen(true);
@@ -578,10 +583,11 @@ export function App() {
               )}
               {retailerTab === 'COMMISSIONS' && (
                 <>
-                  <MyCommissionsTable />
+                  <MyCommissionsTable accountType={currentUser.account_type} />
                   {/* ── Dashboard & Insights accordion below commission structure (desktop) ── */}
                   <RetailerInsightsCard
                     transactions={retailerTransactions}
+                    accountType={currentUser.account_type}
                     onNavigateToCommissions={() => setRetailerTab('COMMISSIONS')}
                     onNavigateToPassbook={() => setRetailerTab('PASSBOOK')}
                   />
@@ -610,6 +616,7 @@ export function App() {
                 <>
                   <RechargeTabs
                     initialService={selectedRechargeService}
+                    currentUser={currentUser}
                     onSuccess={handleRechargeSuccess}
                     walletBalance={currentUser.current_balance}
                     onBackToHome={() => setRetailerTab('HOME')}
@@ -632,6 +639,8 @@ export function App() {
               {retailerTab === 'PASSBOOK' && (
                 <LedgerTable
                   transactions={retailerTransactions}
+                  currentUser={currentUser}
+                  onRefreshTransactions={loadRetailerData}
                   onViewReceipt={(tx) => {
                     setReceiptTx(tx);
                     setIsReceiptOpen(true);
@@ -643,10 +652,11 @@ export function App() {
               )}
               {retailerTab === 'COMMISSIONS' && (
                 <>
-                  <MyCommissionsTable />
+                  <MyCommissionsTable accountType={currentUser.account_type} />
                   {/* ── Dashboard & Insights accordion below commission structure (mobile) ── */}
                   <RetailerInsightsCard
                     transactions={retailerTransactions}
+                    accountType={currentUser.account_type}
                     onNavigateToCommissions={() => setRetailerTab('COMMISSIONS')}
                     onNavigateToPassbook={() => setRetailerTab('PASSBOOK')}
                   />
@@ -676,6 +686,7 @@ export function App() {
             currentTab={retailerTab}
             onSelectTab={setRetailerTab}
             onOpenShopInfo={() => setIsShopInfoOpen(true)}
+            accountType={currentUser.account_type}
           />
         </main>
       )}

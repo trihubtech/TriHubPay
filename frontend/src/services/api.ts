@@ -184,6 +184,20 @@ export const api = {
     });
   },
 
+  async sendMobileOtp(data: { phone: string; email?: string; purpose?: string }) {
+    return request<{ success: boolean; message: string; phone: string; demo_otp?: string }>('/auth/send-mobile-otp', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+
+  async verifyMobileOtp(data: { phone: string; otp: string }) {
+    return request<{ success: boolean; message: string }>('/auth/verify-mobile-otp', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+
   async sendForgotPasswordOtp(identifier: string) {
     return request<{ success: boolean; message: string; masked_email: string; phone?: string }>('/auth/forgot-password/send-otp', {
       method: 'POST',
@@ -300,6 +314,12 @@ export const api = {
 
   async getRetailerTransactions() {
     return request<{ success: boolean; data: Transaction[] }>('/recharge/transactions');
+  },
+
+  async checkRetailerTransactionStatus(id: string) {
+    return request<{ success: boolean; status: string; message: string; upstream_ref?: string; refunded: boolean }>(`/recharge/transactions/${id}/check-status`, {
+      method: 'POST'
+    });
   },
 
   async getRetailerLedger() {

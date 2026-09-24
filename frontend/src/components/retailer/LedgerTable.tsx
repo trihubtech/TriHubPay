@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Transaction, DepositRequest, LedgerEntry } from '../../types';
+import { Transaction, DepositRequest, LedgerEntry, User } from '../../types';
 import { 
   Receipt, 
   CheckCircle, 
@@ -24,20 +24,56 @@ import { api } from '../../services/api';
 interface LedgerTableProps {
   transactions: Transaction[];
   onViewReceipt: (tx: Transaction) => void;
+  currentUser?: User | null;
+  onRefreshTransactions?: () => void;
 }
 
-export const LedgerTable: React.FC<LedgerTableProps> = ({ transactions, onViewReceipt }) => {
+export const LedgerTable: React.FC<LedgerTableProps> = ({ 
+  transactions, 
+  onViewReceipt,
+  currentUser,
+  onRefreshTransactions
+}) => {
   const [activeTab, setActiveTab] = useState<'RECHARGES' | 'LEDGER' | 'DEPOSITS'>('RECHARGES');
   const [deposits, setDeposits] = useState<DepositRequest[]>([]);
   const [loadingDeposits, setLoadingDeposits] = useState<boolean>(false);
   const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([]);
   const [loadingLedger, setLoadingLedger] = useState<boolean>(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [checkingStatusId, setCheckingStatusId] = useState<string | null>(null);
+  const [statusToast, setStatusToast] = useState<{ id: string; message: string; isSuccess: boolean } | null>(null);
 
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard?.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleCheckStatus = async (tx: Transaction) => {
+    const txId = tx.id || tx.internal_tx_id;
+    setCheckingStatusId(txId);
+    try {
+      const res = await api.checkRetailerTransactionStatus(txId);
+      if (res.success) {
+        setStatusToast({
+          id: txId,
+          message: res.message || `Status: ${res.status}`,
+          isSuccess: res.status === 'SUCCESS'
+        });
+        if (onRefreshTransactions) {
+          onRefreshTransactions();
+        }
+      }
+    } catch (err: any) {
+      setStatusToast({
+        id: txId,
+        message: err.message || 'Status check failed',
+        isSuccess: false
+      });
+    } finally {
+      setCheckingStatusId(null);
+      setTimeout(() => setStatusToast(null), 6000);
+    }
   };
 
   const fetchDeposits = async () => {
@@ -420,12 +456,10 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({ transactions, onViewRe
           {transactions.map((tx) => {
             const txId = tx.id || tx.internal_tx_id;
             return (
-              <div 
-                key={txId} 
-                className="p-3.5 sm:p-4 hover:bg-slate-50/60 dark:hover:bg-slate-850/60 transition-colors flex items-center justify-between gap-3"
-              >
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <OperatorIcon operatorCode={tx.operator_code} size="md" />
+              <div key={txId} className="hover:bg-slate-50/60 dark:hover:bg-slate-850/60 transition-colors">
+                <div className="p-3.5 sm:p-4 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <OperatorIcon operatorCode={tx.operator_code} size="md" />
                   <div className="space-y-1 min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       {/* Full Target Mobile / Account Number */}
@@ -458,15 +492,28 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({ transactions, onViewRe
                 </div>
 
                 {/* Right Amount & Receipt Button */}
-                <div className="text-right shrink-0 flex items-center gap-2.5">
+                <div className="text-right shrink-0 flex items-center gap-2">
                   <div>
                     <div className="text-sm font-black text-slate-900 dark:text-white font-mono">
                       ₹{Number(tx.face_value).toFixed(2)}
                     </div>
-                    <div className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 font-mono">
-                      +₹{Number(tx.retailer_commission).toFixed(2)} Cash
+                    <div className="text-[10px] sm:text-[11px] font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                      +₹{Number(tx.retailer_commission).toFixed(2)} {currentUser?.account_type === 'CONSUMER' ? 'Cashback' : 'Margin'}
                     </div>
                   </div>
+
+                  {tx.status === 'PENDING' && (
+                    <button
+                      type="button"
+                      onClick={() => handleCheckStatus(tx)}
+                      disabled={checkingStatusId === txId}
+                      className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[11px] font-bold flex items-center gap-1 transition-colors"
+                      title="Check live status from operator"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${checkingStatusId === txId ? 'animate-spin' : ''}`} />
+                      <span className="hidden sm:inline">Check</span>
+                    </button>
+                  )}
 
                   <button
                     type="button"
@@ -478,8 +525,21 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({ transactions, onViewRe
                   </button>
                 </div>
               </div>
-            );
-          })}
+
+              {/* Status Check Toast / Banner */}
+              {statusToast && statusToast.id === txId && (
+                <div className={`mx-3 sm:mx-4 mb-2.5 p-2 rounded-xl text-xs flex items-center gap-1.5 border ${
+                  statusToast.isSuccess 
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300' 
+                    : 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300'
+                }`}>
+                  {statusToast.isSuccess ? <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 shrink-0" />}
+                  <span>{statusToast.message}</span>
+                </div>
+              )}
+            </div>
+          );
+        })}
         </div>
       )}
     </div>

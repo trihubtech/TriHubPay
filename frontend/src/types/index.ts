@@ -18,6 +18,7 @@ export interface User {
   phone: string;
   email: string;
   role: Role;
+  account_type?: 'RETAILER' | 'CONSUMER';
   current_balance: number;
   locked_balance?: number;
   api_key?: string;
