@@ -391,7 +391,7 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
     const val = String(params[0] || '').toLowerCase().trim();
     const excludeId = String(params[1] || '');
     const conflict = memoryStore.users.find(u => 
-      u.id !== excludeId && (u.phone.trim() === val || u.email.toLowerCase().trim() === val)
+      u.id !== excludeId && ((u.phone && u.phone.trim() === val) || (u.email && u.email.toLowerCase().trim() === val))
     );
     rows = conflict ? [{ id: conflict.id }] : [];
   }
@@ -400,12 +400,23 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
     const term1 = String(params[0] || '').toLowerCase().trim();
     const term2 = String(params[1] || params[0] || '').toLowerCase().trim();
     const user = memoryStore.users.find(u => 
-      u.email.toLowerCase().trim() === term1 || 
-      u.phone.trim() === term1 ||
-      u.email.toLowerCase().trim() === term2 || 
-      u.phone.trim() === term2
+      (u.email && u.email.toLowerCase().trim() === term1) || 
+      (u.phone && u.phone.trim() === term1) ||
+      (u.email && u.email.toLowerCase().trim() === term2) || 
+      (u.phone && u.phone.trim() === term2)
     );
     rows = user ? [user] : [];
+  }
+  // 2b. Aggregate query for retailer counts and float liability:
+  else if (/SELECT .*?total_retailers.*?FROM users/i.test(cleanSql) || /SELECT .*?total_retailer_wallet_float/i.test(cleanSql)) {
+    const retailers = memoryStore.users.filter(u => u.role === 'RETAILER');
+    const active = retailers.filter(u => u.is_active !== false);
+    const floatSum = retailers.reduce((sum, u) => sum + parseFloat(u.current_balance || (u as any).wallet_balance || '0'), 0);
+    rows = [{
+      total_retailers: retailers.length,
+      active_retailers: active.length,
+      total_retailer_wallet_float: floatSum
+    }];
   }
   // 3. SELECT ... FROM users ORDER BY
   else if (/SELECT .* FROM users/i.test(cleanSql)) {
@@ -783,6 +794,27 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
       };
     });
   }
+  // 17d. Transaction KPI aggregate query for Dashboard Overview:
+  else if (/SELECT .*?total_transactions.*?FROM transactions/i.test(cleanSql) || /SELECT .*?total_admin_profit/i.test(cleanSql)) {
+    const all = memoryStore.transactions;
+    const successList = all.filter(t => t.status === 'SUCCESS');
+    const failedList = all.filter(t => t.status === 'FAILED' || String(t.status).includes('FAIL'));
+    const pendingList = all.filter(t => t.status === 'PENDING');
+    const failoverList = all.filter(t => t.upstream_api_used === 'NOBLE' || t.upstream_api_used === 'NOBLE_WEB');
+    const primaryList = all.filter(t => t.upstream_api_used === 'NEROPAY' || t.upstream_api_used === 'A1TOPUP');
+
+    rows = [{
+      total_transactions: all.length,
+      total_volume: successList.reduce((sum, t) => sum + parseFloat(t.face_value || '0'), 0),
+      total_admin_profit: successList.reduce((sum, t) => sum + parseFloat(t.admin_commission || '0'), 0),
+      total_retailer_payout: successList.reduce((sum, t) => sum + parseFloat(t.retailer_commission || '0'), 0),
+      success_count: successList.length,
+      failed_count: failedList.length,
+      pending_count: pendingList.length,
+      failover_channel_count: failoverList.length,
+      primary_channel_count: primaryList.length
+    }];
+  }
   // 18. SELECT ... FROM transactions
   else if (/SELECT .* FROM transactions/i.test(cleanSql)) {
     let filtered = memoryStore.transactions;
@@ -839,7 +871,9 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
         owner_name: ownerName,
         phone: rawPhone,
         role: u?.role || 'RETAILER',
+        retailer_shop: orgName,
         retailer_shop_name: orgName,
+        retailer_name: ownerName,
         retailer_phone: rawPhone
       };
     });
