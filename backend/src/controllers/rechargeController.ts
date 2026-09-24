@@ -65,11 +65,12 @@ export async function executeRecharge(req: Request, res: Response) {
     }
 
     // 1b. PRE-FLIGHT PLAN & WRONG AMOUNT VALIDATION
-    // If the operator has a known catalog of valid plans (Mobile & DTH), ensure the entered amount is an active valid plan.
-    // E.g. ₹300 for Tata Play is NOT a valid plan, so reject UPFRONT before wallet debit!
+    // Strict plan catalog validation is ONLY enforced for MOBILE prepaid (where telcos reject non-standard amounts).
+    // For DTH (Tata Play, Airtel DTH, Dish TV, Sun Direct, D2H), users can recharge ANY custom amount (e.g. ₹300, ₹150, ₹450)
+    // matching their monthly pack/balance just like PhonePe, Paytm & Google Pay, OR select from browse plans.
     const normOp = operator_code.trim().toUpperCase();
     const opPlans = STANDARD_PLANS[normOp];
-    if (opPlans && opPlans.length > 0 && (service_type === 'MOBILE' || service_type === 'DTH')) {
+    if (service_type === 'MOBILE' && opPlans && opPlans.length > 0) {
       const validAmounts = new Set(opPlans.map(p => p.amount));
       if (!validAmounts.has(face_value)) {
         if (dedupKey) releaseDedupKey(dedupKey);

@@ -885,8 +885,8 @@ export async function resetSingleRetailerBalance(req: Request, res: Response) {
       const curBal = parseFloat(uRes.rows[0].current_balance);
 
       await client.query(
-        'UPDATE users SET current_balance = 0.0000, updated_at = clock_timestamp() WHERE id = $1',
-        [user_id]
+        'UPDATE users SET current_balance = $1, wallet_balance = $1, updated_at = clock_timestamp() WHERE id = $2',
+        [0, user_id]
       );
 
       if (curBal > 0) {

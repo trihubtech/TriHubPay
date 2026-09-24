@@ -603,6 +603,8 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
                 placeholder={
                   isBillFetchSupported 
                     ? (fetchedBill?.bill_amount === 0 ? 'Enter advance amount (min ₹10)' : 'Fetch bill or enter amount (min ₹10)') 
+                    : activeTab === 'DTH'
+                    ? 'Enter any amount e.g. 100, 200, 300, 500 (min ₹10)'
                     : 'e.g. 19, 299, 349 (min ₹10)'
                 }
                 value={faceValue}

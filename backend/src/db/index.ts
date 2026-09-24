@@ -490,21 +490,36 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
       }];
     }
   }
-  // 4a. UPDATE users SET current_balance = 0... WHERE role = 'RETAILER'
-  else if (/UPDATE users SET current_balance = 0.*?WHERE role = 'RETAILER'/i.test(cleanSql)) {
+  // 4a. UPDATE users SET current_balance = 0... (bulk reset)
+  else if (/UPDATE users SET (current_balance|wallet_balance)\s*=\s*0.*?WHERE\s+(role\s*=\s*'RETAILER'|1=1)/i.test(cleanSql)) {
     for (const u of memoryStore.users) {
-      if (u.role === 'RETAILER') {
+      if (u.role !== 'ADMIN') {
         u.current_balance = '0.0000';
+        (u as any).wallet_balance = '0.0000';
       }
     }
     savePersistentStore();
     rows = [];
   }
-  // 4. UPDATE users SET current_balance = $1 WHERE id = $2
-  else if (/UPDATE users SET current_balance = \$1.* WHERE id = \$2/i.test(cleanSql)) {
-    const user = memoryStore.users.find(u => u.id === params[1]);
+  // 4b. UPDATE users SET current_balance = 0... WHERE id = $1
+  else if (/UPDATE users SET (current_balance|wallet_balance)\s*=\s*0.*?WHERE\s+id\s*=\s*\$1/i.test(cleanSql)) {
+    const targetId = params[0];
+    const user = memoryStore.users.find(u => u.id === targetId);
     if (user) {
-      user.current_balance = Number(params[0]).toFixed(4);
+      user.current_balance = '0.0000';
+      (user as any).wallet_balance = '0.0000';
+      savePersistentStore();
+    }
+    rows = [];
+  }
+  // 4c. UPDATE users SET current_balance = $1.* WHERE id = $2 (or SET current_balance = $1, wallet_balance = $1 WHERE id = $2)
+  else if (/UPDATE users SET (current_balance|wallet_balance).*?WHERE\s+id\s*=\s*(\$2|\$1)/i.test(cleanSql)) {
+    const targetId = params.length >= 2 ? params[1] : params[0];
+    const user = memoryStore.users.find(u => u.id === targetId);
+    if (user) {
+      const val = Number(params[0] || 0).toFixed(4);
+      user.current_balance = val;
+      (user as any).wallet_balance = val;
       savePersistentStore();
     }
     rows = [];
