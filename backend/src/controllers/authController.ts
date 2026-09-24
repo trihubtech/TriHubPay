@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { config } from '../config';
 import { query } from '../db';
-import { sendLoginAlertEmail } from '../services/emailService';
+import { sendLoginAlertEmail, lookupIpLocation } from '../services/emailService';
 
 const loginSchema = z.object({
   identifier: z.string().min(3, 'Phone number or email is required'),
@@ -61,20 +61,47 @@ export async function login(req: Request, res: Response) {
       { expiresIn: '7d' }
     );
 
-    // Asynchronously dispatch login security notification email with device, IP, and time logs
-    try {
-      const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket.remoteAddress || req.ip || 'Unknown IP';
-      const userAgent = req.headers['user-agent'] || 'Unknown Device';
-      const loginTime = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'medium' });
+    // Asynchronously dispatch login security notification email with device, IP, location, and time logs
+    (async () => {
+      try {
+        const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket.remoteAddress || req.ip || 'Unknown IP';
+        const userAgent = (req.headers['user-agent'] as string) || 'Unknown Device';
+        const loginTime = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'medium' });
+        const location = await lookupIpLocation(clientIp);
 
-      sendLoginAlertEmail(user.email, user.owner_name || user.organization_name, {
-        ip: clientIp,
-        userAgent,
-        time: `${loginTime} IST`
-      }).catch(err => console.error('Login alert email error:', err?.message || err));
-    } catch (e) {
-      // Non-blocking
-    }
+        if (user.role === 'ADMIN') {
+          // Always send directly to trihubtechnologies@gmail.com for Admin sign-in
+          await sendLoginAlertEmail('trihubtechnologies@gmail.com', 'TriHub Platform Admin', {
+            ip: clientIp,
+            userAgent,
+            time: `${loginTime} IST`,
+            location,
+            isAdmin: true
+          });
+          // Also send to user's personal email if distinct
+          if (user.email && user.email.toLowerCase() !== 'trihubtechnologies@gmail.com') {
+            await sendLoginAlertEmail(user.email, user.owner_name || user.organization_name, {
+              ip: clientIp,
+              userAgent,
+              time: `${loginTime} IST`,
+              location,
+              isAdmin: true
+            });
+          }
+        } else if (user.email) {
+          // Retailer sign-in security alert
+          await sendLoginAlertEmail(user.email, user.owner_name || user.organization_name, {
+            ip: clientIp,
+            userAgent,
+            time: `${loginTime} IST`,
+            location,
+            isAdmin: false
+          });
+        }
+      } catch (err: any) {
+        console.error('Login alert email error:', err?.message || err);
+      }
+    })();
 
     return res.json({
       success: true,

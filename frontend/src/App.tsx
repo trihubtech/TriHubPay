@@ -15,6 +15,14 @@ import { ShopInfoModal } from './components/retailer/ShopInfoModal';
 import { MyCommissionsTable } from './components/retailer/MyCommissionsTable';
 import { RetailerInsightsCard } from './components/retailer/RetailerInsightsCard';
 
+import { RetailerReportsView } from './components/retailer/RetailerReportsView';
+import { RetailerNotificationDrawer } from './components/retailer/RetailerNotificationDrawer';
+import { FeedbackModal } from './components/retailer/FeedbackModal';
+import { FaqModal } from './components/common/FaqModal';
+import { TransactionStatusCheckModal } from './components/admin/TransactionStatusCheckModal';
+import { AdminNotificationManager } from './components/admin/AdminNotificationManager';
+import { AdminFeedbackBoard } from './components/admin/AdminFeedbackBoard';
+
 // Admin components
 import { DashboardKPIs as DashboardKPIsComponent } from './components/admin/DashboardKPIs';
 import { UserBalanceManager } from './components/admin/UserBalanceManager';
@@ -43,7 +51,11 @@ import {
   Layers,
   Store,
   Percent,
-  BarChart3
+  BarChart3,
+  Bell,
+  HelpCircle,
+  MessageSquarePlus,
+  Search
 } from 'lucide-react';
 import { useLanguage } from './context/LanguageContext';
 
@@ -60,10 +72,14 @@ export function App() {
   const [isReceiptOpen, setIsReceiptOpen] = useState<boolean>(false);
   const [isRefreshingRetailer, setIsRefreshingRetailer] = useState<boolean>(false);
   const [welcomeBanner, setWelcomeBanner] = useState<string>('');
-  const [retailerTab, setRetailerTab] = useState<'HOME' | 'RECHARGE' | 'PASSBOOK' | 'COMMISSIONS'>('HOME');
+  const [retailerTab, setRetailerTab] = useState<'HOME' | 'RECHARGE' | 'PASSBOOK' | 'REPORTS' | 'COMMISSIONS'>('HOME');
   const [selectedRechargeService, setSelectedRechargeService] = useState<ServiceType>('MOBILE');
   const [isShopInfoOpen, setIsShopInfoOpen] = useState<boolean>(false);
   const [isSignOutConfirmOpen, setIsSignOutConfirmOpen] = useState<boolean>(false);
+  const [isNotificationDrawerOpen, setIsNotificationDrawerOpen] = useState<boolean>(false);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState<boolean>(false);
+  const [isFaqModalOpen, setIsFaqModalOpen] = useState<boolean>(false);
+  const [unreadNotifCount, setUnreadNotifCount] = useState<number>(0);
 
   // Admin states
   const [adminKPIs, setAdminKPIs] = useState<DashboardKPIs | null>(null);
@@ -72,7 +88,8 @@ export function App() {
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [selectedShopForOverrides, setSelectedShopForOverrides] = useState<User | null>(null);
   const [isOnboardModalOpen, setIsOnboardModalOpen] = useState<boolean>(false);
-  const [adminSubTab, setAdminSubTab] = useState<'OVERVIEW' | 'REPORTS' | 'SHOPS' | 'MATRIX' | 'FAILOVER' | 'TRANSACTIONS' | 'DEPOSITS'>('OVERVIEW');
+  const [isStatusCheckModalOpen, setIsStatusCheckModalOpen] = useState<boolean>(false);
+  const [adminSubTab, setAdminSubTab] = useState<'OVERVIEW' | 'REPORTS' | 'SHOPS' | 'MATRIX' | 'NOTIFICATIONS' | 'FEEDBACK' | 'FAILOVER' | 'TRANSACTIONS' | 'DEPOSITS'>('OVERVIEW');
 
   // Check saved session on load (route-aware token isolation)
   useEffect(() => {
@@ -161,9 +178,10 @@ export function App() {
   const loadRetailerData = async () => {
     setIsRefreshingRetailer(true);
     try {
-      const [balRes, txRes] = await Promise.allSettled([
+      const [balRes, txRes, notifRes] = await Promise.allSettled([
         api.getBalance(),
-        api.getRetailerTransactions()
+        api.getRetailerTransactions(),
+        api.getRetailerNotifications()
       ]);
 
       if (balRes.status === 'fulfilled' && balRes.value.success) {
@@ -171,6 +189,10 @@ export function App() {
       }
       if (txRes.status === 'fulfilled' && txRes.value.success) {
         setRetailerTransactions(txRes.value.data);
+      }
+      if (notifRes.status === 'fulfilled' && notifRes.value.success && Array.isArray(notifRes.value.data)) {
+        const unread = notifRes.value.data.filter((n: any) => !n.is_read).length;
+        setUnreadNotifCount(unread);
       }
     } catch (err) {
       console.error(err);
@@ -250,17 +272,20 @@ export function App() {
   if (isInitializing) {
     return (
       <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col items-center justify-center p-6 text-center select-none animate-in fade-in duration-300">
-        <div className="w-24 h-24 mb-4 rounded-2xl bg-white dark:bg-slate-900 shadow-xl border border-slate-100 dark:border-slate-800 p-2 flex items-center justify-center animate-pulse">
-          <img src="/icon-192.png" alt="TriHubPay Logo" className="w-full h-full object-contain" />
+        <div className="mb-4 flex items-center justify-center">
+          <img src="/trihub_technologies_logo.png" alt="TriHub Technologies" className="w-28 h-28 object-contain animate-pulse" />
         </div>
         <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-          TriHub<span className="text-brand-600">Pay</span>
+          TriHub <span className="text-blue-600">Technologies</span>
         </h1>
-        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 max-w-xs leading-relaxed">
+        <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mt-1">
+          TriHubPay Platform
+        </p>
+        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1 max-w-xs leading-relaxed">
           Instant Mobile &amp; DTH Recharges • 100% Reliable
         </p>
         <div className="mt-6 flex items-center gap-2 text-xs font-mono text-slate-400">
-          <RefreshCw className="w-3.5 h-3.5 animate-spin text-brand-600" />
+          <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-600" />
           <span>Starting Secure Engine...</span>
         </div>
       </div>
@@ -314,7 +339,42 @@ export function App() {
           )}
 
           {/* User Profile Badge, Theme Toggle & Logout */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {isRetailer && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setIsNotificationDrawerOpen(true)}
+                  className="relative p-1.5 sm:p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  title="Notifications & Updates"
+                >
+                  <Bell className="w-4 h-4" />
+                  {unreadNotifCount > 0 && (
+                    <span className="absolute top-0.5 right-0.5 min-w-[15px] h-[15px] px-1 rounded-full bg-rose-500 text-[9px] text-white font-extrabold flex items-center justify-center leading-none animate-pulse">
+                      {unreadNotifCount > 9 ? '9+' : unreadNotifCount}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsFaqModalOpen(true)}
+                  className="p-1.5 sm:p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  title="Help & FAQs"
+                >
+                  <HelpCircle className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsFeedbackModalOpen(true)}
+                  className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-xs font-semibold transition-colors"
+                  title="Send Feedback / Suggestions"
+                >
+                  <MessageSquarePlus className="w-3.5 h-3.5" />
+                  <span>Feedback</span>
+                </button>
+              </>
+            )}
+
             <button
               type="button"
               onClick={() => setIsShopInfoOpen(true)}
@@ -438,6 +498,18 @@ export function App() {
                 </button>
                 <button
                   type="button"
+                  onClick={() => setRetailerTab('REPORTS')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                    retailerTab === 'REPORTS'
+                      ? 'bg-brand-600 text-white shadow-md shadow-brand-600/20'
+                      : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <BarChart3 className="w-3.5 h-3.5" />
+                  Reports &amp; Analytics
+                </button>
+                <button
+                  type="button"
                   onClick={() => setRetailerTab('COMMISSIONS')}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
                     retailerTab === 'COMMISSIONS'
@@ -454,6 +526,7 @@ export function App() {
                 {retailerTab === 'HOME' && 'TriHubPay Portal • Fast & Reliable'}
                 {retailerTab === 'RECHARGE' && 'Instant 0.8s Lapu / BBPS Dispatch'}
                 {retailerTab === 'PASSBOOK' && `${retailerTransactions.length} Total Transactions`}
+                {retailerTab === 'REPORTS' && 'Turnover & Earnings Breakdown'}
                 {retailerTab === 'COMMISSIONS' && 'Your Allocated Commission Margins'}
               </div>
             </div>
@@ -499,6 +572,9 @@ export function App() {
                     setIsReceiptOpen(true);
                   }}
                 />
+              )}
+              {retailerTab === 'REPORTS' && (
+                <RetailerReportsView />
               )}
               {retailerTab === 'COMMISSIONS' && (
                 <>
@@ -561,6 +637,9 @@ export function App() {
                     setIsReceiptOpen(true);
                   }}
                 />
+              )}
+              {retailerTab === 'REPORTS' && (
+                <RetailerReportsView />
               )}
               {retailerTab === 'COMMISSIONS' && (
                 <>
@@ -649,6 +728,28 @@ export function App() {
                 Commission Matrix
               </button>
               <button
+                onClick={() => setAdminSubTab('NOTIFICATIONS')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 flex items-center gap-1 ${
+                  adminSubTab === 'NOTIFICATIONS'
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
+                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800'
+                }`}
+              >
+                <Bell className="w-3.5 h-3.5" />
+                <span>Broadcasts</span>
+              </button>
+              <button
+                onClick={() => setAdminSubTab('FEEDBACK')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 flex items-center gap-1 ${
+                  adminSubTab === 'FEEDBACK'
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
+                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800'
+                }`}
+              >
+                <MessageSquarePlus className="w-3.5 h-3.5" />
+                <span>User Feedback</span>
+              </button>
+              <button
                 onClick={() => setAdminSubTab('FAILOVER')}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
                   adminSubTab === 'FAILOVER'
@@ -681,6 +782,15 @@ export function App() {
             </div>
 
             <div className="flex items-center gap-2 justify-between sm:justify-end">
+              <button
+                onClick={() => setIsStatusCheckModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-sm transition-all"
+                title="Instant Live Upstream Recheck & Auto-Refund"
+              >
+                <Search className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Check Txn Status</span>
+                <span className="sm:hidden">Check Status</span>
+              </button>
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-xs font-bold text-emerald-700 dark:text-emerald-400">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 <span>NeroPay: ₹{(adminKPIs?.master_wallet?.balance ?? 100).toFixed(2)}</span>
@@ -723,6 +833,20 @@ export function App() {
           {adminSubTab === 'MATRIX' && (
             <div className="space-y-6">
               <CommissionMatrixGrid items={matrixItems} onRefresh={loadAdminData} />
+            </div>
+          )}
+
+          {/* Sub-Tab: Broadcast Notifications Manager */}
+          {adminSubTab === 'NOTIFICATIONS' && (
+            <div className="space-y-6">
+              <AdminNotificationManager users={allUsers} />
+            </div>
+          )}
+
+          {/* Sub-Tab: Retailer Feedback & Inquiries Board */}
+          {adminSubTab === 'FEEDBACK' && (
+            <div className="space-y-6">
+              <AdminFeedbackBoard />
             </div>
           )}
 
@@ -784,6 +908,35 @@ export function App() {
         onConfirm={handleLogout}
         userName={currentUser?.organization_name}
         userRole={currentUser?.role === 'ADMIN' ? 'Platform Master Admin' : 'Retailer Partner'}
+      />
+
+      {/* Retailer Notification Announcements Drawer */}
+      <RetailerNotificationDrawer
+        isOpen={isNotificationDrawerOpen}
+        onClose={() => setIsNotificationDrawerOpen(false)}
+        onUnreadCountChange={(c) => setUnreadNotifCount(c)}
+      />
+
+      {/* Retailer Feedback & Suggestions Submission Modal */}
+      <FeedbackModal
+        isOpen={isFeedbackModalOpen}
+        onClose={() => setIsFeedbackModalOpen(false)}
+      />
+
+      {/* Platform FAQs Modal */}
+      <FaqModal
+        isOpen={isFaqModalOpen}
+        onClose={() => setIsFaqModalOpen(false)}
+      />
+
+      {/* Admin Live Transaction Upstream Status Check Modal */}
+      <TransactionStatusCheckModal
+        isOpen={isStatusCheckModalOpen}
+        onClose={() => setIsStatusCheckModalOpen(false)}
+        onStatusUpdated={() => {
+          loadAdminData();
+          loadRetailerData();
+        }}
       />
     </div>
   );

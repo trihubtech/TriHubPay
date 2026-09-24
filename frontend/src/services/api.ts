@@ -467,5 +467,122 @@ export const api = {
       success: boolean;
       data: AdminReportsData;
     }>(`/admin/reports?period=${period}`);
+  },
+
+  // Retailer Reports & Insights
+  async getRetailerReports(period: string = 'today') {
+    return request<{
+      success: boolean;
+      data: {
+        period: string;
+        total_commission: number;
+        total_sales_volume: number;
+        total_transactions: number;
+        successful_transactions: number;
+        failed_transactions: number;
+        pending_transactions: number;
+        success_rate: number;
+        average_commission_rate: number;
+        top_operator?: { operator_code: string; earnings: number; volume: number };
+        earnings_by_service: Record<string, number>;
+        operator_breakdown: Array<{ operator_code: string; count: number; volume: number; commission: number }>;
+      };
+    }>(`/recharge/reports?period=${period}`);
+  },
+
+  // Retailer Notifications
+  async getRetailerNotifications() {
+    return request<{
+      success: boolean;
+      data: Array<{
+        id: string;
+        title: string;
+        message: string;
+        type: 'OFFER' | 'UPDATE' | 'FEATURE' | 'ALERT';
+        target_type: string;
+        created_by: string;
+        created_at: string;
+      }>;
+    }>('/recharge/notifications');
+  },
+
+  // Retailer Feedback
+  async submitFeedback(data: { category: string; rating: number; message: string; contact_phone?: string }) {
+    return request<{ success: boolean; message: string; data: { id: string } }>('/recharge/feedback', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+
+  // Admin Notifications Management
+  async getAdminNotifications() {
+    return request<{
+      success: boolean;
+      data: Array<{
+        id: string;
+        title: string;
+        message: string;
+        type: 'OFFER' | 'UPDATE' | 'FEATURE' | 'ALERT';
+        target_type: 'ALL' | 'SELECTED';
+        target_user_ids: string[];
+        created_by: string;
+        created_at: string;
+      }>;
+    }>('/admin/notifications');
+  },
+
+  async createAdminNotification(data: {
+    title: string;
+    message: string;
+    type: string;
+    target_type: string;
+    target_user_ids?: string[];
+  }) {
+    return request<{ success: boolean; message: string; data: any }>('/admin/notifications', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+
+  async deleteAdminNotification(id: string) {
+    return request<{ success: boolean; message: string }>(`/admin/notifications/${id}`, {
+      method: 'DELETE'
+    });
+  },
+
+  // Admin Feedback Management
+  async getAdminFeedbacks() {
+    return request<{
+      success: boolean;
+      data: Array<{
+        id: string;
+        user_id: string;
+        user_name: string;
+        user_phone: string;
+        organization_name: string;
+        category: string;
+        rating: number;
+        message: string;
+        status: 'NEW' | 'REVIEWED' | 'RESOLVED';
+        admin_response?: string;
+        created_at: string;
+        updated_at: string;
+      }>;
+    }>('/admin/feedbacks');
+  },
+
+  async updateFeedbackStatus(id: string, status: string, admin_response?: string) {
+    return request<{ success: boolean; message: string }>(`/admin/feedbacks/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, admin_response })
+    });
+  },
+
+  // Admin On-Demand Transaction Status Lookup
+  async searchTransactionsLive(q: string) {
+    return request<{
+      success: boolean;
+      data: any[];
+    }>(`/admin/transactions/lookup?q=${encodeURIComponent(q)}`);
   }
 };

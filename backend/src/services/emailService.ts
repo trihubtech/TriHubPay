@@ -141,15 +141,53 @@ export async function sendPasswordResetOtpEmail(
   }
 }
 
+export async function lookupIpLocation(ip: string): Promise<string> {
+  try {
+    const cleanIp = (ip || '').split(',')[0].trim();
+    if (
+      !cleanIp || 
+      cleanIp === '127.0.0.1' || 
+      cleanIp === '::1' || 
+      cleanIp.startsWith('192.168.') || 
+      cleanIp.startsWith('10.') || 
+      cleanIp.startsWith('172.') || 
+      cleanIp === 'Unknown IP'
+    ) {
+      return 'Local / Private Network';
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+
+    const res = await fetch(`http://ip-api.com/json/${cleanIp}?fields=status,message,country,regionName,city,zip,isp,org,query`, {
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+
+    if (res.ok) {
+      const data: any = await res.json();
+      if (data && data.status === 'success') {
+        const parts = [data.city, data.regionName, data.country].filter(Boolean);
+        const isp = data.isp || data.org;
+        return `${parts.join(', ')}${isp ? ` • ${isp}` : ''}`;
+      }
+    }
+  } catch (e) {
+    // Non-blocking fallback
+  }
+  return 'India (Network Detected)';
+}
+
 export async function sendLoginAlertEmail(
   toEmail: string,
   recipientName: string,
-  meta: { ip: string; userAgent: string; time: string; location?: string }
+  meta: { ip: string; userAgent: string; time: string; location?: string; isAdmin?: boolean }
 ): Promise<{ success: boolean; delivered: boolean; info?: string }> {
   console.log(`\n======================================================`);
   console.log(`🔔 [LOGIN SECURITY ALERT] New Session Login`);
-  console.log(`👤 User: ${recipientName} (${toEmail})`);
+  console.log(`👤 User: ${recipientName} (${toEmail}) [Admin: ${Boolean(meta.isAdmin)}]`);
   console.log(`🌐 IP Address: ${meta.ip}`);
+  console.log(`📍 Location: ${meta.location || 'Detecting...'}`);
   console.log(`📱 Device / Client: ${meta.userAgent}`);
   console.log(`⏰ Time: ${meta.time}`);
   console.log(`======================================================\n`);
@@ -176,37 +214,48 @@ export async function sendLoginAlertEmail(
   else if (/macintosh|mac os/i.test(ua)) deviceName = 'Apple Mac';
   else if (/linux/i.test(ua)) deviceName = 'Linux Device';
 
+  const isAdmin = Boolean(meta.isAdmin || toEmail.toLowerCase() === 'trihubtechnologies@gmail.com');
+  const subject = isAdmin
+    ? `🚨 [TriHub Security Alert] Admin Console Sign-In Detected (${meta.ip})`
+    : `[TriHubPay Security] New Login Detected - ${deviceName}`;
+
+  const headerGradient = isAdmin
+    ? 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #dc2626 100%)'
+    : 'linear-gradient(135deg, #1e3a8a 0%, #0284c7 50%, #059669 100%)';
+
+  const badgeText = isAdmin ? '⚠️ High-Privilege Admin Access' : 'Account Security Notification';
+
   const htmlContent = `
   <!DOCTYPE html>
   <html>
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Security Alert: New Login to TriHubPay</title>
+    <title>${subject}</title>
   </head>
   <body style="margin:0;padding:0;background-color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#334155;">
     <div style="max-width:560px;margin:30px auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 10px 25px rgba(0,0,0,0.2);">
       
       <!-- Brand Header -->
-      <div style="background:linear-gradient(135deg, #1e3a8a 0%, #0284c7 50%, #059669 100%);padding:28px 24px;text-align:center;">
+      <div style="background:${headerGradient};padding:28px 24px;text-align:center;">
         <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:900;letter-spacing:-0.5px;">
-          TriHub<span style="color:#6ee7b7;">Pay</span>
+          TriHub <span style="color:#6ee7b7;">Technologies</span>
         </h1>
-        <p style="margin:4px 0 0;color:#e0f2fe;font-size:12px;font-weight:500;">
-          Account Security Notification
+        <p style="margin:6px 0 0;color:#e0f2fe;font-size:12px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;">
+          ${badgeText}
         </p>
       </div>
 
       <!-- Main Body -->
       <div style="padding:28px 24px;">
-        <h2 style="margin:0 0 10px;color:#0f172a;font-size:17px;font-weight:700;">
-          New Login Detected
+        <h2 style="margin:0 0 10px;color:#0f172a;font-size:18px;font-weight:800;">
+          ${isAdmin ? '🛡️ Admin Console Sign-In Detected' : 'New Login Detected'}
         </h2>
         <p style="margin:0 0 16px;color:#475569;font-size:13px;line-height:1.6;">
-          Hello <strong>${recipientName || 'Valued User'}</strong>,
+          Hello <strong>${recipientName || 'Administrator'}</strong>,
         </p>
         <p style="margin:0 0 20px;color:#475569;font-size:13px;line-height:1.6;">
-          A new sign-in was just detected on your TriHubPay account. Here are the security details for this session:
+          A new authenticated session was initiated on the TriHub platform. Below are the verified access and network telemetry logs:
         </p>
 
         <!-- Log Details Box -->
@@ -221,12 +270,16 @@ export async function sendLoginAlertEmail(
               <td style="color:#0f172a;font-family:monospace;font-weight:700;">${meta.ip}</td>
             </tr>
             <tr>
-              <td style="color:#64748b;font-weight:600;">⏰ Time:</td>
-              <td style="color:#0f172a;">${meta.time}</td>
+              <td style="color:#64748b;font-weight:600;">📍 Location:</td>
+              <td style="color:#0f172a;font-weight:700;">${meta.location || 'India (Network Detected)'}</td>
             </tr>
             <tr>
-              <td style="color:#64748b;font-weight:600;">📍 Location:</td>
-              <td style="color:#0f172a;">${meta.location || 'India (Network Detected)'}</td>
+              <td style="color:#64748b;font-weight:600;">⏰ Time (IST):</td>
+              <td style="color:#0f172a;font-weight:600;">${meta.time}</td>
+            </tr>
+            <tr>
+              <td style="color:#64748b;font-weight:600;">🔍 Client Details:</td>
+              <td style="color:#475569;font-size:11px;word-break:break-all;">${meta.userAgent}</td>
             </tr>
           </table>
         </div>
@@ -234,13 +287,13 @@ export async function sendLoginAlertEmail(
         <!-- Security Warning -->
         <div style="background:#f0fdf4;border-left:4px solid #10b981;padding:12px 14px;border-radius:6px;margin:20px 0;">
           <p style="margin:0;color:#065f46;font-size:12px;line-height:1.5;">
-            <strong>✅ Was this you?</strong> If you recently logged in, you can safely disregard this alert. No further action is required.
+            <strong>✅ Was this you?</strong> If you or your authorized personnel just logged in, you can safely disregard this alert.
           </p>
         </div>
 
         <div style="background:#fff1f2;border-left:4px solid #f43f5e;padding:12px 14px;border-radius:6px;margin:16px 0;">
           <p style="margin:0;color:#9f1239;font-size:12px;line-height:1.5;">
-            <strong>⚠️ Don't recognize this activity?</strong> Please log into your TriHubPay account immediately and change your password in the Security settings, or contact priority support.
+            <strong>⚠️ Don't recognize this activity?</strong> Change the master password immediately from the platform settings or terminate active sessions to protect the float vault.
           </p>
         </div>
       </div>
@@ -248,7 +301,7 @@ export async function sendLoginAlertEmail(
       <!-- Support Footer -->
       <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:16px 24px;text-align:center;">
         <p style="margin:0;font-size:11px;color:#64748b;">
-          TriHubPay Support: +91 63745 69225 • trihubtechnologies@gmail.com
+          TriHub Technologies Security Helpline: +91 63745 69225 • trihubtechnologies@gmail.com
         </p>
         <p style="margin:6px 0 0;font-size:10px;color:#94a3b8;">
           © 2026 TriHub Technologies. All rights reserved.
@@ -264,8 +317,8 @@ export async function sendLoginAlertEmail(
     const info = await mailTransporter.sendMail({
       from: config.smtp.from,
       to: toEmail,
-      subject: `[TriHubPay Security] New Login Detected - ${deviceName}`,
-      text: `Hello ${recipientName},\n\nA new login was detected on your TriHubPay account.\nDevice: ${deviceName}\nIP: ${meta.ip}\nTime: ${meta.time}\n\nIf this wasn't you, please change your password immediately in Settings.\n\nSupport: +91 63745 69225`,
+      subject,
+      text: `Hello ${recipientName},\n\nA login was detected on your TriHub account.\nDevice: ${deviceName}\nIP: ${meta.ip}\nLocation: ${meta.location || 'India'}\nTime: ${meta.time}\n\nSecurity Notice: If this was not you, change your password immediately.\n\nSupport: +91 63745 69225 | trihubtechnologies@gmail.com`,
       html: htmlContent
     });
     return { success: true, delivered: true, info: info.messageId };

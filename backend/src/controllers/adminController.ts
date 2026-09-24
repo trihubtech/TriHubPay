@@ -1017,6 +1017,48 @@ export async function checkTransactionStatus(req: Request, res: Response) {
   }
 }
 
+export function getISTDateRange(period: string): { startDate: Date; endDate: Date } {
+  const now = new Date();
+  // IST offset is UTC+5:30 (+330 minutes)
+  const istOffsetMs = (5 * 60 + 30) * 60 * 1000;
+  const nowIST = new Date(now.getTime() + istOffsetMs);
+
+  const istYear = nowIST.getUTCFullYear();
+  const istMonth = nowIST.getUTCMonth();
+  const istDate = nowIST.getUTCDate();
+  const istDay = nowIST.getUTCDay(); // 0 is Sunday, 1 is Monday...
+
+  let startIST: Date;
+  let endIST: Date = nowIST;
+
+  if (period === 'yesterday') {
+    startIST = new Date(Date.UTC(istYear, istMonth, istDate - 1, 0, 0, 0, 0));
+    endIST = new Date(Date.UTC(istYear, istMonth, istDate - 1, 23, 59, 59, 999));
+  } else if (period === 'this_week') {
+    const dayDiff = istDay === 0 ? 6 : istDay - 1; // Days since Monday
+    startIST = new Date(Date.UTC(istYear, istMonth, istDate - dayDiff, 0, 0, 0, 0));
+  } else if (period === 'last_week') {
+    const dayDiff = istDay === 0 ? 6 : istDay - 1;
+    startIST = new Date(Date.UTC(istYear, istMonth, istDate - dayDiff - 7, 0, 0, 0, 0));
+    endIST = new Date(Date.UTC(istYear, istMonth, istDate - dayDiff - 1, 23, 59, 59, 999));
+  } else if (period === 'this_month') {
+    startIST = new Date(Date.UTC(istYear, istMonth, 1, 0, 0, 0, 0));
+  } else if (period === 'last_month') {
+    startIST = new Date(Date.UTC(istYear, istMonth - 1, 1, 0, 0, 0, 0));
+    endIST = new Date(Date.UTC(istYear, istMonth, 0, 23, 59, 59, 999));
+  } else if (period === 'all') {
+    return { startDate: new Date(0), endDate: now };
+  } else {
+    // default: 'today'
+    startIST = new Date(Date.UTC(istYear, istMonth, istDate, 0, 0, 0, 0));
+  }
+
+  const startDate = new Date(startIST.getTime() - istOffsetMs);
+  const endDate = new Date(endIST.getTime() - istOffsetMs);
+
+  return { startDate, endDate };
+}
+
 /**
  * Get comprehensive analytics & earnings reports (period-filtered, user-wise & operator-wise)
  * Endpoint: GET /api/admin/reports?period=today|yesterday|this_week|last_week|this_month|last_month|all
@@ -1024,30 +1066,7 @@ export async function checkTransactionStatus(req: Request, res: Response) {
 export async function getAdminReports(req: Request, res: Response) {
   try {
     const period = (req.query.period as string) || 'today';
-
-    const now = new Date();
-    let startDate: Date;
-    let endDate: Date = now;
-
-    if (period === 'yesterday') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
-      endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
-    } else if (period === 'this_week') {
-      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    } else if (period === 'last_week') {
-      startDate = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-      endDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    } else if (period === 'this_month') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-    } else if (period === 'last_month') {
-      startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
-      endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
-    } else if (period === 'all') {
-      startDate = new Date(0);
-    } else {
-      // today
-      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-    }
+    const { startDate, endDate } = getISTDateRange(period);
 
     // Fetch transactions within range with user details
     const txRes = await query(`
@@ -1086,10 +1105,11 @@ export async function getAdminReports(req: Request, res: Response) {
       operator_name: string;
       service_type: string;
       count: number;
+      success_count: number;
+      failed_count: number;
       volume: number;
       retailer_commission: number;
       admin_commission: number;
-      success_count: number;
     }> = {};
 
     // User aggregates
@@ -1100,6 +1120,8 @@ export async function getAdminReports(req: Request, res: Response) {
       phone: string;
       role: string;
       count: number;
+      success_count: number;
+      failed_count: number;
       volume: number;
       retailer_commission: number;
       admin_commission: number;
@@ -1119,10 +1141,11 @@ export async function getAdminReports(req: Request, res: Response) {
           operator_name: opCode,
           service_type: sType,
           count: 0,
+          success_count: 0,
+          failed_count: 0,
           volume: 0,
           retailer_commission: 0,
-          admin_commission: 0,
-          success_count: 0
+          admin_commission: 0
         };
       }
       opMap[opCode].count += 1;
@@ -1130,11 +1153,13 @@ export async function getAdminReports(req: Request, res: Response) {
       if (!userMap[uId]) {
         userMap[uId] = {
           user_id: uId,
-          organization_name: r.organization_name || 'Store',
-          owner_name: r.owner_name || '',
+          organization_name: r.organization_name || 'Retailer Shop',
+          owner_name: r.owner_name || r.organization_name || 'User',
           phone: r.phone || '',
           role: r.role || 'RETAILER',
           count: 0,
+          success_count: 0,
+          failed_count: 0,
           volume: 0,
           retailer_commission: 0,
           admin_commission: 0
@@ -1148,16 +1173,19 @@ export async function getAdminReports(req: Request, res: Response) {
         totalRetailerPayout += retComm;
         totalAdminProfit += admComm;
 
+        opMap[opCode].success_count += 1;
         opMap[opCode].volume += vol;
         opMap[opCode].retailer_commission += retComm;
         opMap[opCode].admin_commission += admComm;
-        opMap[opCode].success_count += 1;
 
+        userMap[uId].success_count += 1;
         userMap[uId].volume += vol;
         userMap[uId].retailer_commission += retComm;
         userMap[uId].admin_commission += admComm;
-      } else if (r.status === 'FAILED') {
+      } else if (r.status === 'FAILED' || r.status === 'REFUNDED') {
         failedCount++;
+        opMap[opCode].failed_count += 1;
+        userMap[uId].failed_count += 1;
       } else {
         pendingCount++;
       }
@@ -1168,6 +1196,8 @@ export async function getAdminReports(req: Request, res: Response) {
       operator_name: op.operator_name,
       service_type: op.service_type,
       count: op.count,
+      success_count: op.success_count,
+      failed_count: op.failed_count,
       volume: Number(op.volume.toFixed(2)),
       retailer_commission: Number(op.retailer_commission.toFixed(2)),
       admin_commission: Number(op.admin_commission.toFixed(2)),
@@ -1181,6 +1211,8 @@ export async function getAdminReports(req: Request, res: Response) {
       phone: u.phone,
       role: u.role,
       count: u.count,
+      success_count: u.success_count,
+      failed_count: u.failed_count,
       volume: Number(u.volume.toFixed(2)),
       retailer_commission: Number(u.retailer_commission.toFixed(2)),
       admin_commission: Number(u.admin_commission.toFixed(2))

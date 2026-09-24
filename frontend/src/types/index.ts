@@ -228,6 +228,8 @@ export interface AdminReportsData {
     volume: number;
     retailer_commission: number;
     admin_commission: number;
+    success_count?: number;
+    failed_count?: number;
   }>;
 }
 

@@ -49,13 +49,8 @@ INSERT INTO commission_matrix (
     ('BROADBAND', 'Broadband Bill Payment', 'BROADBAND', 'PERCENT', 0.50, 0.80, 0.46, 0.34, false, false)
 ON CONFLICT (operator_code) DO NOTHING;
 
--- 4. SEED PER-SHOP CUSTOMIZED COMMISSION OVERRIDE
--- Sri Balaji Telecom gets 3.50% on JIO (instead of standard 3.00%) due to high monthly turnover
-INSERT INTO user_commissions (user_id, operator_code, custom_pass_down_rate)
-VALUES 
-    ('00000000-0000-0000-0000-000000000003', 'JIO', 3.50),
-    ('00000000-0000-0000-0000-000000000003', 'AIRTEL', 3.10)
-ON CONFLICT (user_id, operator_code) DO NOTHING;
+-- 4. PER-SHOP CUSTOMIZED COMMISSION OVERRIDES (Optional / Managed via Admin UI)
+-- Empty by default; admins can configure custom rates per retailer from Admin Portal.
 
 -- 5. SEED SYSTEM SETTINGS
 INSERT INTO system_settings (key, value, description)

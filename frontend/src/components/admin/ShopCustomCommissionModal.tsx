@@ -91,12 +91,19 @@ export const ShopCustomCommissionModal: React.FC<ShopCustomCommissionModalProps>
 
     setIsSubmitting(true);
     try {
-      const res = await api.setShopCustomCommission(shop.id, selectedOp, rate);
-      if (res.success) {
-        setFeedback(`Custom rate for ${selectedOp} saved at ${rate}%!`);
-        await loadCustomRates();
-        onSaved();
+      const defaultRate = currentOpMeta ? currentOpMeta.retailer_pass_down_rate : null;
+      if (defaultRate !== null && Math.abs(rate - defaultRate) < 0.001) {
+        // If the rate matches the global matrix default, delete any custom override
+        await api.deleteShopCustomCommission(shop.id, selectedOp);
+        setFeedback(`Rate matches global default (${rate}%). Reset to standard matrix!`);
+      } else {
+        const res = await api.setShopCustomCommission(shop.id, selectedOp, rate);
+        if (res.success) {
+          setFeedback(`Custom rate for ${selectedOp} saved at ${rate}%!`);
+        }
       }
+      await loadCustomRates();
+      onSaved();
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to save custom rate');
     } finally {

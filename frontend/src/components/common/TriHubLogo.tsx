@@ -38,11 +38,10 @@ export const TriHubPayLogo: React.FC<TriHubPayLogoProps> = ({
     <div className={`flex items-center gap-3 ${className}`}>
       {/* Official TriHubPay Logo Image with Subtle Gradient Glow */}
       <div className={`relative ${iconDimensions} shrink-0 flex items-center justify-center`}>
-        <div className="absolute inset-0 bg-gradient-to-tr from-blue-600/30 to-emerald-500/30 rounded-2xl blur-md" />
         <img
-          src="/logo.png?v=2"
-          alt="TriHubPay"
-          className="relative w-full h-full object-contain rounded-xl drop-shadow-md"
+          src="/trihub_technologies_logo.png"
+          alt="TriHub Technologies"
+          className="relative w-full h-full object-contain drop-shadow-sm"
         />
       </div>
 

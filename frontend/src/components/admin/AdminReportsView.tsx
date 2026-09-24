@@ -17,14 +17,15 @@ import {
   Loader2, 
   ArrowUpRight,
   ShieldCheck,
-  RefreshCw
+  RefreshCw,
+  User
 } from 'lucide-react';
 
 export const AdminReportsView: React.FC = () => {
   const [period, setPeriod] = useState<string>('today');
   const [reportsData, setReportsData] = useState<AdminReportsData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [activeSubTab, setActiveSubTab] = useState<'OPERATOR' | 'RETAILER'>('OPERATOR');
+  const [activeSubTab, setActiveSubTab] = useState<'OPERATOR' | 'USER'>('USER');
 
   const periods: Array<{ id: string; label: string }> = [
     { id: 'today', label: 'Today' },
@@ -177,15 +178,15 @@ export const AdminReportsView: React.FC = () => {
                   <span>Operator-Wise Earnings</span>
                 </button>
                 <button
-                  onClick={() => setActiveSubTab('RETAILER')}
+                  onClick={() => setActiveSubTab('USER')}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    activeSubTab === 'RETAILER'
+                    activeSubTab === 'USER'
                       ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-white shadow-sm'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
                   }`}
                 >
-                  <Store className="w-3.5 h-3.5" />
-                  <span>User / Shop-Wise Earnings</span>
+                  <User className="w-3.5 h-3.5" />
+                  <span>User-Wise Earnings</span>
                 </button>
               </div>
 
@@ -306,52 +307,77 @@ export const AdminReportsView: React.FC = () => {
               </>
             )}
 
-            {/* TAB 2: RETAILER-WISE EARNINGS */}
-            {activeSubTab === 'RETAILER' && (
+            {/* TAB 2: USER-WISE EARNINGS */}
+            {activeSubTab === 'USER' && (
               <>
                 {/* Mobile Cards (No horizontal scroll) */}
                 <div className="block md:hidden divide-y divide-slate-100 dark:divide-slate-800">
                   {(!reportsData?.user_reports || reportsData.user_reports.length === 0) ? (
                     <div className="p-8 text-center text-xs text-slate-400">
-                      No retailer activity recorded for this period.
+                      No user recharge activity recorded for this period.
                     </div>
                   ) : (
-                    reportsData.user_reports.map((u) => (
-                      <div key={u.user_id} className="p-4 space-y-2.5">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <div className="font-bold text-slate-900 dark:text-white text-xs">
-                              {u.organization_name}
+                    reportsData.user_reports.map((u) => {
+                      const displayName = u.owner_name || u.organization_name || 'Retailer User';
+                      const hasDistinctShop = u.organization_name && u.organization_name !== u.owner_name;
+                      return (
+                        <div key={u.user_id} className="p-4 space-y-2.5">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <div className="font-bold text-slate-900 dark:text-white text-xs flex items-center gap-1.5">
+                                <span>{displayName}</span>
+                                {u.role === 'ADMIN' && (
+                                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold border border-amber-500/20">
+                                    ADMIN
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                {u.phone && <span className="font-mono text-blue-600 dark:text-blue-400 font-semibold">{u.phone}</span>}
+                                {hasDistinctShop && <span className="text-slate-400">({u.organization_name})</span>}
+                              </div>
                             </div>
-                            <div className="text-[11px] text-slate-500 mt-0.5">{u.owner_name} • {u.phone}</div>
+                            <div className="text-right shrink-0">
+                              <div className="text-xs font-mono font-bold text-slate-900 dark:text-white">
+                                {u.volume > 0 || (u.success_count && u.success_count > 0) ? (
+                                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                                    {u.success_count ?? (u.volume > 0 ? 1 : 0)} ok
+                                  </span>
+                                ) : (
+                                  <span className="text-slate-400">0 ok</span>
+                                )}
+                              </div>
+                              {(u.failed_count ?? 0) > 0 && (
+                                <div className="text-[10px] text-rose-500 dark:text-rose-400 font-mono font-semibold">
+                                  {u.failed_count} failed
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <span className="text-xs font-mono font-bold text-slate-900 dark:text-white">
-                            {u.count} orders
-                          </span>
-                        </div>
 
-                        <div className="grid grid-cols-3 gap-2 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl border border-slate-200/60 dark:border-slate-800 text-center font-mono">
-                          <div>
-                            <div className="text-[9px] uppercase tracking-wider text-slate-400 font-sans">Turnover</div>
-                            <div className="text-xs font-bold text-slate-900 dark:text-white mt-0.5">
-                              ₹{u.volume.toFixed(2)}
+                          <div className="grid grid-cols-3 gap-2 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl border border-slate-200/60 dark:border-slate-800 text-center font-mono">
+                            <div>
+                              <div className="text-[9px] uppercase tracking-wider text-slate-400 font-sans font-medium">Turnover</div>
+                              <div className="text-xs font-bold text-slate-900 dark:text-white mt-0.5">
+                                ₹{u.volume.toFixed(2)}
+                              </div>
                             </div>
-                          </div>
-                          <div>
-                            <div className="text-[9px] uppercase tracking-wider text-blue-500 font-sans font-semibold">Earned Cashback</div>
-                            <div className="text-xs font-bold text-blue-600 dark:text-brand-400 mt-0.5">
-                              ₹{u.retailer_commission.toFixed(2)}
+                            <div>
+                              <div className="text-[9px] uppercase tracking-wider text-blue-500 font-sans font-semibold">Earned Cashback</div>
+                              <div className="text-xs font-bold text-blue-600 dark:text-brand-400 mt-0.5">
+                                ₹{u.retailer_commission.toFixed(2)}
+                              </div>
                             </div>
-                          </div>
-                          <div>
-                            <div className="text-[9px] uppercase tracking-wider text-emerald-500 font-sans font-semibold">Admin Profit</div>
-                            <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
-                              +₹{u.admin_commission.toFixed(2)}
+                            <div>
+                              <div className="text-[9px] uppercase tracking-wider text-emerald-500 font-sans font-semibold">Admin Profit</div>
+                              <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                                +₹{u.admin_commission.toFixed(2)}
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
 
@@ -360,33 +386,40 @@ export const AdminReportsView: React.FC = () => {
                   <table className="w-full text-left text-xs text-slate-600 dark:text-slate-300">
                     <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-800">
                       <tr>
-                        <th className="py-3 px-4">Retail Shop &amp; Owner</th>
-                        <th className="py-3 px-4">Contact Phone</th>
+                        <th className="py-3 px-4">User Name &amp; Contact</th>
+                        <th className="py-3 px-4">Store / Shop</th>
                         <th className="py-3 px-4 text-center">Orders</th>
-                        <th className="py-3 px-4 text-right">Total Turnover</th>
-                        <th className="py-3 px-4 text-right">Retailer Paid</th>
-                        <th className="py-3 px-4 text-right">Admin Net Profit</th>
+                        <th className="py-3 px-4 text-right">Turnover (GMV)</th>
+                        <th className="py-3 px-4 text-right">Retailer Cashback</th>
+                        <th className="py-3 px-4 text-right">Admin Profit</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60 font-mono">
                       {(!reportsData?.user_reports || reportsData.user_reports.length === 0) ? (
                         <tr>
                           <td colSpan={6} className="py-8 text-center text-slate-400 text-xs font-sans">
-                            No retailer activity recorded for this period.
+                            No user recharge activity recorded for this period.
                           </td>
                         </tr>
                       ) : (
                         reportsData.user_reports.map((u) => (
                           <tr key={u.user_id} className="hover:bg-slate-50/80 dark:hover:bg-slate-850/50 transition-colors">
                             <td className="py-3.5 px-4 font-sans">
-                              <div className="font-bold text-slate-900 dark:text-white text-xs">{u.organization_name}</div>
-                              <div className="text-[10px] text-slate-400">{u.owner_name}</div>
+                              <div className="font-bold text-slate-900 dark:text-white text-xs">{u.owner_name || u.organization_name || 'User'}</div>
+                              <div className="text-[11px] text-blue-600 dark:text-blue-400 font-mono font-medium">{u.phone}</div>
                             </td>
-                            <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300 font-mono">
-                              {u.phone}
+                            <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300 font-sans">
+                              {u.organization_name || 'Individual Retailer'}
                             </td>
-                            <td className="py-3.5 px-4 text-center font-bold text-slate-800 dark:text-slate-200">
-                              {u.count}
+                            <td className="py-3.5 px-4 text-center">
+                              <div className="font-bold text-slate-800 dark:text-slate-200">
+                                {u.success_count ?? (u.volume > 0 ? 1 : 0)} ok
+                              </div>
+                              {(u.failed_count ?? 0) > 0 && (
+                                <div className="text-[10px] text-rose-500 dark:text-rose-400 font-semibold">
+                                  {u.failed_count} fail
+                                </div>
+                              )}
                             </td>
                             <td className="py-3.5 px-4 text-right font-bold text-slate-900 dark:text-white">
                               ₹{u.volume.toFixed(2)}

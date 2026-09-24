@@ -215,11 +215,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
       {/* Brand Header with Official TriHubPay Logo */}
       <div className="text-center mb-6 space-y-3 flex flex-col items-center">
         <div className="relative w-24 h-24 mb-1 flex items-center justify-center">
-          <div className="absolute inset-0 bg-gradient-to-tr from-blue-600/20 to-emerald-500/20 rounded-3xl blur-xl" />
           <img
-            src="/logo.png?v=2"
-            alt="TriHubPay"
-            className="relative w-20 h-20 object-contain drop-shadow-md"
+            src="/trihub_technologies_logo.png"
+            alt="TriHub Technologies"
+            className="relative w-22 h-22 object-contain drop-shadow-md"
           />
         </div>
 

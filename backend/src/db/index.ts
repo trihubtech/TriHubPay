@@ -725,11 +725,27 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
   }
   // 18. SELECT ... FROM transactions
   else if (/SELECT .* FROM transactions/i.test(cleanSql)) {
-    rows = memoryStore.transactions.map(t => {
+    let filtered = memoryStore.transactions;
+    if (params && params.length >= 2 && typeof params[0] === 'string' && typeof params[1] === 'string') {
+      const pStart = new Date(params[0]).toISOString();
+      const pEnd = new Date(params[1]).toISOString();
+      if (!isNaN(Date.parse(pStart)) && !isNaN(Date.parse(pEnd))) {
+        filtered = filtered.filter(t => {
+          const tTime = new Date(t.created_at).toISOString();
+          return tTime >= pStart && tTime <= pEnd;
+        });
+      }
+    }
+
+    rows = filtered.map(t => {
       const u = memoryStore.users.find(usr => usr.id === t.retailer_id);
       return {
         ...t,
-        retailer_shop_name: u?.organization_name || 'Retailer',
+        organization_name: u?.organization_name || 'Retailer Shop',
+        owner_name: u?.owner_name || u?.organization_name || 'User',
+        phone: u?.phone || '',
+        role: u?.role || 'RETAILER',
+        retailer_shop_name: u?.organization_name || 'Retailer Shop',
         retailer_phone: u?.phone || ''
       };
     });

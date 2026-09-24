@@ -10,6 +10,7 @@ import * as rechargeController from '../controllers/rechargeController';
 import * as adminController from '../controllers/adminController';
 import * as operatorController from '../controllers/operatorController';
 import * as webhookController from '../controllers/webhookController';
+import * as engagementController from '../controllers/engagementController';
 
 export const router = Router();
 
@@ -54,7 +55,10 @@ router.post(
 router.get('/recharge/preview', authenticate, rechargeController.getCommissionPreview);
 router.get('/recharge/my-commissions', authenticate, rechargeController.getMyCommissionsList);
 router.get('/recharge/my-insights', authenticate, rechargeController.getMyInsights);
+router.get('/recharge/reports', authenticate, rechargeController.getRetailerReports);
 router.get('/recharge/transactions', authenticate, rechargeController.getRetailerTransactions);
+router.get('/recharge/notifications', authenticate, engagementController.getRetailerNotifications);
+router.post('/recharge/feedback', authenticate, engagementController.submitRetailerFeedback);
 
 // -------------------------------------------------------------
 // 5. PLATFORM ADMIN CONTROL PANEL
@@ -82,6 +86,12 @@ router.post('/admin/failover', authenticate, requireRole(['ADMIN']), adminContro
 router.get('/admin/transactions', authenticate, requireRole(['ADMIN']), adminController.getAllTransactions);
 router.post('/admin/transactions/:id/check-status', authenticate, requireRole(['ADMIN']), adminController.checkTransactionStatus);
 router.get('/admin/reports', authenticate, requireRole(['ADMIN']), adminController.getAdminReports);
+router.get('/admin/transactions/lookup', authenticate, requireRole(['ADMIN']), engagementController.searchTransactionsForLookup);
+router.get('/admin/notifications', authenticate, requireRole(['ADMIN']), engagementController.getAdminNotifications);
+router.post('/admin/notifications', authenticate, requireRole(['ADMIN']), engagementController.createAdminNotification);
+router.delete('/admin/notifications/:id', authenticate, requireRole(['ADMIN']), engagementController.deleteAdminNotification);
+router.get('/admin/feedbacks', authenticate, requireRole(['ADMIN']), engagementController.getAdminFeedbacks);
+router.patch('/admin/feedbacks/:id', authenticate, requireRole(['ADMIN']), engagementController.updateFeedbackStatus);
 
 // UPI Cash Deposit Approvals
 router.get('/admin/deposits/pending', authenticate, requireRole(['ADMIN']), adminController.getPendingDeposits);

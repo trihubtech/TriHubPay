@@ -5,6 +5,7 @@ import { pool, withTransaction, query } from '../db';
 import { calculateCommission } from '../services/commissionService';
 import { rechargeRouter } from '../services/rechargeRouter';
 import { releaseDedupKey } from '../middleware/dedup';
+import { getISTDateRange } from './adminController';
 
 const rechargeSchema = z.object({
   operator_code: z.string().min(2, 'Operator code is required'),
@@ -456,29 +457,7 @@ export async function getMyInsights(req: Request, res: Response) {
     const retailerId = req.user!.id;
     const period = (req.query.period as string) || 'today';
 
-    const now = new Date();
-    let startDate: Date;
-    let endDate: Date = now;
-
-    if (period === 'yesterday') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
-      endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
-    } else if (period === 'this_week') {
-      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    } else if (period === 'last_week') {
-      startDate = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-      endDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    } else if (period === 'this_month') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-    } else if (period === 'last_month') {
-      startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
-      endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
-    } else if (period === 'all') {
-      startDate = new Date(0);
-    } else {
-      // today
-      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-    }
+    const { startDate, endDate } = getISTDateRange(period);
 
     const txRes = await query(
       `SELECT operator_code, service_type, face_value, retailer_commission, status, created_at FROM transactions WHERE retailer_id = $1`,
@@ -572,3 +551,5 @@ export async function getMyInsights(req: Request, res: Response) {
     return res.status(500).json({ success: false, message: error.message });
   }
 }
+
+export const getRetailerReports = getMyInsights;

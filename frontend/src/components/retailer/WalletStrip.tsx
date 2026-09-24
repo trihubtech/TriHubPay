@@ -23,8 +23,8 @@ export const WalletStrip: React.FC<WalletStripProps> = ({
       <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
         {/* Shop Name & Status */}
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-blue-600/10 to-emerald-500/10 border border-blue-500/20 flex items-center justify-center p-1.5 shrink-0 shadow-sm">
-            <img src="/logo.png?v=2" alt="TriHub" className="w-full h-full object-contain" />
+          <div className="w-11 h-11 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center p-1 shrink-0 shadow-sm">
+            <img src="/trihub_technologies_logo.png" alt="TriHub Technologies" className="w-full h-full object-contain" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1.5 flex-wrap">
