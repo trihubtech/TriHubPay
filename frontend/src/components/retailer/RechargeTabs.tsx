@@ -25,6 +25,7 @@ import { OperatorIcon } from '../common/OperatorIcon';
 import { OperatorSelectModal } from './OperatorSelectModal';
 import { RechargeConfirmModal } from './RechargeConfirmModal';
 import { formatOperatorName } from '../../utils/formatters';
+import { useToast } from '../../context/ToastContext';
 
 interface RechargeTabsProps {
   onSuccess: (txData: any, newBalance: number) => void;
@@ -102,6 +103,9 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
       setActiveTab(initialService);
     }
   }, [initialService]);
+
+  // Toast hook for human-friendly notifications
+  const toast = useToast();
 
   // Form states - clean and un-hardcoded
   const [accountNumber, setAccountNumber] = useState<string>('');
@@ -270,24 +274,24 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
     if (activeTab === 'MOBILE') {
       const cleanPhone = accountNumber.trim();
       if (cleanPhone.length !== 10 || !/^[6-9]\d{9}$/.test(cleanPhone)) {
-        setErrorMsg('Please enter a valid 10-digit Indian mobile number (e.g. 9876543210 starting with 6, 7, 8, or 9).');
+        toast.error('Please enter a valid 10-digit Indian mobile number (e.g. 9876543210 starting with 6, 7, 8, or 9).');
         return;
       }
     } else if (!accountNumber || accountNumber.trim().length < 4) {
-      setErrorMsg('Please enter a valid account or consumer number');
+      toast.error('Please enter a valid account or consumer number.');
       return;
     }
     if (isNaN(val) || val <= 0) {
-      setErrorMsg('Please enter a valid recharge or bill payment amount');
+      toast.error('Please enter a valid recharge or bill payment amount.');
       return;
     }
     if (val < 10) {
-      setErrorMsg('Minimum recharge or payment amount is ₹10');
+      toast.error('Minimum recharge amount is ₹10.');
       return;
     }
 
     if (commissionPreview && walletBalance < commissionPreview.final_cost_billed) {
-      setErrorMsg(`Insufficient wallet balance. Required: ₹${commissionPreview.final_cost_billed.toFixed(2)}, Available: ₹${walletBalance.toFixed(2)}`);
+      toast.error(`Low wallet balance. Required: ₹${commissionPreview.final_cost_billed.toFixed(2)}, Available: ₹${walletBalance.toFixed(2)}. Please add cash via UPI.`);
       return;
     }
 
@@ -309,19 +313,20 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
 
       if (res.success) {
         setIsConfirmModalOpen(false);
+        toast.success(`Recharge of ₹${val} on ${accountNumber} was completed successfully!`);
         onSuccess(res.data, res.data.remaining_wallet_balance);
         if (activeTab === 'ELECTRICITY') {
           setFetchedBill(null);
           setFaceValue('');
         }
       } else {
-        const fullMsg = res.details ? `${res.message} (${res.details})` : (res.message || 'Transaction failed');
-        setErrorMsg(fullMsg);
+        const fullMsg = res.details ? `${res.message} (${res.details})` : (res.message || 'Transaction could not be processed');
+        toast.error(fullMsg);
         setIsConfirmModalOpen(false);
       }
     } catch (err: any) {
-      const fullMsg = err.details ? `${err.message} (${err.details})` : (err.message || 'Transaction failed');
-      setErrorMsg(fullMsg);
+      const fullMsg = err.details ? `${err.message} (${err.details})` : (err.message || 'Transaction could not be processed');
+      toast.error(fullMsg);
       setIsConfirmModalOpen(false);
     } finally {
       setSubmitting(false);
@@ -403,11 +408,6 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
       </div>
 
       <div className="p-4 sm:p-6 pb-36 sm:pb-6">
-        {errorMsg && (
-          <div className="mb-4 p-3.5 bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs rounded-xl flex items-center justify-between">
-            <span>{errorMsg}</span>
-          </div>
-        )}
 
         <form onSubmit={handleOpenConfirmation} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
