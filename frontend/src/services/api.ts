@@ -315,7 +315,7 @@ export const api = {
     return request<{ success: boolean; data: User[] }>('/admin/users');
   },
 
-  async adjustUserBalance(userId: string, amount: number, actionType: 'CREDIT' | 'DEBIT', reason: string) {
+  async adjustUserBalance(userId: string, amount: number, actionType: 'CREDIT' | 'DEBIT' | 'SET', reason: string) {
     return request<{ success: boolean; message: string; data: { user_id: string; new_balance: number } }>('/admin/users/balance', {
       method: 'POST',
       body: JSON.stringify({ user_id: userId, amount, action_type: actionType, reason })

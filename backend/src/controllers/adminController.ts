@@ -125,13 +125,13 @@ export async function adjustUserBalance(req: Request, res: Response) {
   try {
     const { user_id, amount, action_type, reason } = req.body;
 
-    if (!user_id || !amount || !action_type || !reason) {
-      return res.status(400).json({ success: false, message: 'user_id, amount, action_type (CREDIT/DEBIT), and reason are required' });
+    if (!user_id || amount === undefined || !action_type || !reason) {
+      return res.status(400).json({ success: false, message: 'user_id, amount, action_type (CREDIT/DEBIT/SET), and reason are required' });
     }
 
     const adjAmount = Math.abs(parseFloat(amount));
-    if (adjAmount <= 0) {
-      return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
+    if (isNaN(adjAmount)) {
+      return res.status(400).json({ success: false, message: 'Amount must be a valid number' });
     }
 
     let updatedBalance = 0;
@@ -155,9 +155,13 @@ export async function adjustUserBalance(req: Request, res: Response) {
         throw new Error(`Cannot debit ₹${adjAmount}. User current balance is only ₹${curBal.toFixed(2)}`);
       }
 
-      updatedBalance = action_type === 'CREDIT' 
-        ? Number((curBal + adjAmount).toFixed(4))
-        : Number((curBal - adjAmount).toFixed(4));
+      if (action_type === 'SET') {
+        updatedBalance = Number(adjAmount.toFixed(4));
+      } else if (action_type === 'CREDIT') {
+        updatedBalance = Number((curBal + adjAmount).toFixed(4));
+      } else {
+        updatedBalance = Number((curBal - adjAmount).toFixed(4));
+      }
 
       await client.query(
         'UPDATE users SET current_balance = $1, updated_at = clock_timestamp() WHERE id = $2',
@@ -165,25 +169,32 @@ export async function adjustUserBalance(req: Request, res: Response) {
       );
 
       const refId = `ADMIN_ADJ_${Date.now()}`;
+      const effectiveType = action_type === 'SET' ? (curBal <= updatedBalance ? 'CREDIT' : 'DEBIT') : action_type;
+      const ledgerAmount = action_type === 'SET' ? Math.abs(Number((updatedBalance - curBal).toFixed(4))) : adjAmount;
+
       await client.query(
         `INSERT INTO wallet_ledger (
           user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
         ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
         [
           user_id,
-          adjAmount,
-          action_type,
+          ledgerAmount,
+          effectiveType,
           curBal,
           updatedBalance,
           refId,
-          `Admin Adjustment by ${adminEmail}: ${reason}`
+          action_type === 'SET' 
+            ? `Admin Set Balance to ₹${updatedBalance.toFixed(2)} by ${adminEmail}: ${reason}`
+            : `Admin Adjustment by ${adminEmail}: ${reason}`
         ]
       );
     });
 
     return res.json({
       success: true,
-      message: `Successfully ${action_type === 'CREDIT' ? 'credited' : 'debited'} ₹${adjAmount.toFixed(2)}`,
+      message: action_type === 'SET' 
+        ? `Successfully set balance to ₹${updatedBalance.toFixed(2)}`
+        : `Successfully ${action_type === 'CREDIT' ? 'credited' : 'debited'} ₹${adjAmount.toFixed(2)}`,
       data: {
         user_id,
         new_balance: updatedBalance

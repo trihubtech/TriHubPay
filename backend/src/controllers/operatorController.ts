@@ -14,7 +14,7 @@ export interface PlanItem {
 }
 
 // Exhaustive plan catalog modeled directly after Google Pay, PhonePe & Paytm
-const STANDARD_PLANS: Record<string, PlanItem[]> = {
+export const STANDARD_PLANS: Record<string, PlanItem[]> = {
   JIO: [
     // Popular / Best Sellers (Latest Official Post-Tariff Revision)
     { amount: 299, validity: '28 Days', data: '1.5 GB/Day', description: 'Unlimited Voice Calls + 100 SMS/Day + Complimentary Jio Apps', category: 'Popular', tag: 'Best Seller' },

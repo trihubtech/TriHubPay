@@ -7,6 +7,7 @@ import { rechargeRouter } from '../services/rechargeRouter';
 import { NeroPayClient } from '../services/upstream/neropay';
 import { releaseDedupKey } from '../middleware/dedup';
 import { getISTDateRange } from './adminController';
+import { STANDARD_PLANS } from './operatorController';
 
 const rechargeSchema = z.object({
   operator_code: z.string().min(2, 'Operator code is required'),
@@ -49,6 +50,24 @@ export async function executeRecharge(req: Request, res: Response) {
     const retailerId = req.user!.id;
     const idempotencyKey = parsed.data.idempotency_key || `IDEMP_${uuidv4()}`;
     const internalTxId = `TXN_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
+
+    // 1b. PRE-FLIGHT PLAN & WRONG AMOUNT VALIDATION
+    // If the operator has a known catalog of valid plans (Mobile & DTH), ensure the entered amount is an active valid plan.
+    // E.g. ₹300 for Tata Play is NOT a valid plan, so reject UPFRONT before wallet debit!
+    const normOp = operator_code.trim().toUpperCase();
+    const opPlans = STANDARD_PLANS[normOp];
+    if (opPlans && opPlans.length > 0 && (service_type === 'MOBILE' || service_type === 'DTH')) {
+      const validAmounts = new Set(opPlans.map(p => p.amount));
+      if (!validAmounts.has(face_value)) {
+        if (dedupKey) releaseDedupKey(dedupKey);
+        const samplePlans = opPlans.slice(0, 6).map(p => `₹${p.amount}`).join(', ');
+        return res.status(400).json({
+          success: false,
+          code: 'INVALID_PLAN_AMOUNT',
+          message: `₹${face_value} is not a valid active plan for ${operator_code}. Available plans include ${samplePlans}, etc. Please pick an active plan from the Browse Plans tab to avoid operator rejection.`
+        });
+      }
+    }
 
     // 2. Dynamic 58% / 42% Commission Calculation
     const comm = await calculateCommission(retailerId, operator_code, face_value);
@@ -139,7 +158,7 @@ export async function executeRecharge(req: Request, res: Response) {
           internal_tx_id, retailer_id, service_type, operator_code, target_account_number,
           circle_code, face_value, retailer_commission, admin_commission, master_commission,
           final_cost_billed, upstream_api_used, status, idempotency_key
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'PENDING', 'PENDING', $12)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'NEROPAY', 'PENDING', $12)
         RETURNING id`,
         [
           internalTxId,
@@ -349,7 +368,16 @@ export async function executeRecharge(req: Request, res: Response) {
       let refundedBalance: number = balanceAfter;
 
       await withTransaction(async (rollbackClient) => {
-        // Check transaction status to prevent any double-refund
+        // Check transaction status and wallet ledger to prevent any duplicate refunds
+        const ledgerCheck = await rollbackClient.query(
+          `SELECT id FROM wallet_ledger WHERE reference_id = $1 AND transaction_type = 'CREDIT'`,
+          [internalTxId]
+        );
+        if (ledgerCheck.rows.length > 0) {
+          console.warn(`[REFUND GUARD] Transaction ${internalTxId} was already refunded in wallet ledger. Skipping.`);
+          return;
+        }
+
         const txCheck = await rollbackClient.query(
           'SELECT status FROM transactions WHERE id = $1',
           [transactionDbId]

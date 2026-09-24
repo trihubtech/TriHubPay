@@ -44,7 +44,7 @@ export const UserBalanceManager: React.FC<UserBalanceManagerProps> = ({
 }) => {
   const [search, setSearch] = useState<string>('');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [actionType, setActionType] = useState<'CREDIT' | 'DEBIT'>('CREDIT');
+  const [actionType, setActionType] = useState<'CREDIT' | 'DEBIT' | 'SET'>('CREDIT');
   const [amount, setAmount] = useState<string>('1000');
   const [reason, setReason] = useState<string>('Bank Transfer NEFT float credit');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -185,10 +185,19 @@ export const UserBalanceManager: React.FC<UserBalanceManagerProps> = ({
     u.phone.includes(search)
   );
 
-  const handleOpenAdjust = (u: User, type: 'CREDIT' | 'DEBIT') => {
+  const handleOpenAdjust = (u: User, type: 'CREDIT' | 'DEBIT' | 'SET') => {
     setSelectedUser(u);
     setActionType(type);
-    setReason(type === 'CREDIT' ? 'Direct Bank RTGS / Cash settlement deposit' : 'Chargeback / Manual correction');
+    setReason(
+      type === 'CREDIT' 
+        ? 'Direct Bank RTGS / Cash settlement deposit' 
+        : type === 'DEBIT' 
+        ? 'Chargeback / Manual correction' 
+        : 'Admin target balance assignment'
+    );
+    if (type === 'SET') {
+      setAmount(String(Number(u.current_balance)));
+    }
     setModalOpen(true);
     setFeedbackMsg(null);
   };
@@ -198,7 +207,7 @@ export const UserBalanceManager: React.FC<UserBalanceManagerProps> = ({
     if (!selectedUser) return;
 
     const numAmt = parseFloat(amount);
-    if (isNaN(numAmt) || numAmt <= 0) {
+    if (isNaN(numAmt) || (actionType !== 'SET' && numAmt <= 0) || (actionType === 'SET' && numAmt < 0)) {
       setFeedbackMsg({ text: 'Please enter a valid amount', error: true });
       return;
     }
@@ -620,7 +629,7 @@ export const UserBalanceManager: React.FC<UserBalanceManagerProps> = ({
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-in fade-in zoom-in-95">
             <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850 flex items-center justify-between">
               <h4 className="font-bold text-slate-900 dark:text-white text-sm">
-                {actionType === 'CREDIT' ? 'Credit Cash Balance' : 'Debit Cash Balance'}
+                {actionType === 'CREDIT' ? 'Credit Cash Float' : actionType === 'DEBIT' ? 'Debit Cash Float' : 'Set Exact Cash Balance'}
               </h4>
               <button onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-slate-700 dark:hover:text-white text-xs">
                 Cancel
@@ -628,6 +637,53 @@ export const UserBalanceManager: React.FC<UserBalanceManagerProps> = ({
             </div>
 
             <form onSubmit={handleAdjustSubmit} className="p-5 space-y-4">
+              {/* Action Mode Selector Tabs */}
+              <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 dark:bg-slate-950 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActionType('CREDIT');
+                    setReason('Direct Bank RTGS / Cash settlement deposit');
+                  }}
+                  className={`py-1.5 rounded-lg transition-all ${
+                    actionType === 'CREDIT' 
+                      ? 'bg-emerald-600 text-white shadow-sm' 
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  + Credit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActionType('DEBIT');
+                    setReason('Chargeback / Manual deduction');
+                  }}
+                  className={`py-1.5 rounded-lg transition-all ${
+                    actionType === 'DEBIT' 
+                      ? 'bg-rose-600 text-white shadow-sm' 
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  - Debit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActionType('SET');
+                    setReason('Admin direct wallet balance assignment');
+                    if (selectedUser) setAmount(String(Number(selectedUser.current_balance)));
+                  }}
+                  className={`py-1.5 rounded-lg transition-all ${
+                    actionType === 'SET' 
+                      ? 'bg-blue-600 text-white shadow-sm' 
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  = Set Exact
+                </button>
+              </div>
+
               {feedbackMsg && (
                 <div className={`p-3 rounded-xl text-xs ${feedbackMsg.error ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'}`}>
                   {feedbackMsg.text}
@@ -641,13 +697,16 @@ export const UserBalanceManager: React.FC<UserBalanceManagerProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">AMOUNT (INR)</label>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                  {actionType === 'SET' ? 'NEW TARGET BALANCE (INR)' : 'AMOUNT (INR)'}
+                </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono font-bold text-slate-400">₹</span>
                   <input
                     type="number"
+                    step="any"
                     required
-                    min="1"
+                    min={actionType === 'SET' ? '0' : '1'}
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl py-2.5 pl-8 pr-3 font-mono font-bold text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-950 focus:outline-none focus:border-brand-500"
@@ -671,11 +730,17 @@ export const UserBalanceManager: React.FC<UserBalanceManagerProps> = ({
                 type="submit"
                 disabled={isSubmitting}
                 className={`w-full py-2.5 rounded-xl font-bold text-xs text-white shadow-lg transition-colors flex items-center justify-center gap-2 ${
-                  actionType === 'CREDIT' ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20' : 'bg-rose-600 hover:bg-rose-500 shadow-rose-600/20'
+                  actionType === 'CREDIT' 
+                    ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20' 
+                    : actionType === 'DEBIT'
+                    ? 'bg-rose-600 hover:bg-rose-500 shadow-rose-600/20'
+                    : 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/20'
                 }`}
               >
                 {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                <span>Execute {actionType} with Row-Lock</span>
+                <span>
+                  {actionType === 'SET' ? `Set Balance Directly to ₹${amount}` : `Execute ${actionType} with Row-Lock`}
+                </span>
               </button>
             </form>
           </div>

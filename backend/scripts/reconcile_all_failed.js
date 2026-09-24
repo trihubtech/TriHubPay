@@ -174,7 +174,7 @@ async function reconcileAll() {
       if (Math.abs(discrepancy) > 0.01) {
         console.log(`  ⚠️ Discrepancy Detected: ₹${discrepancy > 0 ? '+' : ''}${discrepancy.toFixed(2)} (Excess unearned funds from false refunds)`);
 
-        if (syncWallets) {
+        if (syncWallets && process.argv.includes('--force-overwrite-deposits')) {
           await query('UPDATE users SET current_balance = $1, updated_at = NOW() WHERE id = $2', [mathBalance, u.id]);
           console.log(`  ✨ [CORRECTED] Wallet balance updated to exact ledger figure: ₹${mathBalance.toFixed(2)}`);
         }
@@ -184,12 +184,7 @@ async function reconcileAll() {
       console.log(``);
     }
 
-    if (!syncWallets) {
-      console.log(`💡 To automatically align all retailer wallets to their true mathematical balances (Total Deposits - Total Recharges), run:`);
-      console.log(`   node scripts/reconcile_all_failed.js --sync-wallets\n`);
-    } else {
-      console.log(`🎉 All retailer wallets have been successfully synchronized to true ledger balances!\n`);
-    }
+    console.log(`🎉 Upstream status reconciliation completed successfully!\n`);
 
     process.exit(0);
   } catch (globalErr) {
