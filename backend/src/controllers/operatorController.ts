@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
 import { query } from '../db';
+import { config } from '../config';
 import { upstreamRouter } from '../services/upstream/router';
 
 export interface PlanItem {
@@ -348,15 +350,49 @@ const STANDARD_PLANS: Record<string, PlanItem[]> = {
 export async function getOperatorsList(req: Request, res: Response) {
   try {
     const serviceType = req.query.service_type as string;
-    let queryText = 'SELECT operator_code, operator_name, service_type, retailer_pass_down_rate, is_active FROM commission_matrix WHERE is_active = true';
-    const params: any[] = [];
-
-    if (serviceType) {
-      queryText += ' AND service_type = $1';
-      params.push(serviceType.toUpperCase());
+    
+    // Check if retailer is logged in via Bearer token
+    let userId: string | null = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const decoded = jwt.verify(authHeader.substring(7), config.jwtSecret) as any;
+        if (decoded && decoded.id) {
+          userId = decoded.id;
+        }
+      } catch {}
     }
 
-    queryText += ' ORDER BY service_type, operator_name ASC';
+    let queryText: string;
+    const params: any[] = [];
+
+    if (userId) {
+      queryText = `
+        SELECT 
+          cm.operator_code, 
+          cm.operator_name, 
+          cm.service_type, 
+          COALESCE(uc.custom_pass_down_rate, cm.retailer_pass_down_rate) as retailer_pass_down_rate, 
+          cm.is_active 
+        FROM commission_matrix cm
+        LEFT JOIN user_commissions uc ON uc.operator_code = cm.operator_code AND uc.user_id = $1
+        WHERE cm.is_active = true
+      `;
+      params.push(userId);
+      if (serviceType) {
+        queryText += ' AND cm.service_type = $2';
+        params.push(serviceType.toUpperCase());
+      }
+      queryText += ' ORDER BY cm.service_type, cm.operator_name ASC';
+    } else {
+      queryText = 'SELECT operator_code, operator_name, service_type, retailer_pass_down_rate, is_active FROM commission_matrix WHERE is_active = true';
+      if (serviceType) {
+        queryText += ' AND service_type = $1';
+        params.push(serviceType.toUpperCase());
+      }
+      queryText += ' ORDER BY service_type, operator_name ASC';
+    }
+
     const result = await query(queryText, params);
 
     return res.json({ success: true, data: result.rows });

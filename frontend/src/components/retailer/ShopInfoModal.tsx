@@ -22,7 +22,8 @@ import {
   Lock,
   Eye,
   EyeOff,
-  Key
+  Key,
+  MessageSquarePlus
 } from 'lucide-react';
 import { useLanguage, Language } from '../../context/LanguageContext';
 
@@ -32,6 +33,7 @@ interface ShopInfoModalProps {
   user: User;
   onLogout: () => void;
   onUserUpdated?: (updatedUser: User) => void;
+  onOpenFeedback?: () => void;
 }
 
 export const ShopInfoModal: React.FC<ShopInfoModalProps> = ({
@@ -39,7 +41,8 @@ export const ShopInfoModal: React.FC<ShopInfoModalProps> = ({
   onClose,
   user,
   onLogout,
-  onUserUpdated
+  onUserUpdated,
+  onOpenFeedback
 }) => {
   const { language, setLanguage, t } = useLanguage();
   const [modalTab, setModalTab] = useState<'PROFILE' | 'LANGUAGE' | 'SECURITY'>('PROFILE');
@@ -328,6 +331,20 @@ export const ShopInfoModal: React.FC<ShopInfoModalProps> = ({
                     <Edit3 className="w-4 h-4" />
                     <span>Edit Profile Details</span>
                   </button>
+
+                  {onOpenFeedback && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        onOpenFeedback();
+                      }}
+                      className="w-full py-2.5 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-2"
+                    >
+                      <MessageSquarePlus className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                      <span>Give Feedback / Suggestions</span>
+                    </button>
+                  )}
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-3">

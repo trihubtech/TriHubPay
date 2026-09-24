@@ -366,11 +366,11 @@ export function App() {
                 <button
                   type="button"
                   onClick={() => setIsFeedbackModalOpen(true)}
-                  className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-xs font-semibold transition-colors"
+                  className="flex items-center gap-1 p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border sm:border-slate-200 sm:dark:border-slate-800 text-xs font-semibold transition-colors"
                   title="Send Feedback / Suggestions"
                 >
-                  <MessageSquarePlus className="w-3.5 h-3.5" />
-                  <span>Feedback</span>
+                  <MessageSquarePlus className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  <span className="hidden sm:inline">Feedback</span>
                 </button>
               </>
             )}
@@ -898,6 +898,10 @@ export function App() {
           user={currentUser}
           onLogout={() => setIsSignOutConfirmOpen(true)}
           onUserUpdated={handleUserUpdated}
+          onOpenFeedback={() => {
+            setIsShopInfoOpen(false);
+            setIsFeedbackModalOpen(true);
+          }}
         />
       )}
 

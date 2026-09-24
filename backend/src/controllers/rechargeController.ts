@@ -406,16 +406,19 @@ export async function getRetailerCommissionRates(req: Request, res: Response) {
 
     const formatted = ratesRes.rows.map(row => {
       let rate: number;
-      if (row.is_custom && row.custom_pass_down_rate !== null && row.custom_pass_down_rate !== undefined) {
-        // Individual custom override for this shopkeeper (e.g. 0.3%)
-        rate = parseFloat(String(row.custom_pass_down_rate));
+      const customVal = row.custom_pass_down_rate !== undefined && row.custom_pass_down_rate !== null 
+        ? row.custom_pass_down_rate 
+        : (row.is_custom ? row.commission_rate : undefined);
+
+      if (customVal !== null && customVal !== undefined && !isNaN(parseFloat(String(customVal)))) {
+        // Individual custom override for this shopkeeper (e.g. 3.5% or 0.3%)
+        rate = parseFloat(String(customVal));
       } else {
-        // Default 50% split of NeroPay wholesale rate (e.g. 0.50% for Jio, 1.75% for Vi)
+        // Default 50% split of wholesale rate (e.g. 0.50% for Jio, 1.75% for Vi)
         const master = parseFloat(String(row.neropay_master_rate ?? 1.0));
         const true50Rate = Number((master * 0.50).toFixed(2));
         const configuredRate = parseFloat(String(row.retailer_pass_down_rate ?? 0));
-        // Retailer rate must never equal or exceed master upstream rate
-        rate = (configuredRate > 0 && configuredRate < master) ? configuredRate : true50Rate;
+        rate = (configuredRate > 0 && configuredRate <= master) ? configuredRate : true50Rate;
       }
 
       return {
@@ -425,7 +428,7 @@ export async function getRetailerCommissionRates(req: Request, res: Response) {
         commission_type: row.commission_type,
         commission_rate: rate,
         retailer_pass_down_rate: rate,
-        is_custom: Boolean(row.is_custom)
+        is_custom: false // Removed custom text as requested
       };
     });
 
@@ -456,6 +459,7 @@ export async function getMyInsights(req: Request, res: Response) {
   try {
     const retailerId = req.user!.id;
     const period = (req.query.period as string) || 'today';
+    const isAll = period === 'all';
 
     const { startDate, endDate } = getISTDateRange(period);
 
@@ -475,18 +479,21 @@ export async function getMyInsights(req: Request, res: Response) {
     const serviceEarnings: Record<string, number> = { MOBILE: 0, DTH: 0, ELECTRICITY: 0 };
 
     for (const t of txRes.rows) {
-      const txTime = new Date(t.created_at).getTime();
-      if (txTime < startDate.getTime() || txTime > endDate.getTime()) {
-        continue;
+      if (!isAll) {
+        const txTime = new Date(t.created_at).getTime();
+        if (isNaN(txTime) || txTime < startDate.getTime() || txTime > endDate.getTime()) {
+          continue;
+        }
       }
 
       totalTxs++;
       const code = t.operator_code || 'OTHER';
       if (!opMap[code]) opMap[code] = { earnings: 0, volume: 0, count: 0 };
 
-      if (t.status === 'SUCCESS') {
-        const comm = parseFloat(t.retailer_commission || '0');
-        const vol = parseFloat(t.face_value || '0');
+      const statusUpper = String(t.status || '').toUpperCase();
+      if (statusUpper === 'SUCCESS') {
+        const comm = parseFloat(String(t.retailer_commission || '0')) || 0;
+        const vol = parseFloat(String(t.face_value || '0')) || 0;
         totalVolume += vol;
         totalCommission += comm;
         successCount++;
@@ -497,7 +504,7 @@ export async function getMyInsights(req: Request, res: Response) {
 
         const sType = t.service_type || 'MOBILE';
         serviceEarnings[sType] = (serviceEarnings[sType] || 0) + comm;
-      } else if (t.status === 'FAILED') {
+      } else if (statusUpper === 'FAILED') {
         failedCount++;
       } else {
         pendingCount++;

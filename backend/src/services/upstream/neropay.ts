@@ -67,7 +67,7 @@ export class NeroPayClient {
   private plansUrl: string;
   private token: string;
   private timeoutMs: number;
-  private isSandbox: boolean;
+  public isSandbox: boolean;
 
   constructor() {
     this.baseUrl = config.neroPay.baseUrl;

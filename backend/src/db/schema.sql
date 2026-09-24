@@ -142,3 +142,34 @@ CREATE TABLE IF NOT EXISTS password_reset_otps (
 
 CREATE INDEX IF NOT EXISTS idx_pwd_reset_lookup ON password_reset_otps(user_id, otp_code, used);
 
+-- 9. PLATFORM BROADCAST NOTIFICATIONS TABLE
+CREATE TABLE IF NOT EXISTS platform_notifications (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    title VARCHAR(200) NOT NULL,
+    message TEXT NOT NULL,
+    type VARCHAR(50) NOT NULL DEFAULT 'UPDATE' CHECK (type IN ('OFFER', 'UPDATE', 'FEATURE', 'ALERT')),
+    target_type VARCHAR(20) NOT NULL DEFAULT 'ALL' CHECK (target_type IN ('ALL', 'SELECTED')),
+    target_user_ids JSONB DEFAULT '[]'::jsonb,
+    created_by VARCHAR(150) NOT NULL DEFAULT 'Admin',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp()
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_created ON platform_notifications(created_at DESC);
+
+-- 10. USER FEEDBACKS & SUGGESTIONS TABLE
+CREATE TABLE IF NOT EXISTS user_feedbacks (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    user_name VARCHAR(150),
+    user_phone VARCHAR(50),
+    organization_name VARCHAR(150),
+    category VARCHAR(50) NOT NULL DEFAULT 'SUGGESTION' CHECK (category IN ('ISSUE', 'FEATURE', 'SERVICE', 'SUGGESTION', 'OTHER')),
+    rating INT NOT NULL DEFAULT 5 CHECK (rating >= 1 AND rating <= 5),
+    message TEXT NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'NEW' CHECK (status IN ('NEW', 'REVIEWED', 'RESOLVED')),
+    admin_response TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp()
+);
+
+CREATE INDEX IF NOT EXISTS idx_feedbacks_created ON user_feedbacks(created_at DESC);

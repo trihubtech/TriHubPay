@@ -120,6 +120,8 @@ const memoryStore = {
   transactions: [] as any[],
   wallet_topups: [] as any[],
   password_reset_otps: [] as any[],
+  platform_notifications: [] as any[],
+  user_feedbacks: [] as any[],
 
   system_settings: {
     failover_mode: { mode: 'AUTO', timeout_ms: 8000 },
@@ -168,6 +170,8 @@ function loadPersistentStore() {
       if (parsed.transactions) memoryStore.transactions = parsed.transactions;
       if (parsed.wallet_topups) memoryStore.wallet_topups = parsed.wallet_topups;
       if (parsed.user_commissions) memoryStore.user_commissions = parsed.user_commissions;
+      if (parsed.platform_notifications) memoryStore.platform_notifications = parsed.platform_notifications;
+      if (parsed.user_feedbacks) memoryStore.user_feedbacks = parsed.user_feedbacks;
       if (parsed.commission_matrix && Array.isArray(parsed.commission_matrix)) {
         // Merge persisted rates with baseline matrix to guarantee all new operators and columns exist
         const loadedCodes = new Set(parsed.commission_matrix.map((c: any) => c.operator_code));
@@ -280,7 +284,35 @@ export async function query<T extends QueryResultRow = any>(
           created_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp()
         );
         CREATE INDEX IF NOT EXISTS idx_pwd_reset_lookup ON password_reset_otps(user_id, otp_code, used);
-      `).catch(() => {});
+
+        CREATE TABLE IF NOT EXISTS platform_notifications (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          title VARCHAR(200) NOT NULL,
+          message TEXT NOT NULL,
+          type VARCHAR(50) NOT NULL DEFAULT 'UPDATE' CHECK (type IN ('OFFER', 'UPDATE', 'FEATURE', 'ALERT')),
+          target_type VARCHAR(20) NOT NULL DEFAULT 'ALL' CHECK (target_type IN ('ALL', 'SELECTED')),
+          target_user_ids JSONB DEFAULT '[]'::jsonb,
+          created_by VARCHAR(150) NOT NULL DEFAULT 'Admin',
+          created_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp()
+        );
+        CREATE INDEX IF NOT EXISTS idx_notifications_created ON platform_notifications(created_at DESC);
+
+        CREATE TABLE IF NOT EXISTS user_feedbacks (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+          user_name VARCHAR(150),
+          user_phone VARCHAR(50),
+          organization_name VARCHAR(150),
+          category VARCHAR(50) NOT NULL DEFAULT 'SUGGESTION' CHECK (category IN ('ISSUE', 'FEATURE', 'SERVICE', 'SUGGESTION', 'OTHER')),
+          rating INT NOT NULL DEFAULT 5 CHECK (rating >= 1 AND rating <= 5),
+          message TEXT NOT NULL,
+          status VARCHAR(20) NOT NULL DEFAULT 'NEW' CHECK (status IN ('NEW', 'REVIEWED', 'RESOLVED')),
+          admin_response TEXT,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp()
+        );
+        CREATE INDEX IF NOT EXISTS idx_feedbacks_created ON user_feedbacks(created_at DESC);
+      `).catch((err: any) => console.warn('[DATABASE ENGINE] Schema init check notice:', err.message));
     } else {
       console.log('ℹ️ [DATABASE ENGINE] PostgreSQL is offline on port 5432. Active: High-Fidelity In-Memory Store with TriHub Technologies seed data.');
     }
@@ -515,6 +547,7 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
         ...c,
         commission_rate: safeRate,
         retailer_pass_down_rate: safeRate,
+        custom_pass_down_rate: userCustom ? userCustom.custom_pass_down_rate : null,
         is_custom: Boolean(userCustom)
       };
     });
@@ -712,6 +745,12 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
     }
     rows = [];
   }
+  // 17. SELECT ... FROM transactions WHERE id = $1 OR internal_tx_id = $1
+  else if (/SELECT .* FROM transactions WHERE (t\.)?id = \$1/i.test(cleanSql) || /SELECT .* FROM transactions WHERE (t\.)?internal_tx_id = \$1/i.test(cleanSql)) {
+    const idParam = params[0];
+    const match = memoryStore.transactions.find(t => t.id === idParam || t.internal_tx_id === idParam || (t.id && String(t.id) === String(idParam)));
+    rows = match ? [{ ...match, final_cost_billed: String(match.final_cost_billed || '0') }] : [];
+  }
   // 17a. SELECT ... FROM transactions WHERE internal_tx_id
   else if (/SELECT .* FROM transactions WHERE (internal_tx_id = \$1|upstream_tx_id = \$2)/i.test(cleanSql)) {
     const targetRef = params[0];
@@ -722,6 +761,27 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
   // 17b. SELECT ... FROM transactions WHERE retailer_id = $1
   else if (/SELECT .* FROM transactions WHERE retailer_id = \$1/i.test(cleanSql)) {
     rows = memoryStore.transactions.filter(t => t.retailer_id === params[0]);
+  }
+  // 17c. SELECT ... FROM transactions WHERE t.internal_tx_id ILIKE $1 ... (On-Demand Lookup)
+  else if (/SELECT .* FROM transactions.*ILIKE/i.test(cleanSql)) {
+    const searchRaw = String(params[0] || '').replace(/%/g, '').toLowerCase().trim();
+    rows = memoryStore.transactions.filter(t => {
+      if (!searchRaw) return true;
+      return (
+        (t.internal_tx_id && t.internal_tx_id.toLowerCase().includes(searchRaw)) ||
+        (t.target_account_number && String(t.target_account_number).includes(searchRaw)) ||
+        (t.upstream_operator_ref && t.upstream_operator_ref.toLowerCase().includes(searchRaw)) ||
+        (t.id && String(t.id).toLowerCase().includes(searchRaw))
+      );
+    }).map(t => {
+      const u = memoryStore.users.find(usr => usr.id === t.retailer_id);
+      return {
+        ...t,
+        organization_name: u?.organization_name || 'Retailer',
+        owner_name: u?.owner_name || 'Retailer',
+        retailer_phone: u?.phone || ''
+      };
+    });
   }
   // 18. SELECT ... FROM transactions
   else if (/SELECT .* FROM transactions/i.test(cleanSql)) {
@@ -944,6 +1004,75 @@ function executeInMemoryQuery<T extends QueryResultRow = any>(sql: string, param
     const otp = memoryStore.password_reset_otps.find(o => o.id === targetId || o.user_id === targetId);
     if (otp) {
       otp.used = true;
+      savePersistentStore();
+    }
+    rows = [];
+  }
+  // 27. platform_notifications
+  else if (/INSERT INTO platform_notifications/i.test(cleanSql)) {
+    const notif = {
+      id: params[0] || `notif-${Date.now()}`,
+      title: params[1],
+      message: params[2],
+      type: params[3] || 'UPDATE',
+      target_type: params[4] || 'ALL',
+      target_user_ids: typeof params[5] === 'string' ? JSON.parse(params[5] || '[]') : (params[5] || []),
+      created_by: params[6] || 'Admin',
+      created_at: new Date().toISOString()
+    };
+    memoryStore.platform_notifications.unshift(notif);
+    savePersistentStore();
+    rows = [notif];
+  }
+  else if (/SELECT .* FROM platform_notifications/i.test(cleanSql)) {
+    let list = [...memoryStore.platform_notifications];
+    if (params && params[0]) {
+      try {
+        const parsed = typeof params[0] === 'string' ? JSON.parse(params[0]) : params[0];
+        const targetId = Array.isArray(parsed) ? parsed[0] : parsed;
+        list = list.filter(n => n.target_type === 'ALL' || (Array.isArray(n.target_user_ids) && n.target_user_ids.includes(targetId)));
+      } catch {
+        // keep list
+      }
+    }
+    rows = list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
+  else if (/DELETE FROM platform_notifications/i.test(cleanSql)) {
+    const id = params[0];
+    memoryStore.platform_notifications = memoryStore.platform_notifications.filter(n => n.id !== id);
+    savePersistentStore();
+    rows = [];
+  }
+  // 28. user_feedbacks
+  else if (/INSERT INTO user_feedbacks/i.test(cleanSql)) {
+    const fb = {
+      id: params[0] || `fb-${Date.now()}`,
+      user_id: params[1],
+      user_name: params[2],
+      user_phone: params[3],
+      organization_name: params[4],
+      category: params[5] || 'SUGGESTION',
+      rating: parseInt(String(params[6] || '5'), 10),
+      message: params[7],
+      status: 'NEW',
+      admin_response: null,
+      created_at: new Date().toISOString()
+    };
+    memoryStore.user_feedbacks.unshift(fb);
+    savePersistentStore();
+    rows = [fb];
+  }
+  else if (/SELECT .* FROM user_feedbacks/i.test(cleanSql)) {
+    rows = [...memoryStore.user_feedbacks].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
+  else if (/UPDATE user_feedbacks/i.test(cleanSql)) {
+    const status = params[0];
+    const adminResp = params[1];
+    const id = params[2];
+    const match = memoryStore.user_feedbacks.find(f => f.id === id);
+    if (match) {
+      match.status = status;
+      match.admin_response = adminResp;
       savePersistentStore();
     }
     rows = [];

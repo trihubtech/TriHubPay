@@ -913,9 +913,16 @@ export async function resetSingleRetailerBalance(req: Request, res: Response) {
 export async function checkTransactionStatus(req: Request, res: Response) {
   try {
     const { id } = req.params;
-    const txRes = await query('SELECT * FROM transactions WHERE id = $1', [id]);
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    let txRes;
+    if (isUuid) {
+      txRes = await query('SELECT * FROM transactions WHERE id = $1 OR internal_tx_id = $1 LIMIT 1', [id]);
+    } else {
+      txRes = await query('SELECT * FROM transactions WHERE internal_tx_id = $1 OR upstream_operator_ref = $1 LIMIT 1', [id]);
+    }
+
     if (txRes.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Transaction not found' });
+      return res.status(404).json({ success: false, message: `Transaction '${id}' not found` });
     }
 
     const tx = txRes.rows[0];
@@ -936,7 +943,30 @@ export async function checkTransactionStatus(req: Request, res: Response) {
     const queryRef = tx.internal_tx_id || tx.upstream_operator_ref;
     const statusRes = await neroClient.checkStatus(queryRef);
 
-    if (statusRes.status === 'SUCCESS') {
+    // If transaction was already FAILED or REFUNDED locally:
+    if (tx.status === 'FAILED' || tx.status === 'REFUNDED') {
+      // In sandbox mode or if upstream simulated, NEVER turn a failed transaction into SUCCESS
+      if (neroClient.isSandbox || statusRes.rawResponse?.simulated) {
+        return res.json({
+          success: true,
+          status: 'FAILED',
+          message: tx.failure_reason || 'Transaction is confirmed FAILED.',
+          upstream_ref: tx.upstream_operator_ref,
+          refunded: false
+        });
+      }
+      if (statusRes.status === 'FAILED') {
+        return res.json({
+          success: true,
+          status: 'FAILED',
+          message: statusRes.message || tx.failure_reason || 'Transaction confirmed FAILED at upstream.',
+          upstream_ref: statusRes.upstreamRef || tx.upstream_operator_ref,
+          refunded: false
+        });
+      }
+    }
+
+    if (statusRes.status === 'SUCCESS' && !neroClient.isSandbox) {
       await query(
         `UPDATE transactions SET 
           status = 'SUCCESS',

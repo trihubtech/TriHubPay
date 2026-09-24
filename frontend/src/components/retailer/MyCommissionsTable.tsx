@@ -179,13 +179,8 @@ export const MyCommissionsTable: React.FC = () => {
                       <div className="flex items-center gap-2.5 min-w-0">
                         <OperatorIcon operatorCode={item.operator_code} size="sm" />
                         <div className="min-w-0">
-                          <div className="font-bold text-xs text-slate-900 dark:text-white truncate flex items-center gap-1.5">
-                            <span>{formatOperatorName(item.operator_code, item.operator_name)}</span>
-                            {item.is_custom && (
-                              <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
-                                Custom
-                              </span>
-                            )}
+                          <div className="font-bold text-xs text-slate-900 dark:text-white truncate">
+                            {formatOperatorName(item.operator_code, item.operator_name)}
                           </div>
                           <div className="text-[10px] text-slate-400 font-mono">
                             {item.operator_code} • {item.service_type}
@@ -262,14 +257,8 @@ export const MyCommissionsTable: React.FC = () => {
                           <div className="flex items-center gap-2.5">
                             <OperatorIcon operatorCode={item.operator_code} size="sm" />
                             <div>
-                              <div className="font-bold flex items-center gap-1.5">
-                                <span>{formatOperatorName(item.operator_code, item.operator_name)}</span>
-                                {item.is_custom && (
-                                  <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center gap-0.5">
-                                    <Sparkles className="w-2.5 h-2.5" />
-                                    <span>Special Shop Rate</span>
-                                  </span>
-                                )}
+                              <div className="font-bold text-slate-900 dark:text-white">
+                                {formatOperatorName(item.operator_code, item.operator_name)}
                               </div>
                               <div className="text-[10px] text-slate-400 font-mono">
                                 {item.operator_code}
