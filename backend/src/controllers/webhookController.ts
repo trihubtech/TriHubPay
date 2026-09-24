@@ -150,28 +150,75 @@ export async function handleNeroPayWebhook(req: Request, res: Response) {
 
     const tx = txRes.rows[0];
 
-    // Idempotency: Avoid double mutating already terminal transactions
-    if (tx.status === 'SUCCESS' || tx.status === 'REFUNDED') {
-      console.log(`[NEROPAY CALLBACK IDEMPOTENT] Tx ${tx.internal_tx_id} already in terminal state ${tx.status}.`);
+    // Idempotency: If already confirmed SUCCESS, return immediately
+    if (tx.status === 'SUCCESS' && rawStatus === 'SUCCESS') {
+      console.log(`[NEROPAY CALLBACK IDEMPOTENT] Tx ${tx.internal_tx_id} already in terminal state SUCCESS.`);
       return res.status(200).send('SUCCESS');
     }
 
     if (rawStatus === 'SUCCESS') {
-      await query(
-        `UPDATE transactions SET 
-          status = 'SUCCESS',
-          upstream_operator_ref = COALESCE($1, upstream_operator_ref),
-          upstream_tx_id = COALESCE($2, upstream_tx_id),
-          upstream_response_raw = $3,
-          updated_at = clock_timestamp()
-         WHERE id = $4`,
-        [operatorRef || null, neroTxnId || null, JSON.stringify(params), tx.id]
-      );
+      const billedAmount = parseFloat(tx.final_cost_billed || '0');
+
+      // If this transaction was previously marked FAILED or REFUNDED, recover the funds
+      if ((tx.status === 'FAILED' || tx.status === 'REFUNDED') && billedAmount > 0) {
+        console.log(`[NEROPAY CALLBACK RECOVERY] Tx ${tx.internal_tx_id} succeeded after being marked ${tx.status}. Recovering refunded balance...`);
+        await withTransaction(async (client) => {
+          const uRes = await client.query('SELECT current_balance FROM users WHERE id = $1 FOR UPDATE', [tx.retailer_id]);
+          if (uRes.rows.length > 0) {
+            const curBal = parseFloat(uRes.rows[0].current_balance);
+            const newBal = Number((curBal - billedAmount).toFixed(4));
+            await client.query('UPDATE users SET current_balance = $1, updated_at = clock_timestamp() WHERE id = $2', [newBal, tx.retailer_id]);
+            await client.query(
+              `INSERT INTO wallet_ledger (
+                user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
+              ) VALUES ($1, $2, 'DEBIT', $3, $4, $5, $6)`,
+              [
+                tx.retailer_id,
+                billedAmount,
+                curBal,
+                newBal,
+                `RECON_${tx.internal_tx_id}`,
+                `Reconciliation debit: Upstream callback confirmed SUCCESS (Ref: ${operatorRef || neroTxnId})`
+              ]
+            );
+          }
+
+          await client.query(
+            `UPDATE transactions SET 
+              status = 'SUCCESS',
+              upstream_operator_ref = COALESCE($1, upstream_operator_ref),
+              upstream_tx_id = COALESCE($2, upstream_tx_id),
+              upstream_response_raw = $3,
+              failure_reason = NULL,
+              updated_at = clock_timestamp()
+             WHERE id = $4`,
+            [operatorRef || null, neroTxnId || null, JSON.stringify(params), tx.id]
+          );
+        });
+      } else {
+        await query(
+          `UPDATE transactions SET 
+            status = 'SUCCESS',
+            upstream_operator_ref = COALESCE($1, upstream_operator_ref),
+            upstream_tx_id = COALESCE($2, upstream_tx_id),
+            upstream_response_raw = $3,
+            failure_reason = NULL,
+            updated_at = clock_timestamp()
+           WHERE id = $4`,
+          [operatorRef || null, neroTxnId || null, JSON.stringify(params), tx.id]
+        );
+      }
+
       console.log(`[NEROPAY CALLBACK SUCCESS] Transaction ${tx.internal_tx_id} confirmed SUCCESS.`);
       return res.status(200).send('SUCCESS');
     }
 
     if (rawStatus === 'FAILED' || rawStatus === 'REFUND') {
+      if (tx.status === 'REFUNDED') {
+        console.log(`[NEROPAY CALLBACK IDEMPOTENT] Tx ${tx.internal_tx_id} already refunded.`);
+        return res.status(200).send('SUCCESS');
+      }
+
       console.warn(`[NEROPAY CALLBACK FAIL/REFUND] Tx ${tx.internal_tx_id} marked ${rawStatus}. Processing refund...`);
 
       const billedAmount = parseFloat(tx.final_cost_billed);

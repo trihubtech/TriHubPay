@@ -78,7 +78,7 @@ export class NeroPayClient {
     this.billFetchUrl = config.neroPay.billFetchUrl;
     this.plansUrl = config.neroPay.plansUrl;
     this.token = config.neroPay.token || config.neroPay.apiKey;
-    this.timeoutMs = config.neroPay.timeoutMs || 8000; // Strict 8-second timeout
+    this.timeoutMs = Math.max(35000, config.neroPay.timeoutMs || 35000); // Enforce minimum 35s for Indian telecom operator handshakes
     this.isSandbox = config.neroPay.isSandbox;
   }
 
@@ -99,45 +99,24 @@ export class NeroPayClient {
       return this.executeSandboxSimulation(payload);
     }
 
-    // 2. Production HTTP Request with strict 8-second timeout
+    const targetAmount = Math.round(payload.faceValue);
+    const primaryOpCode = NEROPAY_OPERATOR_CODES[payload.operatorCode] || payload.operatorCode;
+    const targetUrl = this.apiUrl || `${this.baseUrl}/apiservice/utility_payments`;
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
 
-    const targetAmount = Math.round(payload.faceValue);
-    const primaryOpCode = NEROPAY_OPERATOR_CODES[payload.operatorCode] || payload.operatorCode;
-    
-    // Candidates to test in order:
-    // 1. /apiservice/utility_payments with JIO
-    // 2. /apiservice/recharge with JIO
-    // 3. /apiservice/utility_payments with Jio
-    // 4. /apiservice/recharge with Jio
-    const attempts = [
-      { url: `${this.baseUrl}/apiservice/utility_payments`, op: primaryOpCode },
-      { url: `${this.baseUrl}/apiservice/recharge`, op: primaryOpCode }
-    ];
-    if (primaryOpCode === 'JIO') {
-      attempts.push({ url: `${this.baseUrl}/apiservice/utility_payments`, op: 'Jio' });
-      attempts.push({ url: `${this.baseUrl}/apiservice/recharge`, op: 'Jio' });
-    }
+    try {
+      const queryParams = new URLSearchParams({
+        token: this.token,
+        customer_id: String(payload.targetAccountNumber),
+        operatorcode: primaryOpCode,
+        amount: String(targetAmount),
+        refid: payload.internalTxId
+      });
 
-    let lastError: Error | null = null;
-
-    for (let i = 0; i < attempts.length; i++) {
-      const { url: targetUrl, op: opCode } = attempts[i];
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
-
-      try {
-        const queryParams = new URLSearchParams({
-          token: this.token,
-          customer_id: String(payload.targetAccountNumber),
-          operatorcode: opCode,
-          amount: String(targetAmount),
-          refid: payload.internalTxId
-        });
-
-        const requestUrl = `${targetUrl}?${queryParams.toString()}`;
-        console.log(`[NEROPAY PRODUCTION REQUEST #${i + 1}] Dispatching GET to ${targetUrl} (op: ${opCode}) for ref: ${payload.internalTxId}`);
+      const requestUrl = `${targetUrl}?${queryParams.toString()}`;
+      console.log(`[NEROPAY PRODUCTION REQUEST] Dispatching GET to ${targetUrl} (op: ${primaryOpCode}) for ref: ${payload.internalTxId} (Timeout: ${this.timeoutMs}ms)`);
 
         const response = await fetch(requestUrl, {
           method: 'GET',
@@ -156,17 +135,15 @@ export class NeroPayClient {
         }
 
         const json = await response.json() as any;
-        console.log(`[NEROPAY PRODUCTION RESPONSE #${i + 1}] Ref: ${payload.internalTxId} | Result:`, JSON.stringify(json));
+        console.log(`[NEROPAY PRODUCTION RESPONSE] Ref: ${payload.internalTxId} | Result:`, JSON.stringify(json));
 
         const statusStr = String(json.status || '').toUpperCase();
         const msgStr = String(json.message || '');
         const isSuccess = statusStr === 'SUCCESS' || json.code === '00';
         const isPending = statusStr === 'PENDING' || json.code === '01';
 
-        // If this endpoint returned "NO API ACTIVE ON THIS OPERATOR", try the next candidate
-        if (msgStr.toLowerCase().includes('no api active') && i < attempts.length - 1) {
-          console.warn(`[NEROPAY RETRY] ${targetUrl} with op ${opCode} returned "${msgStr}", trying next endpoint...`);
-          continue;
+        if (msgStr.toLowerCase().includes('no api active')) {
+          throw new Error(`NeroPay Operator Inactive: ${msgStr}`);
         }
 
         // Digital voucher parsing (for Google Play, OTT, etc.)
@@ -231,16 +208,8 @@ export class NeroPayClient {
           }
           throw new Error(`NEROPAY_TIMEOUT: Request timed out after ${this.timeoutMs}ms threshold`);
         }
-        lastError = err;
-        // If not the last attempt and error mentions "no api active", continue
-        if (err.message && err.message.toLowerCase().includes('no api active') && i < attempts.length - 1) {
-          continue;
-        }
         throw err;
       }
-    }
-
-    throw lastError || new Error('NeroPay dispatch failed');
   }
 
   /**
@@ -368,6 +337,42 @@ export class NeroPayClient {
       complaintId: json.complaint_id,
       raw: json
     };
+  }
+
+  /**
+   * Fetch Live Operators from NeroPay
+   * Endpoint: GET /apiservice/operator_list?token=...
+   * Conforms to https://docs.neropay.co.in/#operators
+   */
+  async fetchOperators(): Promise<any[]> {
+    if (this.isSandbox) {
+      return Object.entries(NEROPAY_OPERATOR_CODES).map(([k, v]) => ({
+        operator_name: k,
+        operator_code: v,
+        service_type: 'MOBILE'
+      }));
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
+
+    try {
+      const url = `${this.baseUrl}/apiservice/operator_list?token=${encodeURIComponent(this.token)}`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) throw new Error(`NeroPay Operator List HTTP ${response.status}`);
+      const json = await response.json() as any;
+      return Array.isArray(json) ? json : (json.data || json.operators || []);
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      console.warn('[NEROPAY OPERATOR LIST ERROR]', err.message);
+      return [];
+    }
   }
 
   /**

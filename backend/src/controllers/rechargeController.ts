@@ -54,6 +54,25 @@ export async function executeRecharge(req: Request, res: Response) {
     const comm = await calculateCommission(retailerId, operator_code, face_value);
     const billedCost = comm.finalCostBilled; // Net discounted amount debited upfront
 
+    // 2b. Pre-flight Gateway Balance Verification:
+    // Prevent starting orders if NeroPay's distributor wallet does not have enough balance
+    const preNeroClient = new NeroPayClient();
+    if (!preNeroClient.isSandbox) {
+      try {
+        const liveBal = await preNeroClient.checkBalance();
+        if (liveBal && liveBal.main !== undefined && liveBal.main < face_value) {
+          if (dedupKey) releaseDedupKey(dedupKey);
+          return res.status(503).json({
+            success: false,
+            code: 'GATEWAY_BALANCE_LOW',
+            message: `Platform gateway balance is temporarily low (Available: ₹${liveBal.main.toFixed(2)}, Required: ₹${face_value}). The transaction was prevented to protect your wallet. Please try again shortly or contact TriHubPay Admin.`
+          });
+        }
+      } catch (balErr: any) {
+        console.warn('[RECHARGE PRE-CHECK] Could not query live NeroPay balance:', balErr.message);
+      }
+    }
+
     let transactionDbId: string;
     let balanceBefore: number;
     let balanceAfter: number;
@@ -210,104 +229,136 @@ export async function executeRecharge(req: Request, res: Response) {
         }
       });
     } catch (upstreamError: any) {
-      console.error(`[TRANSACTION ERROR ${internalTxId}] Exception during recharge execution:`, upstreamError.message);
+      console.error(`[TRANSACTION TIMEOUT/ERROR ${internalTxId}] Exception during recharge execution:`, upstreamError.message);
 
-      // PRE-REFUND SAFETY CHECK:
-      // If an HTTP timeout or network hiccup happened, NeroPay might have ALREADY executed the recharge successfully!
-      // Double check upstream status before issuing any wallet refund!
-      try {
-        const neroClient = new NeroPayClient();
-        if (!neroClient.isSandbox) {
+      // PRE-REFUND SAFETY ENGINE (FINTECH-GRADE ZERO-LOSS PROTOCOL):
+      // Indian telecom operator switches often take 12-25 seconds to return the final UTR.
+      // If an HTTP timeout or network drop happens, the operator may ALREADY be processing the recharge.
+      // NEVER blindly refund on timeout! Refunding while upstream completes causes double loss (free recharge + free refund).
+      let liveCheckStatus: 'SUCCESS' | 'PENDING' | 'FAILED' | 'UNKNOWN' = 'UNKNOWN';
+      let operatorRef: string | null = null;
+      let rawRescue: any = null;
+
+      const neroClient = new NeroPayClient();
+      if (!neroClient.isSandbox) {
+        // Wait 3.5 seconds for telecom switch state settlement
+        await new Promise(r => setTimeout(r, 3500));
+
+        // Query status check
+        try {
+          console.log(`[STATUS VERIFY] Querying NeroPay live status for ${internalTxId}...`);
           const liveCheck = await neroClient.checkStatus(internalTxId);
-          if (liveCheck.status === 'SUCCESS') {
-            console.log(`[PRE-REFUND RESCUE SUCCESS] ${internalTxId} is confirmed SUCCESS by NeroPay! Operator Ref: ${liveCheck.upstreamRef}`);
-            await query(
-              `UPDATE transactions SET 
-                status = 'SUCCESS',
-                upstream_api_used = 'NEROPAY',
-                upstream_operator_ref = $1,
-                upstream_response_raw = $2,
-                failure_reason = NULL,
-                updated_at = clock_timestamp()
-               WHERE id = $3`,
-              [liveCheck.upstreamRef || null, JSON.stringify(liveCheck.rawResponse), transactionDbId]
-            );
-
-            if (dedupKey) releaseDedupKey(dedupKey);
-
-            return res.status(200).json({
-              success: true,
-              message: liveCheck.message || 'Transaction completed successfully via NeroPay',
-              data: {
-                transaction_id: internalTxId,
-                status: 'SUCCESS',
-                service_type: service_type,
-                operator_name: comm.operatorName,
-                operator_code: comm.operatorCode,
-                target_account: target_account_number,
-                face_value: face_value,
-                retailer_commission_earned: comm.retailerCommission,
-                retailer_commission_rate: comm.retailerPassDownRate,
-                final_cost_debited: billedCost,
-                upstream_api_used: 'NEROPAY',
-                upstream_operator_ref: liveCheck.upstreamRef,
-                remaining_wallet_balance: balanceAfter,
-                did_failover: false,
-                is_digital_voucher: false,
-                timestamp: new Date().toISOString()
-              }
-            });
-          } else if (liveCheck.status === 'PENDING') {
-            console.log(`[PRE-REFUND RESCUE PENDING] ${internalTxId} is PENDING at operator. Will not refund.`);
-            await query(
-              `UPDATE transactions SET 
-                status = 'PENDING',
-                upstream_api_used = 'NEROPAY',
-                upstream_operator_ref = $1,
-                upstream_response_raw = $2,
-                updated_at = clock_timestamp()
-               WHERE id = $3`,
-              [liveCheck.upstreamRef || null, JSON.stringify(liveCheck.rawResponse), transactionDbId]
-            );
-
-            if (dedupKey) releaseDedupKey(dedupKey);
-
-            return res.status(200).json({
-              success: true,
-              message: liveCheck.message || 'Transaction is under process at operator',
-              data: {
-                transaction_id: internalTxId,
-                status: 'PENDING',
-                service_type: service_type,
-                operator_name: comm.operatorName,
-                operator_code: comm.operatorCode,
-                target_account: target_account_number,
-                face_value: face_value,
-                retailer_commission_earned: comm.retailerCommission,
-                retailer_commission_rate: comm.retailerPassDownRate,
-                final_cost_debited: billedCost,
-                upstream_api_used: 'NEROPAY',
-                upstream_operator_ref: liveCheck.upstreamRef,
-                remaining_wallet_balance: balanceAfter,
-                did_failover: false,
-                is_digital_voucher: false,
-                timestamp: new Date().toISOString()
-              }
-            });
+          if (liveCheck) {
+            liveCheckStatus = liveCheck.status;
+            operatorRef = liveCheck.upstreamRef || null;
+            rawRescue = liveCheck.rawResponse;
           }
+        } catch (rescueErr: any) {
+          console.warn(`[STATUS VERIFY NOTICE] Could not verify status immediately:`, rescueErr.message);
         }
-      } catch (rescueErr: any) {
-        console.warn(`[PRE-REFUND RESCUE CHECK NOTICE] Could not verify live status:`, rescueErr.message);
       }
 
-      // 5. STEP 3: AUTOMATED CLEANUP ROLLBACK SYSTEM (ACID Rollback)
-      // If NeroPay confirmed FAILED (or could not process), return deducted balance to retailer wallet
-      console.error(`[TRANSACTION FAILED ${internalTxId}] Initiating atomic refund rollback:`, upstreamError.message);
+      // CASE 1: NeroPay confirmed SUCCESS!
+      if (liveCheckStatus === 'SUCCESS') {
+        console.log(`[RESCUE SUCCESS] ${internalTxId} is confirmed SUCCESS by NeroPay! Operator Ref: ${operatorRef}`);
+        await query(
+          `UPDATE transactions SET 
+            status = 'SUCCESS',
+            upstream_api_used = 'NEROPAY',
+            upstream_operator_ref = $1,
+            upstream_response_raw = $2,
+            failure_reason = NULL,
+            updated_at = clock_timestamp()
+           WHERE id = $3`,
+          [operatorRef, JSON.stringify(rawRescue), transactionDbId]
+        );
+
+        if (dedupKey) releaseDedupKey(dedupKey);
+
+        return res.status(200).json({
+          success: true,
+          message: 'Transaction completed successfully at operator',
+          data: {
+            transaction_id: internalTxId,
+            status: 'SUCCESS',
+            service_type: service_type,
+            operator_name: comm.operatorName,
+            operator_code: comm.operatorCode,
+            target_account: target_account_number,
+            face_value: face_value,
+            retailer_commission_earned: comm.retailerCommission,
+            retailer_commission_rate: comm.retailerPassDownRate,
+            final_cost_debited: billedCost,
+            upstream_api_used: 'NEROPAY',
+            upstream_operator_ref: operatorRef,
+            remaining_wallet_balance: balanceAfter,
+            did_failover: false,
+            is_digital_voucher: false,
+            timestamp: new Date().toISOString()
+          }
+        });
+      }
+
+      // CASE 2: NeroPay reports PENDING or request timed out / connection dropped (UNKNOWN)
+      // FinTech Standard (PhonePe / Paytm): Keep wallet debited, mark as PENDING!
+      // DO NOT REFUND! Let server callbacks or Admin Status Check resolve it.
+      if (liveCheckStatus === 'PENDING' || liveCheckStatus === 'UNKNOWN') {
+        console.log(`[RESCUE PENDING] ${internalTxId} is in-flight/pending at operator. Keeping wallet debited to prevent financial loss.`);
+        await query(
+          `UPDATE transactions SET 
+            status = 'PENDING',
+            upstream_api_used = 'NEROPAY',
+            upstream_operator_ref = $1,
+            upstream_response_raw = $2,
+            failure_reason = 'Processing at telecom operator',
+            updated_at = clock_timestamp()
+           WHERE id = $3`,
+          [operatorRef, JSON.stringify(rawRescue), transactionDbId]
+        );
+
+        if (dedupKey) releaseDedupKey(dedupKey);
+
+        return res.status(200).json({
+          success: true,
+          message: 'Your recharge request is under process at the operator. Your wallet has been debited. Please do not re-attempt; status will update shortly.',
+          data: {
+            transaction_id: internalTxId,
+            status: 'PENDING',
+            service_type: service_type,
+            operator_name: comm.operatorName,
+            operator_code: comm.operatorCode,
+            target_account: target_account_number,
+            face_value: face_value,
+            retailer_commission_earned: comm.retailerCommission,
+            retailer_commission_rate: comm.retailerPassDownRate,
+            final_cost_debited: billedCost,
+            upstream_api_used: 'NEROPAY',
+            upstream_operator_ref: operatorRef,
+            remaining_wallet_balance: balanceAfter,
+            did_failover: false,
+            is_digital_voucher: false,
+            timestamp: new Date().toISOString()
+          }
+        });
+      }
+
+      // CASE 3: EXPLICIT FAILURE FROM UPSTREAM
+      // ONLY when NeroPay confirms FAILED, execute refund safely with idempotency check
+      console.warn(`[EXPLICIT UPSTREAM FAILURE] ${internalTxId} is confirmed FAILED. Initiating safe wallet refund...`);
 
       let refundedBalance: number = balanceAfter;
 
       await withTransaction(async (rollbackClient) => {
-        // Lock user wallet row again to prevent concurrency conflicts during refund
+        // Check transaction status to prevent any double-refund
+        const txCheck = await rollbackClient.query(
+          'SELECT status FROM transactions WHERE id = $1',
+          [transactionDbId]
+        );
+        if (txCheck.rows.length > 0 && txCheck.rows[0].status === 'REFUNDED') {
+          console.warn(`[REFUND GUARD] Transaction ${internalTxId} was already refunded. Skipping duplicate refund.`);
+          return;
+        }
+
         const uLock = await rollbackClient.query(
           'SELECT current_balance FROM users WHERE id = $1 FOR UPDATE',
           [retailerId]
@@ -315,13 +366,11 @@ export async function executeRecharge(req: Request, res: Response) {
         const curBal = parseFloat(uLock.rows[0].current_balance);
         refundedBalance = Number((curBal + billedCost).toFixed(4));
 
-        // Return exact deducted balance
         await rollbackClient.query(
           'UPDATE users SET current_balance = $1, updated_at = clock_timestamp() WHERE id = $2',
           [refundedBalance, retailerId]
         );
 
-        // Log detailed credit transaction trail in wallet ledger
         await rollbackClient.query(
           `INSERT INTO wallet_ledger (
             user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
@@ -333,28 +382,27 @@ export async function executeRecharge(req: Request, res: Response) {
             curBal,
             refundedBalance,
             internalTxId,
-            `AUTO-REFUND: Dual provider failure on ${internalTxId} (${upstreamError.message || 'Upstream Rejected'})`
+            `AUTO-REFUND: Upstream rejected recharge on ${target_account_number} (${upstreamError.message || 'Operator rejected'})`
           ]
         );
 
-        // Mark transaction as FAILED in transactions audit table
         await rollbackClient.query(
           `UPDATE transactions SET 
             status = 'FAILED',
             failure_reason = $1,
-            upstream_api_used = 'NEROPAY & NOBLE',
+            upstream_api_used = 'NEROPAY',
             updated_at = clock_timestamp()
            WHERE id = $2`,
-          [upstreamError.message || 'Dual upstream providers failed', transactionDbId]
+          [upstreamError.message || 'Operator rejected recharge', transactionDbId]
         );
       });
 
       if (dedupKey) releaseDedupKey(dedupKey);
 
-      return res.status(502).json({
+      return res.status(400).json({
         success: false,
-        code: 'TRANSACTION_REVERSED',
-        message: 'Order failed to process through both primary and failover gateways. Your wallet has been 100% refunded.',
+        code: 'OPERATOR_FAILED',
+        message: 'Recharge was declined by the operator. Your wallet has been 100% refunded.',
         details: upstreamError.message,
         data: {
           transaction_id: internalTxId,

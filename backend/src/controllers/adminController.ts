@@ -967,22 +967,62 @@ export async function checkTransactionStatus(req: Request, res: Response) {
     }
 
     if (statusRes.status === 'SUCCESS' && !neroClient.isSandbox) {
-      await query(
-        `UPDATE transactions SET 
-          status = 'SUCCESS',
-          upstream_operator_ref = COALESCE($1, upstream_operator_ref),
-          failure_reason = NULL,
-          updated_at = clock_timestamp()
-         WHERE id = $2`,
-        [statusRes.upstreamRef || null, tx.id]
-      );
+      const billedCost = parseFloat(tx.final_cost_billed || tx.face_value || '0');
+      let debitedBack = false;
+
+      // If transaction was previously FAILED or REFUNDED, recover the refunded funds
+      if ((tx.status === 'FAILED' || tx.status === 'REFUNDED') && billedCost > 0) {
+        await withTransaction(async (client) => {
+          const uRes = await client.query('SELECT current_balance FROM users WHERE id = $1 FOR UPDATE', [tx.retailer_id]);
+          if (uRes.rows.length > 0) {
+            const curBal = parseFloat(uRes.rows[0].current_balance);
+            const newBal = Number((curBal - billedCost).toFixed(4));
+            await client.query('UPDATE users SET current_balance = $1, updated_at = clock_timestamp() WHERE id = $2', [newBal, tx.retailer_id]);
+            await client.query(
+              `INSERT INTO wallet_ledger (
+                user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
+              ) VALUES ($1, $2, 'DEBIT', $3, $4, $5, $6)`,
+              [
+                tx.retailer_id,
+                billedCost,
+                curBal,
+                newBal,
+                `RECON_${tx.internal_tx_id}`,
+                `Reconciliation debit: Upstream confirmed SUCCESS (Ref: ${statusRes.upstreamRef || tx.upstream_operator_ref})`
+              ]
+            );
+            debitedBack = true;
+          }
+
+          await client.query(
+            `UPDATE transactions SET 
+              status = 'SUCCESS',
+              upstream_operator_ref = COALESCE($1, upstream_operator_ref),
+              failure_reason = NULL,
+              updated_at = clock_timestamp()
+             WHERE id = $2`,
+            [statusRes.upstreamRef || null, tx.id]
+          );
+        });
+      } else {
+        await query(
+          `UPDATE transactions SET 
+            status = 'SUCCESS',
+            upstream_operator_ref = COALESCE($1, upstream_operator_ref),
+            failure_reason = NULL,
+            updated_at = clock_timestamp()
+           WHERE id = $2`,
+          [statusRes.upstreamRef || null, tx.id]
+        );
+      }
 
       return res.json({
         success: true,
         status: 'SUCCESS',
         message: statusRes.message || 'Transaction successfully completed at telecom operator.',
         upstream_ref: statusRes.upstreamRef || tx.upstream_operator_ref,
-        refunded: false
+        refunded: false,
+        reconciled_debit: debitedBack ? billedCost : 0
       });
     }
 
