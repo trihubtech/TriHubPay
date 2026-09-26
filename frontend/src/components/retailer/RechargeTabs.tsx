@@ -219,7 +219,8 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
 
   // Auto-detect Indian Mobile Operator prefix logic
   const handlePhoneChange = (val: string) => {
-    const clean = val.replace(/\D/g, '').slice(0, 10);
+    const maxDigits = activeTab === 'DTH' ? 11 : 10;
+    const clean = val.replace(/\D/g, '').slice(0, maxDigits);
     setAccountNumber(clean);
     setErrorMsg('');
 
@@ -419,6 +420,7 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
               <div className="relative flex items-center">
                 <input
                   type={['MOBILE', 'GOOGLE_PLAY', 'OTT_APPS'].includes(activeTab) ? 'tel' : 'text'}
+                  maxLength={activeTab === 'DTH' ? 11 : 10}
                   placeholder={getAccountPlaceholder(activeTab)}
                   value={accountNumber}
                   onChange={(e) => handlePhoneChange(e.target.value)}
