@@ -51,12 +51,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
   const [email, setEmail] = useState<string>('');
   const [regPassword, setRegPassword] = useState<string>('');
   const [showRegPassword, setShowRegPassword] = useState<boolean>(false);
-  const [regOtp, setRegOtp] = useState<string>('');
-  const [isOtpSent, setIsOtpSent] = useState<boolean>(false);
-  const [isOtpVerified, setIsOtpVerified] = useState<boolean>(false);
-  const [sendingRegOtp, setSendingRegOtp] = useState<boolean>(false);
-  const [verifyingRegOtp, setVerifyingRegOtp] = useState<boolean>(false);
-  const [regOtpCountdown, setRegOtpCountdown] = useState<number>(0);
 
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
@@ -87,64 +81,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
   }, [forgotCountdown]);
 
   React.useEffect(() => {
-    let timer: any;
-    if (regOtpCountdown > 0) {
-      timer = setInterval(() => {
-        setRegOtpCountdown(prev => (prev > 0 ? prev - 1 : 0));
-      }, 1000);
-    }
-    return () => clearInterval(timer);
-  }, [regOtpCountdown]);
-
-  React.useEffect(() => {
     const handleHash = () => {
       setIsAdminPortal(window.location.hash === '#admin' || window.location.pathname.startsWith('/admin'));
     };
     window.addEventListener('hashchange', handleHash);
     return () => window.removeEventListener('hashchange', handleHash);
   }, []);
-
-  const handleSendRegOtp = async () => {
-    setErrorMsg('');
-    if (phone.length !== 10 || !/^[6-9]\d{9}$/.test(phone)) {
-      setErrorMsg('Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.');
-      return;
-    }
-    setSendingRegOtp(true);
-    try {
-      const res = await api.sendMobileOtp({ phone, email, purpose: 'REGISTER' });
-      if (res.success) {
-        setIsOtpSent(true);
-        setRegOtpCountdown(60);
-        if (res.demo_otp) {
-          setRegOtp(res.demo_otp);
-        }
-      }
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Unable to send verification code. Please check your mobile number.');
-    } finally {
-      setSendingRegOtp(false);
-    }
-  };
-
-  const handleVerifyRegOtp = async () => {
-    setErrorMsg('');
-    if (regOtp.trim().length !== 6) {
-      setErrorMsg('Please enter the complete 6-digit OTP code.');
-      return;
-    }
-    setVerifyingRegOtp(true);
-    try {
-      const res = await api.verifyMobileOtp({ phone, otp: regOtp.trim() });
-      if (res.success) {
-        setIsOtpVerified(true);
-      }
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Invalid or expired OTP code.');
-    } finally {
-      setVerifyingRegOtp(false);
-    }
-  };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -573,10 +515,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
                   required
                   maxLength={10}
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                  onChange={(e) => {
+                    const nextPhone = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setPhone(nextPhone);
+                  }}
                   placeholder="9876543210"
                   className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-950 focus:outline-none focus:border-brand-500"
                 />
+                <p className="mt-1 text-[10px] text-slate-500">Used for account contact and support.</p>
               </div>
 
               <div>

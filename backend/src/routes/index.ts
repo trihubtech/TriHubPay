@@ -19,8 +19,6 @@ export const router = Router();
 // -------------------------------------------------------------
 router.post('/auth/login', authController.login);
 router.post('/auth/register', authController.registerRetailer);
-router.post('/auth/send-mobile-otp', authController.sendMobileOtp);
-router.post('/auth/verify-mobile-otp', authController.verifyMobileOtp);
 router.post('/auth/forgot-password/send-otp', authController.sendPasswordResetOtp);
 router.post('/auth/forgot-password/reset', authController.verifyOtpAndResetPassword);
 router.get('/auth/me', authenticate, authController.getMe);
