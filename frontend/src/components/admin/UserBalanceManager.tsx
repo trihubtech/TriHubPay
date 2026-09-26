@@ -64,6 +64,7 @@ export const UserBalanceManager: React.FC<UserBalanceManagerProps> = ({
   const [ledgerModalUser, setLedgerModalUser] = useState<User | null>(null);
   const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([]);
   const [loadingLedger, setLoadingLedger] = useState<boolean>(false);
+  const [ledgerError, setLedgerError] = useState<string>('');
 
   // Edit Profile Modal state
   const [profileModalUser, setProfileModalUser] = useState<User | null>(null);
@@ -276,14 +277,19 @@ export const UserBalanceManager: React.FC<UserBalanceManagerProps> = ({
 
   const handleViewLedger = async (u: User) => {
     setLedgerModalUser(u);
+    setLedgerEntries([]);
     setLoadingLedger(true);
+    setLedgerError('');
     try {
       const res = await api.getUserLedger(u.id);
       if (res.success) {
-        setLedgerEntries(res.data);
+        setLedgerEntries(res.data || []);
+      } else {
+        setLedgerError(res.message || 'Unable to load wallet ledger. Please try again.');
       }
     } catch (err: any) {
       console.error(err);
+      setLedgerError(err.message || 'Unable to load wallet ledger. Please try again.');
     } finally {
       setLoadingLedger(false);
     }
@@ -776,7 +782,14 @@ export const UserBalanceManager: React.FC<UserBalanceManagerProps> = ({
                   <span>Loading immutable ledger...</span>
                 </div>
               ) : ledgerEntries.length === 0 ? (
-                <div className="text-center py-8 text-slate-500 text-xs">No ledger entries found.</div>
+                ledgerError ? (
+                  <div className="text-center py-8 space-y-2">
+                    <p className="text-rose-600 dark:text-rose-400 text-xs font-semibold">Could not load ledger: {ledgerError}</p>
+                    <button type="button" onClick={() => { if (ledgerModalUser) void handleViewLedger(ledgerModalUser); }} className="rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white">Try again</button>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-slate-500 text-xs">No ledger entries found.</div>
+                )
               ) : (
                 <div className="divide-y divide-slate-200 dark:divide-slate-800/60 font-mono text-xs">
                   {ledgerEntries.map((e) => (

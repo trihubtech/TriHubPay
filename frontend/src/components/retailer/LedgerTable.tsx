@@ -42,6 +42,7 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({
   const [loadingDeposits, setLoadingDeposits] = useState<boolean>(false);
   const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([]);
   const [loadingLedger, setLoadingLedger] = useState<boolean>(false);
+  const [ledgerError, setLedgerError] = useState<string>('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [checkingStatusId, setCheckingStatusId] = useState<string | null>(null);
   const [statusToast, setStatusToast] = useState<{ id: string; message: string; isSuccess: boolean } | null>(null);
@@ -94,14 +95,19 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({
   };
 
   const fetchLedger = async () => {
+    setLedgerEntries([]);
     setLoadingLedger(true);
+    setLedgerError('');
     try {
       const res = await api.getRetailerLedger();
       if (res.success) {
-        setLedgerEntries(res.data);
+        setLedgerEntries(res.data || []);
+      } else {
+        setLedgerError(res.message || 'Unable to load wallet ledger. Please try again.');
       }
     } catch (err: any) {
       console.error('Failed to load wallet ledger', err);
+      setLedgerError(err.message || 'Unable to load wallet ledger. Please try again.');
     } finally {
       setLoadingLedger(false);
     }
@@ -110,8 +116,6 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({
   useEffect(() => {
     if (activeTab === 'DEPOSITS') {
       fetchDeposits();
-    } else if (activeTab === 'LEDGER') {
-      fetchLedger();
     }
   }, [activeTab]);
 
@@ -187,7 +191,10 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({
           {/* Tab 2: Wallet Ledger */}
           <button
             type="button"
-            onClick={() => setActiveTab('LEDGER')}
+            onClick={() => {
+              setActiveTab('LEDGER');
+              void fetchLedger();
+            }}
             className={`py-2 px-1 sm:px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-w-0 ${
               activeTab === 'LEDGER'
                 ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-sm border border-slate-200 dark:border-slate-700'
@@ -380,13 +387,22 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({
               <span>Loading ledger history...</span>
             </div>
           ) : ledgerEntries.length === 0 ? (
-            <div className="p-8 text-center space-y-2">
-              <Wallet className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto" />
-              <p className="text-xs font-bold text-slate-600 dark:text-slate-400">No ledger movements yet</p>
-              <p className="text-[11px] text-slate-400">
-                All balance credits, debits, UPI approvals, and admin adjustments will record here.
-              </p>
-            </div>
+            ledgerError ? (
+              <div className="p-8 text-center space-y-2">
+                <AlertCircle className="w-8 h-8 text-rose-400 mx-auto" />
+                <p className="text-xs font-bold text-rose-600 dark:text-rose-400">Could not load wallet ledger</p>
+                <p className="text-[11px] text-slate-500">{ledgerError}</p>
+                <button type="button" onClick={() => void fetchLedger()} className="mt-2 rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white">Try again</button>
+              </div>
+            ) : (
+              <div className="p-8 text-center space-y-2">
+                <Wallet className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto" />
+                <p className="text-xs font-bold text-slate-600 dark:text-slate-400">No ledger movements yet</p>
+                <p className="text-[11px] text-slate-400">
+                  All balance credits, debits, UPI approvals, and admin adjustments will record here.
+                </p>
+              </div>
+            )
           ) : (
             <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
               {ledgerEntries.map((entry, idx) => {

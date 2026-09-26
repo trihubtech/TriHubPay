@@ -314,7 +314,7 @@ export const api = {
   },
 
   async getRetailerLedger() {
-    return request<{ success: boolean; data: LedgerEntry[] }>('/wallet/ledger');
+    return request<{ success: boolean; data: LedgerEntry[]; message?: string }>('/wallet/ledger');
   },
 
   // Admin Actions
@@ -360,7 +360,7 @@ export const api = {
   },
 
   async getUserLedger(userId: string) {
-    return request<{ success: boolean; data: LedgerEntry[] }>(`/admin/users/${userId}/ledger`);
+    return request<{ success: boolean; data: LedgerEntry[]; message?: string }>(`/admin/users/${userId}/ledger`);
   },
 
   async adminUpdateUserProfile(userId: string, payload: {
