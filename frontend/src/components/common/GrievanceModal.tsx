@@ -47,8 +47,8 @@ export const GrievanceModal: React.FC<GrievanceModalProps> = ({ isOpen, onClose 
               <Mail className="w-4 h-4 text-brand-500 shrink-0 mt-0.5" />
               <div>
                 <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">Grievance &amp; Compliance Desk</span>
-                <a href="mailto:grievance@trihubtechnologies.com" className="text-brand-600 dark:text-brand-400 font-medium hover:underline">
-                  grievance@trihubtechnologies.com / trihubtechnologies@gmail.com
+                <a href="mailto:trihubtechnologies@gmail.com" className="text-brand-600 dark:text-brand-400 font-medium hover:underline">
+                  trihubtechnologies@gmail.com
                 </a>
               </div>
             </div>
