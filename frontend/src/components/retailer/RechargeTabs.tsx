@@ -467,6 +467,12 @@ export const RechargeTabs: React.FC<RechargeTabsProps> = ({
                   </button>
                 )}
               </div>
+
+              {/* DPDP Act 2023 Consent & Transient Processing Notice */}
+              <div className="mt-1.5 px-1 flex items-start gap-1 text-[9.5px] text-slate-500 dark:text-slate-400 leading-tight">
+                <span className="text-emerald-500 shrink-0 font-bold">🔒</span>
+                <span>By submitting this number, you certify that the consumer has authorized this transient telecommunications activation routing in accordance with the TriHubPay Data Privacy Matrix (DPDP Act 2023).</span>
+              </div>
             </div>
 
             {/* Operator Selection Pill Card */}
