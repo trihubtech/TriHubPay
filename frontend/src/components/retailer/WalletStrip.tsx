@@ -30,7 +30,7 @@ export const WalletStrip: React.FC<WalletStripProps> = ({
             <div className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1.5 flex-wrap">
               <span className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[120px] sm:max-w-xs">{shopName || 'My Account'}</span>
               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
-                Wallet Cash
+                Prepaid Float
               </span>
             </div>
             <div className="flex items-baseline gap-2">
@@ -63,7 +63,7 @@ export const WalletStrip: React.FC<WalletStripProps> = ({
             className="flex items-center gap-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-md shadow-blue-600/20 active:scale-95 transition-all"
           >
             <PlusCircle className="w-4 h-4" />
-            <span>Add Cash (UPI)</span>
+            <span>Load Balance (UPI)</span>
           </button>
         </div>
       </div>

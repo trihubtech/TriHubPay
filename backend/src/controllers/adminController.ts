@@ -702,6 +702,17 @@ export async function approveDeposit(req: Request, res: Response) {
         throw new Error('This deposit has already been approved and credited');
       }
 
+      // Fraud Prevention: Ensure this UTR has not already been credited in another completed transaction
+      if (topup.upi_txn_id) {
+        const dupApproved = await client.query(
+          `SELECT id, txn_ref FROM wallet_topups WHERE upi_txn_id = $1 AND status = 'COMPLETED' AND id != $2`,
+          [topup.upi_txn_id, id]
+        );
+        if (dupApproved.rows.length > 0) {
+          throw new Error(`Fraud Lock: This UPI UTR reference (${topup.upi_txn_id}) has already been credited in transaction ${dupApproved.rows[0].txn_ref}.`);
+        }
+      }
+
       amount = parseFloat(topup.amount);
 
       // Lock user row

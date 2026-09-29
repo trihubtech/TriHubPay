@@ -151,7 +151,7 @@ export const UpiTopupModal: React.FC<UpiTopupModalProps> = ({ isOpen, onClose })
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850">
           <div className="flex items-center gap-2">
             <QrCode className="w-5 h-5 text-brand-500" />
-            <h3 className="font-bold text-lg text-slate-900 dark:text-white">Prepaid Wallet Top-up</h3>
+            <h3 className="font-bold text-lg text-slate-900 dark:text-white">Prepaid Balance Top-up</h3>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg">
             <X className="w-5 h-5" />
@@ -384,7 +384,7 @@ export const UpiTopupModal: React.FC<UpiTopupModalProps> = ({ isOpen, onClose })
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                  ENTER CASH AMOUNT (₹)
+                  ENTER TOP-UP AMOUNT (₹)
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xl font-bold text-slate-400 font-mono">
@@ -425,11 +425,11 @@ export const UpiTopupModal: React.FC<UpiTopupModalProps> = ({ isOpen, onClose })
 
               <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400 space-y-1">
                 <div className="flex items-center gap-1.5 text-slate-800 dark:text-slate-200 font-medium">
-                  <ShieldCheck className="w-4 h-4 text-brand-500" />
+                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
                   <span>Direct Bank Verification (0% Fee)</span>
                 </div>
-                <p>
-                  Pay via any UPI app. Admin verifies bank credit and updates your balance immediately.
+                <p className="text-[11px] leading-relaxed">
+                  Pay via any UPI app with zero intermediary charges. Credited balance is advance commercial float strictly for utility recharges &amp; bill payments (non-withdrawable, zero interest).
                 </p>
               </div>
 
@@ -497,7 +497,7 @@ export const UpiTopupModal: React.FC<UpiTopupModalProps> = ({ isOpen, onClose })
                   className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-mono font-bold tracking-widest text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 text-center"
                 />
                 <p className="text-[10px] text-slate-500 leading-tight">
-                  After paying in your UPI app, enter the 12-digit UTR/UPI Ref ID found on your payment receipt so admin can verify and credit your wallet.
+                  After paying in your UPI app, enter the 12-digit UTR/UPI Ref ID found on your payment receipt to verify and credit your balance.
                 </p>
               </div>
 

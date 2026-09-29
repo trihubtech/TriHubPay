@@ -110,6 +110,28 @@ export async function submitUpiDeposit(req: Request, res: Response) {
     const cleanUtr = String(utr_number).trim();
     const depositAmount = parseFloat(amount) || 0;
 
+    // Fraud Prevention: Ensure this UTR has not already been credited or submitted under another transaction
+    const dupUtrCheck = await query(
+      `SELECT id, status, txn_ref FROM wallet_topups 
+       WHERE upi_txn_id = $1 AND (status = 'COMPLETED' OR (status = 'PENDING_APPROVAL' AND txn_ref != $2))`,
+      [cleanUtr, txn_ref]
+    );
+
+    if (dupUtrCheck.rows.length > 0) {
+      const match = dupUtrCheck.rows[0];
+      if (match.status === 'COMPLETED') {
+        return res.status(400).json({
+          success: false,
+          message: 'This UPI UTR / Reference number has already been verified and credited. Duplicate submissions are strictly prohibited.'
+        });
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: 'This UPI UTR / Reference number is already under review for another transaction request.'
+        });
+      }
+    }
+
     // Check if record exists
     const existing = await query('SELECT id FROM wallet_topups WHERE txn_ref = $1', [txn_ref]);
     if (existing.rows.length > 0) {
@@ -130,7 +152,7 @@ export async function submitUpiDeposit(req: Request, res: Response) {
 
     return res.json({
       success: true,
-      message: 'Deposit request submitted successfully! Admin will verify the bank transfer and credit your wallet shortly.'
+      message: 'Deposit request submitted successfully! Admin will verify the bank transfer and credit your prepaid balance shortly.'
     });
   } catch (error: any) {
     console.error('[SUBMIT UPI DEPOSIT ERROR]:', error);

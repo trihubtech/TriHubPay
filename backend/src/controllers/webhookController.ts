@@ -319,3 +319,155 @@ export async function handleNeroPayWebhook(req: Request, res: Response) {
   }
 }
 
+/**
+ * Handles automated instant UPI payment gateway / listener webhooks
+ * Automatically credits user balance and writes double-entry ledger without manual admin approval
+ */
+export async function handleUpiPaymentWebhook(req: Request, res: Response) {
+  try {
+    const payload = { ...req.query, ...req.body };
+    console.log('[UPI PAYMENT WEBHOOK RECEIVED]:', JSON.stringify(payload));
+
+    const txnRef = String(payload.txn_ref || payload.client_txn_id || payload.order_id || payload.tr || '').trim();
+    const cleanUtr = String(payload.utr || payload.upi_txn_id || payload.bank_ref_num || payload.rrn || '').trim();
+    const rawAmount = parseFloat(payload.amount || payload.txn_amount || payload.amt || '0');
+    const rawStatus = String(payload.status || payload.payment_status || payload.status_code || '').toUpperCase();
+
+    if (!txnRef) {
+      return res.status(400).json({ success: false, message: 'Missing transaction reference (txn_ref)' });
+    }
+
+    const isSuccess = ['SUCCESS', 'PAID', 'COMPLETED', '00', 'TRUE'].includes(rawStatus);
+    if (!isSuccess) {
+      console.warn(`[UPI WEBHOOK NOTICE] Txn ${txnRef} reported non-success status: ${rawStatus}`);
+      return res.status(200).json({ success: true, acknowledged: true, note: 'Non-success status acknowledged' });
+    }
+
+    let updatedBalance = 0;
+    let shopName = '';
+    let creditedAmount = 0;
+
+    await withTransaction(async (client) => {
+      // 1. Locate topup record
+      const topupRes = await client.query(
+        'SELECT id, user_id, amount, upi_txn_id, txn_ref, status FROM wallet_topups WHERE txn_ref = $1 FOR UPDATE',
+        [txnRef]
+      );
+
+      if (topupRes.rows.length === 0) {
+        throw new Error(`Deposit record not found for txn_ref: ${txnRef}`);
+      }
+
+      const topup = topupRes.rows[0];
+      if (topup.status === 'COMPLETED') {
+        // Idempotency: Already processed
+        return;
+      }
+
+      creditedAmount = rawAmount > 0 ? rawAmount : parseFloat(topup.amount);
+      const utrToRecord = cleanUtr || topup.upi_txn_id || `UPI_AUTO_${Date.now()}`;
+
+      // 2. Anti-fraud check: Ensure UTR has not been credited in another transaction
+      if (cleanUtr) {
+        const dupCheck = await client.query(
+          `SELECT id, txn_ref FROM wallet_topups WHERE upi_txn_id = $1 AND status = 'COMPLETED' AND id != $2`,
+          [cleanUtr, topup.id]
+        );
+        if (dupCheck.rows.length > 0) {
+          throw new Error(`Fraud Lock: UTR ${cleanUtr} has already been credited in transaction ${dupCheck.rows[0].txn_ref}`);
+        }
+      }
+
+      // 3. Lock user row
+      const userRes = await client.query(
+        'SELECT id, organization_name, current_balance FROM users WHERE id = $1 FOR UPDATE',
+        [topup.user_id]
+      );
+
+      if (userRes.rows.length === 0) {
+        throw new Error('User associated with topup not found');
+      }
+
+      const user = userRes.rows[0];
+      shopName = user.organization_name;
+      const curBal = parseFloat(user.current_balance);
+      updatedBalance = Number((curBal + creditedAmount).toFixed(4));
+
+      // 4. Update user balance
+      await client.query(
+        'UPDATE users SET current_balance = $1, updated_at = clock_timestamp() WHERE id = $2',
+        [updatedBalance, user.id]
+      );
+
+      // 5. Update Master Admin Float Vault
+      const adminRes = await client.query(
+        "SELECT id, current_balance FROM users WHERE role = 'ADMIN' LIMIT 1"
+      );
+      if (adminRes.rows.length > 0) {
+        const adminUser = adminRes.rows[0];
+        const adminCurBal = parseFloat(adminUser.current_balance || '0');
+        const adminNewBal = Number((adminCurBal + creditedAmount).toFixed(4));
+        await client.query(
+          'UPDATE users SET current_balance = $1, updated_at = clock_timestamp() WHERE id = $2',
+          [adminNewBal, adminUser.id]
+        );
+
+        await client.query(
+          `INSERT INTO wallet_ledger (
+            user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
+          ) VALUES ($1, $2, 'CREDIT', $3, $4, $5, $6)`,
+          [
+            adminUser.id,
+            creditedAmount,
+            adminCurBal,
+            adminNewBal,
+            `ADM_${topup.txn_ref}`,
+            `Automated UPI Gateway Float Credit from ${shopName} (UTR: ${utrToRecord})`
+          ]
+        );
+      }
+
+      // 6. Record in retailer wallet_ledger (Double-entry audit log)
+      await client.query(
+        `INSERT INTO wallet_ledger (
+          user_id, amount, transaction_type, balance_before, balance_after, reference_id, description
+        ) VALUES ($1, $2, 'CREDIT', $3, $4, $5, $6)`,
+        [
+          user.id,
+          creditedAmount,
+          curBal,
+          updatedBalance,
+          topup.txn_ref,
+          `Automated UPI Float Load Verified (UTR: ${utrToRecord})`
+        ]
+      );
+
+      // 7. Mark topup as COMPLETED
+      await client.query(
+        `UPDATE wallet_topups SET 
+          status = 'COMPLETED',
+          upi_txn_id = $1,
+          admin_remarks = 'Automated UPI Gateway Verified & Credited',
+          completed_at = clock_timestamp()
+         WHERE id = $2`,
+        [utrToRecord, topup.id]
+      );
+    });
+
+    console.log(`[UPI AUTO-CREDIT SUCCESS] Credited ₹${creditedAmount} to ${shopName}. New Balance: ₹${updatedBalance}`);
+    return res.status(200).json({
+      success: true,
+      message: `Automated UPI credit completed. ₹${creditedAmount} credited.`,
+      data: {
+        txn_ref: txnRef,
+        credited_amount: creditedAmount,
+        new_balance: updatedBalance
+      }
+    });
+  } catch (error: any) {
+    console.error('[UPI PAYMENT WEBHOOK ERROR]:', error.message);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+

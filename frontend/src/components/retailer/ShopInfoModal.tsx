@@ -27,6 +27,11 @@ import {
 } from 'lucide-react';
 import { useLanguage, Language } from '../../context/LanguageContext';
 
+import { TermsModal } from '../common/TermsModal';
+import { RefundPolicyModal } from '../common/RefundPolicyModal';
+import { GrievanceModal } from '../common/GrievanceModal';
+import { Scale, FileText, UserCheck } from 'lucide-react';
+
 interface ShopInfoModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -45,7 +50,10 @@ export const ShopInfoModal: React.FC<ShopInfoModalProps> = ({
   onOpenFeedback
 }) => {
   const { language, setLanguage, t } = useLanguage();
-  const [modalTab, setModalTab] = useState<'PROFILE' | 'LANGUAGE' | 'SECURITY'>('PROFILE');
+  const [modalTab, setModalTab] = useState<'PROFILE' | 'LANGUAGE' | 'SECURITY' | 'LEGAL'>('PROFILE');
+  const [isTermsOpen, setIsTermsOpen] = useState<boolean>(false);
+  const [isRefundOpen, setIsRefundOpen] = useState<boolean>(false);
+  const [isGrievanceOpen, setIsGrievanceOpen] = useState<boolean>(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [orgName, setOrgName] = useState<string>(user.organization_name || '');
   const [ownerName, setOwnerName] = useState<string>(user.owner_name || '');
@@ -222,11 +230,11 @@ export const ShopInfoModal: React.FC<ShopInfoModalProps> = ({
         </div>
 
         {/* Modal Tabs Header */}
-        <div className="grid grid-cols-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/60 p-1.5 gap-1 shrink-0 text-center">
+        <div className="grid grid-cols-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/60 p-1.5 gap-1 shrink-0 text-center">
           <button
             type="button"
             onClick={() => setModalTab('PROFILE')}
-            className={`py-1.5 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+            className={`py-1.5 px-1 sm:px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 ${
               modalTab === 'PROFILE'
                 ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-sm border border-slate-200 dark:border-slate-700'
                 : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
@@ -239,20 +247,20 @@ export const ShopInfoModal: React.FC<ShopInfoModalProps> = ({
           <button
             type="button"
             onClick={() => setModalTab('LANGUAGE')}
-            className={`py-1.5 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+            className={`py-1.5 px-1 sm:px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 ${
               modalTab === 'LANGUAGE'
                 ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-sm border border-slate-200 dark:border-slate-700'
                 : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
             <Languages className="w-3.5 h-3.5" />
-            <span>Language</span>
+            <span>Lang</span>
           </button>
 
           <button
             type="button"
             onClick={() => setModalTab('SECURITY')}
-            className={`py-1.5 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+            className={`py-1.5 px-1 sm:px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 ${
               modalTab === 'SECURITY'
                 ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-sm border border-slate-200 dark:border-slate-700'
                 : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
@@ -260,6 +268,19 @@ export const ShopInfoModal: React.FC<ShopInfoModalProps> = ({
           >
             <Shield className="w-3.5 h-3.5" />
             <span>Security</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setModalTab('LEGAL')}
+            className={`py-1.5 px-1 sm:px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 ${
+              modalTab === 'LEGAL'
+                ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-sm border border-slate-200 dark:border-slate-700'
+                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+            }`}
+          >
+            <Scale className="w-3.5 h-3.5" />
+            <span>Legal</span>
           </button>
         </div>
 
@@ -623,8 +644,99 @@ export const ShopInfoModal: React.FC<ShopInfoModalProps> = ({
               </button>
             </div>
           )}
+
+          {/* TAB 4: LEGAL & REGULATORY COMPLIANCE */}
+          {modalTab === 'LEGAL' && (
+            <div className="space-y-3 animate-in fade-in duration-200">
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 text-xs space-y-1">
+                <span className="font-bold text-slate-800 dark:text-slate-200 block">
+                  Legal Structure &amp; Compliance Center
+                </span>
+                <p className="text-slate-500 text-[11px] leading-relaxed">
+                  TriHubPay operates as an authorized telecom &amp; utility technology distributor under proprietary advance trade float rules. Fully compliant with RBI PPI, IT Act 2000, and Shariah trade principles.
+                </p>
+              </div>
+
+              {/* 1. Terms of Service */}
+              <button
+                type="button"
+                onClick={() => setIsTermsOpen(true)}
+                className="w-full p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-brand-500 text-left transition-all flex items-center justify-between group shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                    <Scale className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-brand-500 transition-colors">
+                      Terms of Service &amp; Non-PPI Notice
+                    </div>
+                    <div className="text-[10px] text-slate-400">
+                      Entity structure, advance trade float, 0% interest
+                    </div>
+                  </div>
+                </div>
+                <span className="text-xs text-brand-600 dark:text-brand-400 font-bold">&rarr;</span>
+              </button>
+
+              {/* 2. Refund Policy */}
+              <button
+                type="button"
+                onClick={() => setIsRefundOpen(true)}
+                className="w-full p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-500 text-left transition-all flex items-center justify-between group shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-emerald-500 transition-colors">
+                      Refund &amp; Cancellation Policy
+                    </div>
+                    <div className="text-[10px] text-slate-400">
+                      100% instant refund guarantee on operator failures
+                    </div>
+                  </div>
+                </div>
+                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">&rarr;</span>
+              </button>
+
+              {/* 3. Grievance Officer */}
+              <button
+                type="button"
+                onClick={() => setIsGrievanceOpen(true)}
+                className="w-full p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-purple-500 text-left transition-all flex items-center justify-between group shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                    <UserCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-purple-500 transition-colors">
+                      Grievance Redressal Officer
+                    </div>
+                    <div className="text-[10px] text-slate-400">
+                      IT Rules 2021 statutory contact &amp; resolution SLAs
+                    </div>
+                  </div>
+                </div>
+                <span className="text-xs text-purple-600 dark:text-purple-400 font-bold">&rarr;</span>
+              </button>
+
+              {/* Halal & Regulatory Badge */}
+              <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20 text-[11px] text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                <span>Operating under ₹20 Lakhs GST Exemption &amp; Ethical Service Agency (Ju&apos;ala / Wakalah)</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Embedded Modals */}
+      <TermsModal isOpen={isTermsOpen} onClose={() => setIsTermsOpen(false)} />
+      <RefundPolicyModal isOpen={isRefundOpen} onClose={() => setIsRefundOpen(false)} />
+      <GrievanceModal isOpen={isGrievanceOpen} onClose={() => setIsGrievanceOpen(false)} />
     </div>
   );
 };

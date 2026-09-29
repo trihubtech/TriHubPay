@@ -138,7 +138,7 @@ export async function executeRecharge(req: Request, res: Response) {
         return res.status(400).json({
           success: false,
           code: 'INSUFFICIENT_FUNDS',
-          message: `Insufficient prepaid wallet balance. Required: ₹${billedCost.toFixed(2)} (after ₹${comm.retailerCommission.toFixed(2)} upfront discount), Available: ₹${balanceBefore.toFixed(2)}`
+          message: `Insufficient prepaid balance. Required: ₹${billedCost.toFixed(2)} (after ₹${comm.retailerCommission.toFixed(2)} upfront discount), Available: ₹${balanceBefore.toFixed(2)}`
         });
       }
 
