@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
@@ -159,6 +160,27 @@ export async function registerRetailer(req: Request, res: Response) {
     );
 
     const newUser = insertRes.rows[0];
+
+    // IT Act 2000 Section 10A / 67C: Log digital evidentiary legal consent
+    try {
+      const clientIp = ((req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket.remoteAddress || '127.0.0.1').substring(0, 64);
+      const userAgent = (req.headers['user-agent'] || 'UNKNOWN_CLIENT').substring(0, 500);
+      const termsVersion = 'v2026.09.TN-B2B';
+      const termsHash = crypto.createHash('sha256').update(`TRIHUBPAY_TERMS_MASTER_${termsVersion}`).digest('hex');
+      const tamperChecksum = crypto.createHash('sha256').update(`${newUser.id}|${termsHash}|${clientIp}|${userAgent}`).digest('hex');
+
+      await query(
+        `INSERT INTO merchant_legal_consents 
+         (merchant_id, terms_version, terms_hash, network_ip, browser_fingerprint, tamper_checksum) 
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [newUser.id, termsVersion, termsHash, clientIp, userAgent, tamperChecksum]
+      ).catch((err) => {
+        console.warn('[LEGAL CONSENT LOG NOTICE]:', err.message);
+      });
+    } catch (consentErr: any) {
+      console.warn('[LEGAL CONSENT NOTICE]:', consentErr.message);
+    }
+
     const token = jwt.sign(
       {
         id: newUser.id,
@@ -173,8 +195,8 @@ export async function registerRetailer(req: Request, res: Response) {
     );
 
     const welcomeMsg = account_type === 'CONSUMER'
-      ? 'Welcome to TriHubPay! Your personal account is ready. Add wallet balance to start getting instant cashback on every recharge.'
-      : 'Retailer shop account registered successfully. Please load wallet via UPI to start recharging and earning commission.';
+      ? 'Welcome to TriHubPay! Your personal account is ready. Add available balance to start receiving instant savings on every recharge.'
+      : 'Retailer shop account registered successfully. Please add available balance via UPI to start recharging and receiving trade discounts.';
 
     return res.status(201).json({
       success: true,
