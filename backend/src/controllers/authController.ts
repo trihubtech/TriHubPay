@@ -167,7 +167,7 @@ export async function registerRetailer(req: Request, res: Response) {
       const userAgent = (req.headers['user-agent'] || 'UNKNOWN_CLIENT').substring(0, 500);
       const termsVersion = 'v2026.09.TN-B2B';
       const termsHash = crypto.createHash('sha256').update(`TRIHUBPAY_TERMS_MASTER_${termsVersion}`).digest('hex');
-      const tamperChecksum = crypto.createHash('sha256').update(`${newUser.id}|${termsHash}|${clientIp}|${userAgent}`).digest('hex');
+      const tamperChecksum = crypto.createHmac('sha256', config.legalSalt).update(`${newUser.id}|${termsHash}|${clientIp}|${userAgent}`).digest('hex');
 
       await query(
         `INSERT INTO merchant_legal_consents 

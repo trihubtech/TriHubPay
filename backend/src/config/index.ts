@@ -11,6 +11,7 @@ export const config = {
   databaseUrl: process.env.DATABASE_URL || 'postgresql://trihub_admin:trihub_secure_pass_2026@localhost:5432/trihub_recharge',
   jwtSecret: process.env.JWT_SECRET || 'trihub_technologies_corporate_jwt_secret_2026',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
+  legalSalt: process.env.LEGAL_SALT || process.env.JWT_SECRET || 'trihub_fintech_tamper_seal_2026',
 
   // Dynamic Upstream Provider Routing (Change via .env with zero code changes)
   primaryProvider: (process.env.PRIMARY_PROVIDER || 'NEROPAY').toUpperCase(),
