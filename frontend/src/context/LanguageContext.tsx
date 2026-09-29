@@ -15,23 +15,23 @@ export const translations: Translations = {
   home: { en: 'Home', ta: 'முகப்பு', hi: 'होम' },
   recharge: { en: 'Recharge', ta: 'ரீசார்ஜ்', hi: 'रिचार्ज' },
   passbook: { en: 'Passbook', ta: 'பாஸ்புக்', hi: 'पासबुक' },
-  commission: { en: 'Commission', ta: 'கமிஷன்', hi: 'कमीशन' },
+  commission: { en: 'Cashback & Discount', ta: 'கேஷ்பேக் & தள்ளுபடி', hi: 'कैशबैक और छूट' },
   profile: { en: 'Profile', ta: 'சுயவிவரம்', hi: 'प्रोफ़ाइल' },
   settings: { en: 'Settings', ta: 'அமைப்புகள்', hi: 'सेटिंग्स' },
 
-  // Wallet
-  walletBalance: { en: 'Wallet Balance', ta: 'வாலட் இருப்பு', hi: 'वॉलेट बैलेंस' },
-  walletActive: { en: 'Wallet Active', ta: 'வாலட் செயலில் உள்ளது', hi: 'वॉलेट सक्रिय' },
-  addCash: { en: 'Add Money (UPI)', ta: 'பணம் சேர்க்க (UPI)', hi: 'पैसे जोड़ें (UPI)' },
-  addCashShort: { en: 'Add Cash', ta: 'பணம் சேர்', hi: 'पैसे जोड़ें' },
+  // Balance & Account
+  walletBalance: { en: 'Available Balance', ta: 'கிடைக்கக்கூடிய இருப்பு', hi: 'उपलब्ध बैलेंस' },
+  walletActive: { en: 'Account Active', ta: 'கணக்கு செயலில் உள்ளது', hi: 'खाता सक्रिय' },
+  addCash: { en: 'Load Balance (UPI)', ta: 'இருப்பு சேர்க்க (UPI)', hi: 'बैलेंस जोड़ें (UPI)' },
+  addCashShort: { en: 'Add Funds', ta: 'இருப்பு சேர்', hi: 'पैसे जोड़ें' },
   instantCredit: { en: 'Instant Credit', ta: 'உடனடி வரவு', hi: 'तत्काल क्रेडिट' },
 
   // Home Stats
   todayRecharge: { en: "Today's Recharge", ta: 'இன்றைய ரீசார்ஜ்', hi: 'आज का रिचार्ज' },
-  todayCommission: { en: "Today's Commission", ta: 'இன்றைய கமிஷன்', hi: 'आज का कमीशन' },
+  todayCommission: { en: "Today's Savings / Margin", ta: 'இன்றைய சேமிப்பு / தள்ளுபடி', hi: 'आज की बचत / छूट' },
   pendingRecharge: { en: 'Pending Recharge', ta: 'நிலுவையில் உள்ளவை', hi: 'लंबित रिचार्ज' },
   failedRecharge: { en: 'Failed Recharge', ta: 'தோல்வியுற்றவை', hi: 'विफल रिचार्ज' },
-  netProfitCredited: { en: 'Net Profit Credited', ta: 'நிகர லாபம் வரவு', hi: 'शुद्ध लाभ क्रेडिट' },
+  netProfitCredited: { en: 'Saved Instantly', ta: 'உடனடியாக சேமிக்கப்பட்டது', hi: 'तुरंत बचत' },
 
   // Services
   rechargeServices: { en: 'Recharge Services', ta: 'ரீசார்ஜ் சேவைகள்', hi: 'रिचार्ज सेवाएं' },
@@ -41,7 +41,7 @@ export const translations: Translations = {
 
   // Passbook & Ledger
   rechargePassbook: { en: 'Recharge Passbook', ta: 'ரீசார்ஜ் பாஸ்புக்', hi: 'रिचार्ज पासबुक' },
-  walletLedger: { en: 'Wallet Ledger', ta: 'வாலட் லெட்ஜர்', hi: 'वॉलेट लेजर' },
+  walletLedger: { en: 'Account Ledger', ta: 'கணக்கு லெட்ஜர்', hi: 'खाता लेजर' },
   depositRequests: { en: 'Deposit Requests', ta: 'வைப்பு கோரிக்கைகள்', hi: 'जमा अनुरोध' },
   success: { en: 'Success', ta: 'வெற்றி', hi: 'सफल' },
   pending: { en: 'Pending', ta: 'நிலுவையில்', hi: 'लंबित' },
@@ -57,11 +57,11 @@ export const translations: Translations = {
   data: { en: 'Data', ta: 'டேட்டா', hi: 'डेटा' },
   details: { en: 'Details', ta: 'விவரங்கள்', hi: 'विवरण' },
 
-  // Commission Structure
-  commissionStructure: { en: 'My Commission Structure', ta: 'எனது கமிஷன் விபரம்', hi: 'मेरा कमीशन स्ट्रक्चर' },
+  // Discount Structure
+  commissionStructure: { en: 'Cashback & Discount Rates', ta: 'கேஷ்பேக் & தள்ளுபடி விகிதங்கள்', hi: 'कैशबैक और छूट दरें' },
   allServices: { en: 'All Services', ta: 'அனைத்து சேவைகள்', hi: 'सभी सेवाएं' },
   activeOperators: { en: 'active operators', ta: 'செயலில் உள்ள ஆபரேட்டர்கள்', hi: 'सक्रिय ऑपरेटर' },
-  yourRate: { en: 'Your Commission Rate', ta: 'உங்கள் கமிஷன் விகிதம்', hi: 'आपकी कमीशन दर' },
+  yourRate: { en: 'Your Discount Rate', ta: 'உங்கள் தள்ளுபடி விகிதம்', hi: 'आपकी छूट दर' },
 
   // Share & Invite
   shareApp: { en: 'SHARE TRIHUBPAY APP', ta: 'ட்ரிஹப்-பே செயலியைப் பகிரவும்', hi: 'ट्राईहबपे ऐप शेयर करें' },

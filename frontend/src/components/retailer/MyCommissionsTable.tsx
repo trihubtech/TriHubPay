@@ -81,12 +81,12 @@ export const MyCommissionsTable: React.FC<MyCommissionsTableProps> = ({
           <div>
             <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
               <Percent className="w-5 h-5 text-brand-500" />
-              <span>{accountType === 'CONSUMER' ? 'My Offers & Cashback' : 'My Commission Structure'}</span>
+              <span>{accountType === 'CONSUMER' ? 'My Offers & Cashback' : 'Cashback & Discount Structure'}</span>
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               {accountType === 'CONSUMER'
                 ? 'Your instant discount savings on every mobile and DTH recharge.'
-                : 'Your instant earnings rate on every successful recharge.'}
+                : 'Your instant trade discount rate applied on every successful recharge.'}
             </p>
           </div>
 
@@ -156,7 +156,7 @@ export const MyCommissionsTable: React.FC<MyCommissionsTableProps> = ({
           <div className="p-12 text-center space-y-3">
             <Loader2 className="w-8 h-8 animate-spin text-brand-500 mx-auto" />
             <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-              Loading your live commission rates...
+              Loading your live discount &amp; cashback rates...
             </div>
           </div>
         )}
@@ -241,10 +241,10 @@ export const MyCommissionsTable: React.FC<MyCommissionsTableProps> = ({
                 <tr>
                   <th className="py-3 px-4">Operator / Biller</th>
                   <th className="py-3 px-4">Category</th>
-                  <th className="py-3 px-4 text-center">{accountType === 'CONSUMER' ? 'Cashback Rate' : 'Your Commission Rate'}</th>
-                  <th className="py-3 px-4 text-right">{accountType === 'CONSUMER' ? 'Save on ₹500' : 'Earn on ₹500'}</th>
-                  <th className="py-3 px-4 text-right">{accountType === 'CONSUMER' ? 'Save on ₹1,000' : 'Earn on ₹1,000'}</th>
-                  <th className="py-3 px-4 text-center">{accountType === 'CONSUMER' ? 'Discount' : 'Payout'}</th>
+                  <th className="py-3 px-4 text-center">{accountType === 'CONSUMER' ? 'Cashback Rate' : 'Discount Rate'}</th>
+                  <th className="py-3 px-4 text-right">{accountType === 'CONSUMER' ? 'Save on ₹500' : 'Save / Margin on ₹500'}</th>
+                  <th className="py-3 px-4 text-right">{accountType === 'CONSUMER' ? 'Save on ₹1,000' : 'Save / Margin on ₹1,000'}</th>
+                  <th className="py-3 px-4 text-center">Settlement</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
@@ -326,7 +326,7 @@ export const MyCommissionsTable: React.FC<MyCommissionsTableProps> = ({
         <div className="p-3 sm:p-3.5 bg-slate-50 dark:bg-slate-950/60 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
           <div className="flex items-center gap-1.5">
             <ShieldCheck className="w-4 h-4 text-brand-500 shrink-0" />
-            <span>All commissions are automatically credited upfront on every recharge.</span>
+            <span>All discounts and cashback are automatically applied upfront on every recharge.</span>
           </div>
           <div className="font-semibold text-slate-700 dark:text-slate-300">
             {filteredRates.length} active operators

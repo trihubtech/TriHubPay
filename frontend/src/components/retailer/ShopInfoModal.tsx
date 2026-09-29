@@ -653,7 +653,7 @@ export const ShopInfoModal: React.FC<ShopInfoModalProps> = ({
                   Legal Structure &amp; Compliance Center
                 </span>
                 <p className="text-slate-500 text-[11px] leading-relaxed">
-                  TriHubPay operates as an authorized telecom &amp; utility technology distributor under proprietary advance trade float rules. Fully compliant with RBI PPI, IT Act 2000, and Shariah trade principles.
+                  TriHubPay operates as an authorized telecom &amp; utility technology distributor under proprietary advance trade float rules. Fully compliant with RBI PPI, IT Act 2000, and consumer protection standards.
                 </p>
               </div>
 
@@ -723,10 +723,10 @@ export const ShopInfoModal: React.FC<ShopInfoModalProps> = ({
                 <span className="text-xs text-purple-600 dark:text-purple-400 font-bold">&rarr;</span>
               </button>
 
-              {/* Halal & Regulatory Badge */}
+              {/* Compliance & Regulatory Badge */}
               <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20 text-[11px] text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
-                <span>Operating under ₹20 Lakhs GST Exemption &amp; Ethical Service Agency (Ju&apos;ala / Wakalah)</span>
+                <span>Operating under ₹20 Lakhs GST Exemption &amp; Authorized Technology Service Distribution</span>
               </div>
             </div>
           )}

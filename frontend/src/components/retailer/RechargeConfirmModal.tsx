@@ -156,7 +156,7 @@ export const RechargeConfirmModal: React.FC<RechargeConfirmModalProps> = ({
             )}
 
             <div className="flex items-center justify-between text-sm pt-2 border-t border-slate-200 dark:border-slate-800 font-black">
-              <span className="text-slate-900 dark:text-white">Net Debit from Wallet</span>
+              <span className="text-slate-900 dark:text-white">Net Debit from Balance</span>
               <span className="font-mono text-blue-600 dark:text-brand-400 text-base">
                 ₹{finalCostBilled.toFixed(2)}
               </span>
@@ -175,7 +175,7 @@ export const RechargeConfirmModal: React.FC<RechargeConfirmModalProps> = ({
           {!isBalanceSufficient && (
             <div className="p-2.5 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-xl flex items-center gap-2 text-xs text-rose-600 dark:text-rose-400">
               <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>Insufficient balance. Please add funds to your wallet.</span>
+              <span>Insufficient balance. Please load balance via UPI to continue.</span>
             </div>
           )}
         </div>

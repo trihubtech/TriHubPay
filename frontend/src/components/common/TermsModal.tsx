@@ -52,19 +52,19 @@ export const TermsModal: React.FC<TermsModalProps> = ({ isOpen, onClose }) => {
             <ul className="mt-2 space-y-1.5 text-xs text-slate-600 dark:text-slate-400 pl-4 list-disc">
               <li><strong>No Cash Withdrawals:</strong> Funds credited to your TriHubPay balance cannot be redeemed for cash or transferred back to personal bank accounts, preventing illegal money transmission and complying with PMLA 2002 guidelines.</li>
               <li><strong>No Peer-to-Peer (P2P) Transfers:</strong> Balances cannot be transferred to other users or external third parties.</li>
-              <li><strong>Zero Interest (0% Riba):</strong> Account balances carry strictly 0% interest and do not constitute bank savings or investments.</li>
+              <li><strong>Zero Interest:</strong> Account balances carry strictly 0% interest and do not constitute bank deposits, savings, or investments.</li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-bold text-slate-900 dark:text-white text-base mb-1.5">2. Service Agency &amp; Halal Compliance</h4>
+            <h4 className="font-bold text-slate-900 dark:text-white text-base mb-1.5">2. Service Agency &amp; Trade Discount Model</h4>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              The operational model of TriHubPay adheres strictly to ethical trade principles (Shariah-compliant / Halal):
+              The operational model of TriHubPay adheres strictly to authorized Indian commercial trade and distribution principles:
             </p>
             <ul className="mt-2 space-y-1.5 text-xs text-slate-600 dark:text-slate-400 pl-4 list-disc">
-              <li><strong>Service Agency (Ju&apos;ala / Wakalah bi Ajr):</strong> Retail margins and discounts earned by shops and users are genuine technological agency fees for facilitating telecom and utility distribution.</li>
-              <li><strong>No Gharar (Uncertainty):</strong> All recharge plans and pricing are transparently quoted before execution.</li>
-              <li><strong>Amanah (Trust):</strong> Failed recharge amounts are returned 100% to the user&apos;s prepaid balance automatically.</li>
+              <li><strong>Trade Discounts &amp; Cashback:</strong> Retail margins and discounts earned by shops and users are genuine promotional trade discounts for facilitating telecom connectivity and utility bill settlements.</li>
+              <li><strong>Transparent Pricing:</strong> All recharge plans and pricing are transparently quoted before execution with zero hidden costs.</li>
+              <li><strong>Instant Refund Guarantee:</strong> Failed recharge amounts are returned 100% to the user&apos;s prepaid balance automatically.</li>
             </ul>
           </div>
 

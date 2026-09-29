@@ -533,7 +533,7 @@ export function App() {
                 {retailerTab === 'RECHARGE' && 'Instant 0.8s Lapu / BBPS Dispatch'}
                 {retailerTab === 'PASSBOOK' && `${retailerTransactions.length} Total Transactions`}
                 {retailerTab === 'REPORTS' && 'Turnover & Earnings Breakdown'}
-                {retailerTab === 'COMMISSIONS' && (currentUser.account_type === 'CONSUMER' ? 'Your Instant Cashback Rates' : 'Your Allocated Commission Margins')}
+                {retailerTab === 'COMMISSIONS' && (currentUser.account_type === 'CONSUMER' ? 'Your Instant Cashback Rates' : 'Your Instant Discount & Margin Rates')}
               </div>
             </div>
 

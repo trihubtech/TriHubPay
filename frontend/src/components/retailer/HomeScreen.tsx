@@ -108,7 +108,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     const inviteUrl = window.location.origin;
     const shareData = {
       title: 'Join TriHubPay Platform',
-      text: '🏪 Join me on TriHubPay — Instant mobile & DTH recharges with highest commissions and instant dispatch! Sign up here:',
+      text: '🏪 Join me on TriHubPay — Instant mobile & DTH recharges with highest discounts & cashback and instant dispatch! Sign up here:',
       url: inviteUrl
     };
 
@@ -393,7 +393,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               type="button"
               onClick={() => {
                 const url = window.location.origin;
-                const text = encodeURIComponent(`🏪 Join TriHubPay — Instant mobile & DTH recharge with high commissions! Sign up here: ${url}`);
+                const text = encodeURIComponent(`🏪 Join TriHubPay — Instant mobile & DTH recharge with high discounts & cashback! Sign up here: ${url}`);
                 window.open(`https://wa.me/?text=${text}`, '_blank');
               }}
               className="flex-1 sm:flex-initial px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all"

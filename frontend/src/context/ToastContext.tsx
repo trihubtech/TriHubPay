@@ -30,14 +30,14 @@ export function humanizeErrorMessage(raw: string): { title: string; message: str
   if (lower.includes('no api active') || lower.includes('operator inactive')) {
     return {
       title: 'Service Temporarily Updating',
-      message: 'This operator service is currently undergoing routine switch maintenance. Your wallet balance is 100% safe and refunded. Please try again shortly or try another provider.'
+      message: 'This operator service is currently undergoing routine switch maintenance. Your balance is 100% safe and refunded. Please try again shortly or try another provider.'
     };
   }
 
-  if (lower.includes('insufficient_funds') || lower.includes('insufficient prepaid wallet')) {
+  if (lower.includes('insufficient_funds') || lower.includes('insufficient prepaid')) {
     return {
-      title: 'Wallet Balance Low',
-      message: 'Your current wallet balance is lower than the recharge cost. Please add cash via instant UPI to continue.'
+      title: 'Available Balance Low',
+      message: 'Your current balance is lower than the recharge cost. Please load balance via instant UPI to continue.'
     };
   }
 
@@ -65,7 +65,7 @@ export function humanizeErrorMessage(raw: string): { title: string; message: str
   if (lower.includes('declined by operator') || lower.includes('operator rejected')) {
     return {
       title: 'Operator Declined',
-      message: 'The telecom operator could not process this request right now. Your wallet balance has been 100% refunded.'
+      message: 'The telecom operator could not process this request right now. Your balance has been 100% refunded.'
     };
   }
 
