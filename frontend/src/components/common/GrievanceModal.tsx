@@ -40,7 +40,7 @@ export const GrievanceModal: React.FC<GrievanceModalProps> = ({ isOpen, onClose 
           <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 space-y-3 font-sans">
             <div>
               <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">Designated Officer</span>
-              <span className="text-sm font-bold text-slate-900 dark:text-white">Mr. S. Mohamed &bull; Nodal Grievance &amp; Compliance Officer</span>
+              <span className="text-sm font-bold text-slate-900 dark:text-white">Mr. Ferose Khan &bull; Nodal Grievance &amp; Compliance Officer</span>
             </div>
 
             <div className="flex items-start gap-2.5">
