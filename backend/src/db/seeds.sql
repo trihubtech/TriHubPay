@@ -5,7 +5,7 @@
 -- 1. SEED USERS (Only Real Master Admin)
 INSERT INTO users (id, organization_name, owner_name, phone, email, password_hash, role, current_balance, api_key, is_active)
 VALUES 
-    ('00000000-0000-0000-0000-000000000001', 'TriHub Technologies (Platform Master)', 'TriHub Admin', '6374569225', 'admin.pay@trihubtechnologies.com', '$2a$10$MthsMeKUb8EnV5w0ak8fmuwoYLXxRignwkNzh4Imb3FqfgJ0NyBx6', 'ADMIN', 0.0000, 'trihub-master-api-key-2026', true)
+    ('00000000-0000-0000-0000-000000000001', 'TriHub Technologies (Platform Master)', 'TriHub Admin', '6374569225', 'trihubtechnologies@gmail.com', '$2a$10$MthsMeKUb8EnV5w0ak8fmuwoYLXxRignwkNzh4Imb3FqfgJ0NyBx6', 'ADMIN', 0.0000, 'trihub-master-api-key-2026', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- 3. SEED GLOBAL COMMISSION MATRIX (NeroPay Primary + Noble Dynamic Failover)

@@ -55,7 +55,7 @@ const memoryStore = {
       organization_name: 'TriHub Technologies (Platform Master)',
       owner_name: 'TriHub Admin',
       phone: '6374569225',
-      email: 'admin.pay@trihubtechnologies.com',
+      email: 'trihubtechnologies@gmail.com',
       password_hash: '$2a$10$MthsMeKUb8EnV5w0ak8fmuwoYLXxRignwkNzh4Imb3FqfgJ0NyBx6',
       role: 'ADMIN',
       current_balance: '0.0000',

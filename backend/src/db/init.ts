@@ -68,6 +68,12 @@ To switch to persistent PostgreSQL storage:
     } else {
       console.log('ℹ️ [DB INIT] Admin user already exists. Skipping seeds insertion.');
     }
+
+    // Ensure admin user has updated email trihubtechnologies@gmail.com
+    await query("UPDATE users SET email = 'trihubtechnologies@gmail.com' WHERE role = 'ADMIN' AND email != 'trihubtechnologies@gmail.com';").catch((err) => {
+      console.warn('[DB INIT ADMIN EMAIL NOTICE]:', err.message);
+    });
+
     return true;
   } catch (error: any) {
     console.error('[DB INIT ERROR]: Failed to initialize PostgreSQL:', error.message);

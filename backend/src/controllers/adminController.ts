@@ -839,7 +839,7 @@ export async function rejectDeposit(req: Request, res: Response) {
  */
 export async function resetAllRetailerBalances(req: Request, res: Response) {
   try {
-    const adminEmail = req.user?.email || 'admin@trihubpay.com';
+    const adminEmail = req.user?.email || 'trihubtechnologies@gmail.com';
 
     await withTransaction(async (client) => {
       const usersRes = await client.query("SELECT id, current_balance FROM users WHERE role = 'RETAILER' AND current_balance > 0");
@@ -879,7 +879,7 @@ export async function resetAllRetailerBalances(req: Request, res: Response) {
 export async function resetSingleRetailerBalance(req: Request, res: Response) {
   try {
     const { user_id } = req.params;
-    const adminEmail = req.user?.email || 'admin@trihubpay.com';
+    const adminEmail = req.user?.email || 'trihubtechnologies@gmail.com';
 
     let orgName = '';
 
