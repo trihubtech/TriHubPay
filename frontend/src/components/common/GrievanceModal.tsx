@@ -39,16 +39,16 @@ export const GrievanceModal: React.FC<GrievanceModalProps> = ({ isOpen, onClose 
 
           <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 space-y-3 font-sans">
             <div>
-              <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">Designation</span>
-              <span className="text-sm font-bold text-slate-900 dark:text-white">Nodal Grievance &amp; Compliance Officer</span>
+              <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">Designated Officer</span>
+              <span className="text-sm font-bold text-slate-900 dark:text-white">Mr. S. Mohamed &bull; Nodal Grievance &amp; Compliance Officer</span>
             </div>
 
             <div className="flex items-start gap-2.5">
               <Mail className="w-4 h-4 text-brand-500 shrink-0 mt-0.5" />
               <div>
-                <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">Email Support</span>
-                <a href="mailto:support@trihubpay.com" className="text-brand-600 dark:text-brand-400 font-medium hover:underline">
-                  support@trihubpay.com / trihubtechnologies@gmail.com
+                <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">Grievance &amp; Compliance Desk</span>
+                <a href="mailto:grievance@trihubtechnologies.com" className="text-brand-600 dark:text-brand-400 font-medium hover:underline">
+                  grievance@trihubtechnologies.com / trihubtechnologies@gmail.com
                 </a>
               </div>
             </div>
